@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TV Brskalnik</string>
+    <string name="url_hint">Vnesite naslov ali poiščite z Google...</string>
+    <string name="nav_browse">🌐 Brskanje</string>
+    <string name="nav_bookmarks">⭐ Zaznamki</string>
+    <string name="nav_downloads">⬇️ Prenosi</string>
+    <string name="nav_settings">⚙️ Nastavitve</string>
+    <string name="btn_add_bookmark">+ Dodaj zaznamek</string>
+    <string name="no_bookmarks_title">Še nimate shranjenih zaznamkov</string>
+    <string name="no_bookmarks_desc">Med brskanjem pritisnite ikono zvezdice ⭐, da shranite stran med priljubljene.</string>
+    <string name="no_downloads_title">Ni prenesenih datotek</string>
+    <string name="cursor_mode_on">Virtualni kurzor: VKLOPLJEN</string>
+    <string name="cursor_mode_off">Virtualni kurzor: IZKLOPLJEN</string>
+</resources>

@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary">
+
+    <!-- Top Navigation Bar -->
+    <LinearLayout
+        android:id="@+id/navBar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_alignParentTop="true"
+        android:background="@drawable/bg_nav_bar"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:elevation="12dp">
+
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="◀"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnForward"
+            android:layout_width="48dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="▶"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnRefresh"
+            android:layout_width="48dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="🔄"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnHome"
+            android:layout_width="48dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="🏠"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:focusable="true" />
+
+        <!-- Omnibox URL / Search input -->
+        <EditText
+            android:id="@+id/editUrl"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_omnibox"
+            android:hint="@string/url_hint"
+            android:textColorHint="@color/text_secondary"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:paddingHorizontal="14dp"
+            android:singleLine="true"
+            android:imeOptions="actionGo"
+            android:inputType="textUri|textWebEditText"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnGo"
+            android:layout_width="56dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="Išči"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnStarBookmark"
+            android:layout_width="48dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="⭐"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnNavBookmarks"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:paddingHorizontal="12dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="Zaznamki"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnNavDownloads"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:paddingHorizontal="12dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="Prenosi"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnToggleCursor"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:paddingHorizontal="12dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="🖱️ Kurzor"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnNavSettings"
+            android:layout_width="48dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_nav_button"
+            android:text="⚙️"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/pageProgressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_below="@id/navBar"
+        android:progressDrawable="@drawable/bg_omnibox"
+        android:visibility="gone"
+        android:elevation="14dp" />
+
+    <!-- Main Content Area -->
+    <FrameLayout
+        android:id="@+id/contentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/navBar">
+
+        <!-- Web View -->
+        <WebView
+            android:id="@+id/mainWebView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:focusable="true"
+            android:focusableInTouchMode="true" />
+
+        <!-- Bookmarks Panel -->
+        <ScrollView
+            android:id="@+id/bookmarksPanel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bg_primary"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="20dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="⭐ Moji Zaznamki in Priljubljene Strani"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnAddCustomBookmark"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:paddingHorizontal="20dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="@string/btn_add_bookmark"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Dynamic Grid Container -->
+                <GridLayout
+                    android:id="@+id/bookmarksGrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="4"
+                    android:useDefaultMargins="true"
+                    android:alignmentMode="alignMargins" />
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Downloads Panel -->
+        <ScrollView
+            android:id="@+id/downloadsPanel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bg_primary"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="⬇️ Upravljalnik Prenosov &amp; Datoteke"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="16dp" />
+
+                <LinearLayout
+                    android:id="@+id/downloadsListContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/textNoDownloads"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:padding="40dp"
+                    android:text="Ni prenesenih datotek.\nKo prenesete APK ali video, se bo pojavil tukaj za 1-klik zagon!"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="18sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Settings Panel -->
+        <ScrollView
+            android:id="@+id/settingsPanel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bg_primary"
+            android:padding="32dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="⚙️ Nastavitve TV Brskalnika"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="24dp" />
+
+                <!-- AdBlock Settings Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="20dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🛡️ Vgrajeni AdBlocker &amp; Top-Frame Lock"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Blokira 1500+ oglasnih, stavnih (20Bet, 1xBet) in popunder domen ter preprečuje preusmeritve."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnToggleAdblock"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:paddingHorizontal="20dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="VKLOPLJENO"
+                        android:textColor="@color/accent_cyan"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Search Engine Selection -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="20dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🔍 Privzeti Iskalnik"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/textCurrentEngine"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Trenutno: Google Iskanje"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnSwitchEngine"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:paddingHorizontal="20dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="Zamenjaj Iskalnik"
+                        android:textColor="@color/text_primary"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- User-Agent Desktop / TV mode -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="20dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🖥️ Način Prikaza (Desktop / TV)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/textCurrentUserAgent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Trenutno: 4K Desktop Mode (Polna ločljivost strani)"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnToggleUserAgent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:paddingHorizontal="20dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="Preklopi"
+                        android:textColor="@color/text_primary"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Clear Cache -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="20dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🧹 Predpomnilnik &amp; Piškotki"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Počisti zgodovino brskanja, začasne slike in piškotke."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnClearCache"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:paddingHorizontal="20dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="Počisti Vse"
+                        android:textColor="@color/accent_red"
+                        android:focusable="true" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Custom View Container for Fullscreen Video -->
+        <FrameLayout
+            android:id="@+id/customViewContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#000000"
+            android:visibility="gone"
+            android:elevation="20dp" />
+
+        <!-- Virtual Cursor Overlay -->
+        <com.example.tvbrowser.CursorOverlay
+            android:id="@+id/cursorOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:elevation="30dp" />
+
+    </FrameLayout>
+</RelativeLayout>
