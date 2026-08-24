@@ -55,14 +55,7 @@ class TvFileProvider : ContentProvider() {
         if (!file.exists()) {
             throw FileNotFoundException("Datoteka ne obstaja: ${file.absolutePath}")
         }
-        val fileMode = when (mode) {
-            "r" -> ParcelFileDescriptor.MODE_READ_ONLY
-            "w", "wt" -> ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_TRUNCATE
-            "wa" -> ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_APPEND
-            "rw" -> ParcelFileDescriptor.MODE_READ_WRITE or ParcelFileDescriptor.MODE_CREATE
-            else -> ParcelFileDescriptor.MODE_READ_ONLY
-        }
-        return ParcelFileDescriptor.open(file, fileMode)
+        return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
     }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null
@@ -71,7 +64,7 @@ class TvFileProvider : ContentProvider() {
 
     private fun getFileForUri(uri: Uri): File {
         val path = uri.path ?: throw FileNotFoundException("Prazna pot")
-        val realPath = if (path.startsWith("/")) path.substring(1) else path
+        val realPath = if (path.startsWith("/")) path else "/$path"
         return File(realPath)
     }
 
@@ -79,7 +72,9 @@ class TvFileProvider : ContentProvider() {
         const val AUTHORITY = "com.example.tvbrowser.fileprovider"
 
         fun getUriForFile(context: Context, file: File): Uri {
-            return Uri.parse("content://$AUTHORITY/${file.absolutePath}")
+            val absPath = file.absolutePath
+            val cleanPath = if (absPath.startsWith("/")) absPath else "/$absPath"
+            return Uri.parse("content://$AUTHORITY$cleanPath")
         }
     }
 }

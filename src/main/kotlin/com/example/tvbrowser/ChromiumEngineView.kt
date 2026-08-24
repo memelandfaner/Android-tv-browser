@@ -180,26 +180,12 @@ class ChromiumEngineView @JvmOverloads constructor(
                     adBlockEngine.isAntiAntiAdblockEnabled,
                     adBlockEngine.isCosmeticFilteringEnabled
                 )
-
-                // YouTube Auto-play touch trigger
-                if (url != null && url.contains("youtube.com/watch")) {
-                    postDelayed({
-                        try {
-                            val downTime = SystemClock.uptimeMillis()
-                            val eventDown = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 100f, 310f, 0)
-                            val eventUp = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, 100f, 310f, 0)
-                            dispatchTouchEvent(eventDown)
-                            dispatchTouchEvent(eventUp)
-                            eventDown.recycle()
-                            eventUp.recycle()
-                        } catch (ignored: Exception) {}
-                    }, 1200)
-                }
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                 if (request?.isForMainFrame == true) {
-                    val failingUrl = request.url.toString()
+                    val rawUrl = request.url?.toString() ?: ""
+                    val failingUrl = android.text.Html.escapeHtml(rawUrl)
                     val errorHtml = """
                         <!DOCTYPE html>
                         <html>

@@ -543,14 +543,12 @@ class MainActivity : android.app.Activity() {
             if (i == index) {
                 v.visibility = View.VISIBLE
                 v.onResume()
-                v.resumeTimers()
                 val currentU = v.url ?: ""
                 editUrl.setText(formatDisplayUrl(currentU))
                 updateOmniboxHint(currentU)
             } else {
                 v.visibility = View.GONE
                 v.onPause()
-                v.pauseTimers()
             }
         }
 

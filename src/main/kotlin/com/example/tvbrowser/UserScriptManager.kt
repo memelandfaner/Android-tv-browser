@@ -7,6 +7,8 @@ object UserScriptManager {
     // 🛡️ 1. Anti-Anti-AdBlock JS (DOCUMENT_START)
     private const val ANTI_ANTI_ADBLOCK_JS = """
         (function() {
+            if (window._tvAntiAntiDone) return;
+            window._tvAntiAntiDone = true;
             try {
                 // 1. Google Ad Status Spoofing
                 window.google_ad_status = 1;
@@ -32,7 +34,7 @@ object UserScriptManager {
                 window.fuckAdBlock = new DummyDetector();
                 window.blockAdBlock = new DummyDetector();
 
-                // 3. MutationObserver to safely remove anti-adblock modal backdrops and re-assert spoofs
+                // 3. MutationObserver to safely remove anti-adblock modal backdrops
                 const observer = new MutationObserver(() => {
                     window.google_ad_status = 1;
                     window.canRunAds = true;
@@ -88,9 +90,12 @@ object UserScriptManager {
         })();
     """
 
-    // 🌟 3. Combined Performance & UI Optimizations
+    // 🌟 3. Combined Performance & UI Optimizations (Runs Once with Event-driven Unmute)
     private const val OPTIMIZATIONS_JS = """
         (function autoUnmuteAndDark() {
+            if (window._tvOptDone) return;
+            window._tvOptDone = true;
+
             // Dark mode and High-contrast Focus Outline
             var style = document.getElementById('tv_browser_forced_dark');
             if (!style) {
@@ -101,7 +106,7 @@ object UserScriptManager {
                 else if (document.documentElement) document.documentElement.appendChild(style);
             }
 
-            // Direct Media Audio Unmute (Zero CPU overhead)
+            // Direct Media Audio Unmute (Only on initial load/play, allows user to mute later)
             function ensureUnmute() {
                 document.querySelectorAll('video, audio').forEach(function(v) {
                     if (v.muted) v.muted = false;
@@ -109,15 +114,8 @@ object UserScriptManager {
                 });
             }
             ensureUnmute();
-            document.addEventListener('play', ensureUnmute, true);
-            document.addEventListener('playing', ensureUnmute, true);
-            document.addEventListener('loadeddata', ensureUnmute, true);
-            document.addEventListener('volumechange', function(e) {
-                if (e.target && e.target.muted) {
-                    e.target.muted = false;
-                    e.target.volume = 1.0;
-                }
-            }, true);
+            document.addEventListener('play', ensureUnmute, { once: true, capture: true });
+            document.addEventListener('playing', ensureUnmute, { once: true, capture: true });
 
             // YouTube Auto-Play trigger via JS directly
             if (window.location.href.indexOf('youtube.com/watch') !== -1) {
@@ -128,7 +126,7 @@ object UserScriptManager {
                         v.volume = 1.0;
                         v.play().catch(function(){});
                     }
-                }, 800);
+                }, 600);
             }
 
             // GDPR Consent Auto-Accept
@@ -147,8 +145,7 @@ object UserScriptManager {
                 return false;
             }
             if (!clickConsent()) {
-                setTimeout(clickConsent, 400);
-                setTimeout(clickConsent, 1000);
+                setTimeout(clickConsent, 350);
             }
 
             // Auto-blur search inputs on results page to hide virtual keyboard
@@ -158,7 +155,7 @@ object UserScriptManager {
                     if (qInput && document.activeElement === qInput) {
                         qInput.blur();
                     }
-                }, 350);
+                }, 300);
             }
         })();
     """
