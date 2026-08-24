@@ -27,6 +27,7 @@ import android.view.inputmethod.InputMethodManager
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebStorage
+import android.webkit.WebView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -100,16 +101,9 @@ class MainActivity : android.app.Activity() {
         }
 
         // Handle initial intent or default search engine home (Max 1 initial tab)
-        val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
-        val engine = prefs.getString("search_engine", "google") ?: "google"
-        val homeUrl = viewModel.getHomeUrl(engine)
+        val homeUrl = viewModel.homeUrl()
         val initialUrl = intent?.data?.toString() ?: homeUrl
-        val initialTitle = when (engine) {
-            "duckduckgo" -> "DuckDuckGo"
-            "bing" -> "Bing"
-            else -> "Google"
-        }
-        createAndSelectTab(initialUrl, initialTitle)
+        createAndSelectTab(initialUrl, "Iskalnik")
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -118,6 +112,39 @@ class MainActivity : android.app.Activity() {
         intent?.data?.toString()?.let { url ->
             loadUrl(url)
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        webViewPool.forEach {
+            it.onPause()
+            it.pauseTimers()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        getActiveWebView()?.resumeTimers()
+        getActiveWebView()?.onResume()
+    }
+
+    override fun onDestroy() {
+        try {
+            speechRecognizer?.destroy()
+            speechRecognizer = null
+        } catch (ignored: Exception) {}
+
+        webViewPool.forEach { wv ->
+            try {
+                webViewContainer.removeView(wv)
+                wv.stopLoading()
+                wv.loadUrl("about:blank")
+                wv.destroy()
+            } catch (ignored: Exception) {}
+        }
+        webViewPool.clear()
+
+        super.onDestroy()
     }
 
     private fun initViews() {
@@ -185,9 +212,7 @@ class MainActivity : android.app.Activity() {
 
         // 🏠 Home -> Selected Search Engine
         findViewById<View>(R.id.btnHome).setOnClickListener {
-            val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
-            val engine = prefs.getString("search_engine", "google") ?: "google"
-            loadUrl(viewModel.getHomeUrl(engine))
+            loadUrl(viewModel.homeUrl())
         }
 
         findViewById<View>(R.id.btnGo).setOnClickListener {
@@ -229,7 +254,7 @@ class MainActivity : android.app.Activity() {
 
         // ⚙️ Settings Switches
         val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
-        
+
         // 🛡️ AdBlock & Top-Frame Lock Toggle
         val btnToggleAdblock = findViewById<Button>(R.id.btnToggleAdblock)
         var adblockEnabled = prefs.getBoolean("adblock_enabled", true)
@@ -342,18 +367,12 @@ class MainActivity : android.app.Activity() {
 
         // ➕ Add Tab -> Max 4 Tabs limit
         findViewById<View>(R.id.btnAddTab).setOnClickListener {
-            if (!viewModel.canAddTab()) {
-                Toast.makeText(this, "Maksimalno 4 zavihki so dovoljeni za nemoteno delovanje TV-ja.", Toast.LENGTH_SHORT).show()
+            if (webViewPool.size >= 4) {
+                Toast.makeText(this, "Največ 4 zavihki. Zapri enega.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val engine = prefs.getString("search_engine", "google") ?: "google"
-            val homeUrl = viewModel.getHomeUrl(engine)
-            val title = when (engine) {
-                "duckduckgo" -> "DuckDuckGo"
-                "bing" -> "Bing"
-                else -> "Google Iskanje"
-            }
-            createAndSelectTab(homeUrl, title)
+            val homeUrl = viewModel.homeUrl()
+            createAndSelectTab(homeUrl, "Nov zavihek")
             Toast.makeText(this, "➕ Odprt nov zavihek", Toast.LENGTH_SHORT).show()
         }
 
@@ -391,9 +410,7 @@ class MainActivity : android.app.Activity() {
     }
 
     private fun handleUrlSubmit() {
-        val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
-        val engine = prefs.getString("search_engine", "google") ?: "google"
-        val target = viewModel.processUrlInput(editUrl.text.toString(), engine)
+        val target = viewModel.processUrlInput(editUrl.text.toString())
         loadUrl(target)
         getActiveWebView()?.requestFocus()
     }
@@ -411,37 +428,37 @@ class MainActivity : android.app.Activity() {
     }
 
     private fun createAndSelectTab(url: String, title: String) {
+        // Max 4 zavihki — prepreči OOM na TV
+        if (webViewPool.size >= 4) {
+            Toast.makeText(this, "Največ 4 zavihki. Zapri enega.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val webView = ChromiumEngineView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
             onProgressChangedListener = { p ->
-                val idx = webViewPool.indexOf(this)
-                if (idx != -1) {
-                    if (idx == viewModel.state.activeTabIndex) {
-                        progressBar.progress = p
-                        progressBar.visibility = if (p in 1..99) View.VISIBLE else View.GONE
-                    }
-                    viewModel.updateTabProgress(idx, p)
+                // Progress samo za aktivni zavihek — NE kliči viewModel (ne rebuild tab bara)
+                if (webViewPool.indexOf(this) == viewModel.state.activeTabIndex) {
+                    progressBar.progress = p
+                    progressBar.visibility = if (p in 1..99) View.VISIBLE else View.GONE
                 }
             }
             onTitleReceivedListener = { t ->
                 val idx = webViewPool.indexOf(this)
-                if (idx != -1) {
+                if (idx >= 0) {
                     viewModel.updateTabTitle(idx, t)
                     renderTabsBar()
                 }
             }
             onUrlChangedListener = { u ->
                 val idx = webViewPool.indexOf(this)
-                if (idx != -1) {
-                    if (idx == viewModel.state.activeTabIndex) {
-                        if (!editUrl.hasFocus()) {
-                            val display = formatDisplayUrl(u)
-                            editUrl.setText(display)
-                            updateOmniboxHint(u)
-                        }
+                if (idx >= 0) {
+                    if (idx == viewModel.state.activeTabIndex && !editUrl.hasFocus()) {
+                        editUrl.setText(formatDisplayUrl(u))
+                        updateOmniboxHint(u)
                     }
                     viewModel.updateTabUrl(idx, u)
                 }
@@ -993,10 +1010,11 @@ class MainActivity : android.app.Activity() {
                 handleUrlSubmit()
             }
             CommandType.NEW_TAB -> {
-                if (viewModel.canAddTab()) {
-                    createAndSelectTab("https://www.google.com", "Google Iskanje")
+                if (webViewPool.size < 4) {
+                    val homeUrl = viewModel.homeUrl()
+                    createAndSelectTab(homeUrl, "Nov zavihek")
                 } else {
-                    Toast.makeText(this, "Dosežen limit 4 zavihkov.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Največ 4 zavihki. Zapri enega.", Toast.LENGTH_SHORT).show()
                 }
             }
             CommandType.CLOSE_TAB -> {
@@ -1117,23 +1135,5 @@ class MainActivity : android.app.Activity() {
         active.dispatchTouchEvent(up)
         down.recycle()
         up.recycle()
-    }
-
-    override fun onDestroy() {
-        try {
-            speechRecognizer?.destroy()
-            speechRecognizer = null
-        } catch (ignored: Exception) {}
-
-        try {
-            webViewPool.forEach {
-                it.stopLoading()
-                it.loadUrl("about:blank")
-                it.destroy()
-            }
-            webViewPool.clear()
-        } catch (ignored: Exception) {}
-
-        super.onDestroy()
     }
 }

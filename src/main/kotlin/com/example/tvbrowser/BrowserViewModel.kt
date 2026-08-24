@@ -1,12 +1,14 @@
 package com.example.tvbrowser
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Patterns
 import java.net.URLEncoder
 
 class BrowserViewModel(context: Context) {
 
     private val repository = BrowserRepository(context)
+    private val prefs: SharedPreferences = context.getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
 
     var onStateChanged: ((BrowserUiState) -> Unit)? = null
 
@@ -19,15 +21,10 @@ class BrowserViewModel(context: Context) {
             onStateChanged?.invoke(value)
         }
 
-    fun getSearchBaseUrl(engine: String): String {
-        return when (engine.lowercase()) {
-            "duckduckgo" -> "https://duckduckgo.com/?q="
-            "bing" -> "https://www.bing.com/search?q="
-            else -> "https://www.google.com/search?q="
-        }
-    }
+    fun canAddTab(): Boolean = state.tabs.size < 4
 
-    fun getHomeUrl(engine: String): String {
+    fun homeUrl(): String {
+        val engine = prefs.getString("search_engine", "google") ?: "google"
         return when (engine.lowercase()) {
             "duckduckgo" -> "https://duckduckgo.com"
             "bing" -> "https://www.bing.com"
@@ -35,9 +32,16 @@ class BrowserViewModel(context: Context) {
         }
     }
 
-    fun canAddTab(): Boolean = state.tabs.size < 4
+    private fun searchUrl(encoded: String): String {
+        val engine = prefs.getString("search_engine", "google") ?: "google"
+        return when (engine.lowercase()) {
+            "duckduckgo" -> "https://duckduckgo.com/?q=$encoded"
+            "bing" -> "https://www.bing.com/search?q=$encoded"
+            else -> "https://www.google.com/search?q=$encoded"
+        }
+    }
 
-    fun addNewTab(initialUrl: String = "https://www.google.com", title: String = "Google Iskanje") {
+    fun addNewTab(initialUrl: String = homeUrl(), title: String = "Google Iskanje") {
         if (!canAddTab()) return
 
         val newTab = TabState(
@@ -95,11 +99,13 @@ class BrowserViewModel(context: Context) {
 
     fun updateTabTitle(index: Int, title: String) {
         val tabs = state.tabs
-        if (index in tabs.indices) {
-            tabs[index].title = title
-            state = state.copy(tabs = tabs.toList())
-            repository.addHistory(title, tabs[index].url)
-        }
+        if (index !in tabs.indices) return
+        val tab = tabs[index]
+        if (tab.title == title) return  // no duplicated work
+
+        tab.title = title
+        state = state.copy(tabs = tabs.toList())
+        repository.addHistory(title, tab.url)
     }
 
     fun updateTabProgress(index: Int, progress: Int) {
@@ -107,8 +113,7 @@ class BrowserViewModel(context: Context) {
         if (index in tabs.indices) {
             tabs[index].progress = progress
             tabs[index].isLoading = progress in 1..99
-            // Don't overwrite whole state to prevent unnecessary UI rebuilds
-            tabs[index].progress = progress
+            // NE kličemo state = state.copy — to prepreči stotine ponovnih renderTabsBar klicov na stran
         }
     }
 
@@ -146,10 +151,9 @@ class BrowserViewModel(context: Context) {
         )
     }
 
-    fun processUrlInput(input: String, searchEngine: String = "google"): String {
+    fun processUrlInput(input: String): String {
         var raw = input.trim()
-        val homeUrl = getHomeUrl(searchEngine)
-        if (raw.isEmpty()) return homeUrl
+        if (raw.isEmpty()) return homeUrl()
 
         if (!raw.startsWith("http://") && !raw.startsWith("https://")) {
             raw = if (Patterns.WEB_URL.matcher(raw).matches() || (raw.contains(".") && !raw.contains(" "))) {
@@ -160,7 +164,7 @@ class BrowserViewModel(context: Context) {
                 if (current.contains("youtube.com")) {
                     "https://www.youtube.com/results?search_query=$encoded"
                 } else {
-                    getSearchBaseUrl(searchEngine) + encoded
+                    searchUrl(encoded)
                 }
             }
         }

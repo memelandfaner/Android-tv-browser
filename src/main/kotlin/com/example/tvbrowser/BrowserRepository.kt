@@ -31,7 +31,7 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Safe migration: never drop user bookmarks!
+        // NE DROP — uporabnikovi zaznamki in zgodovina ostanejo nedotaknjeni
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS bookmarks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,6 +53,12 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     }
 
     private fun seedDefaults(db: SQLiteDatabase) {
+        // Seed samo če je tabela prazna
+        val c = db.rawQuery("SELECT COUNT(*) FROM bookmarks", null)
+        val count = if (c.moveToFirst()) c.getInt(0) else 0
+        c.close()
+        if (count > 0) return
+
         insertBookmarkDirect(db, "📺 YouTube", "https://www.youtube.com", "📺")
         insertBookmarkDirect(db, "🐙 GitHub", "https://github.com", "🐙")
         insertBookmarkDirect(db, "🍿 TMDB", "https://www.themoviedb.org", "🍿")
@@ -108,7 +114,7 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         if (url.isEmpty() || url.startsWith("about:") || url.startsWith("data:")) return
         try {
             val db = writableDatabase
-            // Remove previous duplicate for clean chronological history
+            // Posodobi obstoječi URL namesto neskončnih insertov
             db.delete("history", "url = ?", arrayOf(url))
             val cv = ContentValues().apply {
                 put("title", title.ifEmpty { url })
@@ -117,7 +123,7 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
             }
             db.insert("history", null, cv)
 
-            // Keep max 100 entries to prevent DB bloat
+            // Ohrani max 100 najnovejših vnosov
             db.execSQL("DELETE FROM history WHERE id NOT IN (SELECT id FROM history ORDER BY visited_at DESC LIMIT 100)")
         } catch (ignored: Exception) {}
     }
