@@ -29,6 +29,7 @@ enum class ActivePanel {
     NONE,
     BOOKMARKS,
     DOWNLOADS,
+    HISTORY,
     SETTINGS,
     VOICE_HUD
 }

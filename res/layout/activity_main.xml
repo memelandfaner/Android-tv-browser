@@ -125,6 +125,18 @@
                 android:focusable="true" />
 
             <Button
+                android:id="@+id/btnNavHistory"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginStart="6dp"
+                android:paddingHorizontal="12dp"
+                android:background="@drawable/bg_nav_button"
+                android:text="Zgodovina"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp"
+                android:focusable="true" />
+
+            <Button
                 android:id="@+id/btnNavSettings"
                 android:layout_width="40dp"
                 android:layout_height="38dp"
@@ -336,6 +348,67 @@
                     android:gravity="center"
                     android:padding="40dp"
                     android:text="Ni prenesenih datotek."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- History Panel -->
+        <ScrollView
+            android:id="@+id/historyPanel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bg_primary"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🕒 Zgodovina Brskanja"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnClearHistory"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:paddingHorizontal="14dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="🗑️ Počisti Zgodovino"
+                        android:textColor="#ef4444"
+                        android:textSize="12sp"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/historyListContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/textNoHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:padding="40dp"
+                    android:text="Zgodovina je prazna."
                     android:textColor="@color/text_secondary"
                     android:textSize="16sp"
                     android:visibility="gone" />

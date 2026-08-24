@@ -38,6 +38,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : android.app.Activity() {
 
@@ -58,9 +61,11 @@ class MainActivity : android.app.Activity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var bookmarksPanel: ScrollView
     private lateinit var downloadsPanel: ScrollView
+    private lateinit var historyPanel: ScrollView
     private lateinit var settingsPanel: ScrollView
     private lateinit var bookmarksGrid: GridLayout
     private lateinit var downloadsListContainer: LinearLayout
+    private lateinit var historyListContainer: LinearLayout
     private lateinit var tabsLayout: LinearLayout
 
     // Voice HUD
@@ -153,9 +158,11 @@ class MainActivity : android.app.Activity() {
 
         bookmarksPanel = findViewById(R.id.bookmarksPanel)
         downloadsPanel = findViewById(R.id.downloadsPanel)
+        historyPanel = findViewById(R.id.historyPanel)
         settingsPanel = findViewById(R.id.settingsPanel)
         bookmarksGrid = findViewById(R.id.bookmarksGrid)
         downloadsListContainer = findViewById(R.id.downloadsListContainer)
+        historyListContainer = findViewById(R.id.historyListContainer)
         tabsLayout = findViewById(R.id.tabsLayout)
 
         // Voice Listening HUD (Triggered via Remote Red Button)
@@ -225,7 +232,6 @@ class MainActivity : android.app.Activity() {
         editUrl.setOnEditorActionListener { _, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_GO || (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER)) {
                 handleUrlSubmit()
-                hideSoftKeyboard()
                 true
             } else false
         }
@@ -358,9 +364,27 @@ class MainActivity : android.app.Activity() {
             else showDownloadsPanel()
         }
 
+        findViewById<View>(R.id.btnNavHistory).setOnClickListener {
+            if (historyPanel.visibility == View.VISIBLE) hideAllPanels()
+            else showHistoryPanel()
+        }
+
         findViewById<View>(R.id.btnNavSettings).setOnClickListener {
             if (settingsPanel.visibility == View.VISIBLE) hideAllPanels()
             else showSettingsPanel()
+        }
+
+        findViewById<View>(R.id.btnClearHistory).setOnClickListener {
+            android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("🗑️ Počisti Zgodovino")
+                .setMessage("Ali res želite izbrisati celotno zgodovino brskanja?")
+                .setPositiveButton("Izbriši vse") { _, _ ->
+                    viewModel.clearHistory()
+                    renderHistoryList()
+                    Toast.makeText(this, "Zgodovina izbrisana.", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Prekliči", null)
+                .show()
         }
 
         // ➕ Add Tab -> Max 4 Tabs limit
@@ -558,7 +582,6 @@ class MainActivity : android.app.Activity() {
         }
 
         viewModel.selectTab(index)
-        renderTabsBar()
     }
 
     private fun closeTab(index: Int) {
@@ -646,6 +669,7 @@ class MainActivity : android.app.Activity() {
     private fun hideAllPanels() {
         bookmarksPanel.visibility = View.GONE
         downloadsPanel.visibility = View.GONE
+        historyPanel.visibility = View.GONE
         settingsPanel.visibility = View.GONE
         voiceListeningOverlay.visibility = View.GONE
         viewModel.hideAllPanels()
@@ -663,6 +687,13 @@ class MainActivity : android.app.Activity() {
         downloadsPanel.visibility = View.VISIBLE
         renderDownloadsList()
         viewModel.showPanel(ActivePanel.DOWNLOADS)
+    }
+
+    private fun showHistoryPanel() {
+        hideAllPanels()
+        historyPanel.visibility = View.VISIBLE
+        renderHistoryList()
+        viewModel.showPanel(ActivePanel.HISTORY)
     }
 
     private fun showSettingsPanel() {
@@ -810,6 +841,101 @@ class MainActivity : android.app.Activity() {
             }
 
             downloadsListContainer.addView(row)
+        }
+    }
+
+    private fun renderHistoryList() {
+        historyListContainer.removeAllViews()
+        val history = viewModel.getHistory()
+        val textNoHistory = findViewById<TextView>(R.id.textNoHistory)
+
+        if (history.isEmpty()) {
+            textNoHistory.visibility = View.VISIBLE
+            return
+        }
+        textNoHistory.visibility = View.GONE
+
+        val sdf = SimpleDateFormat("HH:mm - dd.MM.yyyy", Locale.getDefault())
+
+        for (item in history) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(20, 14, 20, 14)
+                isFocusable = true
+                setBackgroundResource(R.drawable.bg_card)
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    bottomMargin = 10
+                }
+                layoutParams = lp
+            }
+
+            val icon = TextView(this).apply {
+                text = "🕒"
+                textSize = 18f
+                setPadding(0, 0, 16, 0)
+            }
+            row.addView(icon)
+
+            val infoLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f)
+            }
+
+            val title = TextView(this).apply {
+                text = item.title
+                setTextColor(Color.WHITE)
+                textSize = 14f
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            }
+            infoLayout.addView(title)
+
+            val details = TextView(this).apply {
+                val timeStr = sdf.format(Date(item.visitedAt))
+                text = "$timeStr • ${item.url}"
+                setTextColor(Color.parseColor("#94a3b8"))
+                textSize = 11f
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            }
+            infoLayout.addView(details)
+            row.addView(infoLayout)
+
+            val btnOpen = Button(this).apply {
+                text = "Odpri"
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                isFocusable = false
+                setBackgroundResource(R.drawable.bg_nav_button)
+                setOnClickListener {
+                    loadUrl(item.url)
+                }
+            }
+            row.addView(btnOpen)
+
+            row.setOnClickListener {
+                loadUrl(item.url)
+            }
+
+            row.setOnLongClickListener {
+                android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("🗑️ Odstrani Vnos")
+                    .setMessage("Ali želite odstraniti \"${item.title}\" iz zgodovine?")
+                    .setPositiveButton("Odstrani") { _, _ ->
+                        viewModel.deleteHistoryItem(item.id)
+                        renderHistoryList()
+                        Toast.makeText(this, "Vnos odstranjen.", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Prekliči", null)
+                    .show()
+                true
+            }
+
+            historyListContainer.addView(row)
         }
     }
 
@@ -1066,6 +1192,7 @@ class MainActivity : android.app.Activity() {
             }
             if (bookmarksPanel.visibility == View.VISIBLE ||
                 downloadsPanel.visibility == View.VISIBLE ||
+                historyPanel.visibility == View.VISIBLE ||
                 settingsPanel.visibility == View.VISIBLE ||
                 voiceListeningOverlay.visibility == View.VISIBLE) {
                 hideAllPanels()

@@ -140,6 +140,22 @@ class BrowserViewModel(context: Context) {
         state = state.copy(bookmarks = repository.getBookmarks())
     }
 
+    fun getHistory(): List<HistoryItem> {
+        val h = repository.getHistory()
+        state = state.copy(history = h)
+        return h
+    }
+
+    fun clearHistory() {
+        repository.clearHistory()
+        state = state.copy(history = emptyList())
+    }
+
+    fun deleteHistoryItem(id: Int) {
+        repository.writableDatabase.delete("history", "id = ?", arrayOf(id.toString()))
+        state = state.copy(history = repository.getHistory())
+    }
+
     fun setVoiceListening(listening: Boolean, status: String = "Poslušam... Govorite zdaj!") {
         state = state.copy(
             isVoiceListening = listening,
