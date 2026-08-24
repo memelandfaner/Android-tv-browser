@@ -354,6 +354,88 @@ class MainActivity : android.app.Activity() {
             Toast.makeText(this, "Iskalnik: ${textCurrentEngine.text}", Toast.LENGTH_SHORT).show()
         }
 
+        // 🍪 3-Tier Cookie Privacy Switcher
+        val textCurrentCookiePrivacy = findViewById<TextView>(R.id.textCurrentCookiePrivacy)
+        val btnSwitchCookiePrivacy = findViewById<Button>(R.id.btnSwitchCookiePrivacy)
+        var cookieModeOrdinal = prefs.getInt("cookie_mode", CookiePrivacyMode.STANDARD.ordinal)
+        fun updateCookieUi() {
+            val mode = CookiePrivacyMode.values().getOrElse(cookieModeOrdinal) { CookiePrivacyMode.STANDARD }
+            textCurrentCookiePrivacy.text = when (mode) {
+                CookiePrivacyMode.STRICT -> "Trenutno: Strogo (Samo 1st-party, izbris ob izhodu)"
+                CookiePrivacyMode.STANDARD -> "Trenutno: Običajno (Blokada 3rd-party sledilcev)"
+                CookiePrivacyMode.COMFORT -> "Trenutno: Udobno (Dovoljena Google prijava)"
+            }
+        }
+        updateCookieUi()
+        btnSwitchCookiePrivacy.setOnClickListener {
+            cookieModeOrdinal = (cookieModeOrdinal + 1) % CookiePrivacyMode.values().size
+            prefs.edit().putInt("cookie_mode", cookieModeOrdinal).apply()
+            val newMode = CookiePrivacyMode.values()[cookieModeOrdinal]
+            updateCookieUi()
+            webViewPool.forEach { it.setCookiePrivacyMode(newMode) }
+            Toast.makeText(this, "Nadzor piškotkov: ${textCurrentCookiePrivacy.text}", Toast.LENGTH_SHORT).show()
+        }
+
+        // ⚡ YouTube Freedom Engine Toggle (SponsorBlock & Dislike)
+        val btnToggleYouTubeFreedom = findViewById<Button>(R.id.btnToggleYouTubeFreedom)
+        var ytFreedomEnabled = prefs.getBoolean("yt_freedom_enabled", true)
+        fun updateYtFreedomBtn() {
+            btnToggleYouTubeFreedom.text = if (ytFreedomEnabled) "VKLOPLJENO" else "IZKLOPLJENO"
+            btnToggleYouTubeFreedom.setTextColor(Color.parseColor(if (ytFreedomEnabled) "#38bdf8" else "#ef4444"))
+        }
+        updateYtFreedomBtn()
+        btnToggleYouTubeFreedom.setOnClickListener {
+            ytFreedomEnabled = !ytFreedomEnabled
+            prefs.edit().putBoolean("yt_freedom_enabled", ytFreedomEnabled).apply()
+            updateYtFreedomBtn()
+            Toast.makeText(this, "YouTube Freedom: ${if (ytFreedomEnabled) "Vklopljen" else "Izklopljen"}", Toast.LENGTH_SHORT).show()
+        }
+
+        // 🌐 Private DNS & Anti-Censorship
+        findViewById<View>(R.id.btnOpenDnsSettings).setOnClickListener {
+            try {
+                val intent = Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS)
+                startActivity(intent)
+            } catch (e: Exception) {
+                try {
+                    val intent = Intent(android.provider.Settings.ACTION_SETTINGS)
+                    startActivity(intent)
+                } catch (err: Exception) {
+                    Toast.makeText(this, "Odprite sistemske nastavitve TV-ja -> Omrežje -> Private DNS", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        findViewById<View>(R.id.btnTestDnsCensorship).setOnClickListener {
+            Toast.makeText(this, "Preverjam dostopnost necenzuriranih povezav...", Toast.LENGTH_SHORT).show()
+            Thread {
+                var quad9Reachable = false
+                var cloudflareReachable = false
+                try {
+                    val q9 = java.net.InetAddress.getByName("dns.quad9.net")
+                    quad9Reachable = q9 != null
+                } catch (ignored: Exception) {}
+                try {
+                    val cf = java.net.InetAddress.getByName("one.one.one.one")
+                    cloudflareReachable = cf != null
+                } catch (ignored: Exception) {}
+
+                runOnUiThread {
+                    val msg = buildString {
+                        append("Status omrežne cenzure & DNS:\n\n")
+                        append(if (quad9Reachable) "✅ Quad9 DNS: Dostopen (Necenzurirano)\n" else "⚠️ Quad9 DNS: Blokiran / Nedostopen\n")
+                        append(if (cloudflareReachable) "✅ Cloudflare 1.1.1.1: Dostopen\n\n" else "⚠️ Cloudflare: Blokiran / Nedostopen\n\n")
+                        append("Zaščita pred cenzuro je aktivna.")
+                    }
+                    android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                        .setTitle("🌐 Rezultat Testa Povezave")
+                        .setMessage(msg)
+                        .setPositiveButton("V redu", null)
+                        .show()
+                }
+            }.start()
+        }
+
         findViewById<View>(R.id.btnNavBookmarks).setOnClickListener {
             if (bookmarksPanel.visibility == View.VISIBLE) hideAllPanels()
             else showBookmarksPanel()

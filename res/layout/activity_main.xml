@@ -655,6 +655,150 @@
                         android:focusable="true" />
                 </LinearLayout>
 
+                <!-- Cookie Privacy Level Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="16dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🍪 Nadzor Piškotkov &amp; Sledenja"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/textCurrentCookiePrivacy"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Trenutno: Običajno (Blokada 3rd-party sledilcev)"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnSwitchCookiePrivacy"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:paddingHorizontal="16dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="Zamenjaj"
+                        android:textColor="@color/accent_cyan"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- YouTube Freedom & SponsorBlock Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="16dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="⚡ YouTube Brez Kletke (SponsorBlock)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Avtomatski preskok sponzorjev, vračilo Dislike števcev in skritje nadležnih oglasnih pasic."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnToggleYouTubeFreedom"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:paddingHorizontal="16dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="VKLOPLJENO"
+                        android:textColor="@color/accent_cyan"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Private DNS & Anti-Censorship Guide Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="16dp"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🌐 Svobodni DNS &amp; Zaščita Pred Cenzuro"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ISP operaterji pogosto cenzurirajo spletne strani. V Android TV nastavitvah vklopite 'Private DNS':\n• dns.quad9.net (Quad9 - Brez cenzure &amp; zaščita)\n• one.one.one.one (Cloudflare)\n• dns.adguard-dns.com (Omrežna blokada oglasov)"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="3dp"
+                        android:layout_marginBottom="12dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnOpenDnsSettings"
+                            android:layout_width="wrap_content"
+                            android:layout_height="42dp"
+                            android:paddingHorizontal="14dp"
+                            android:background="@drawable/bg_nav_button"
+                            android:text="⚙️ Android DNS Nastavitve"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:layout_marginEnd="8dp"
+                            android:focusable="true" />
+
+                        <Button
+                            android:id="@+id/btnTestDnsCensorship"
+                            android:layout_width="wrap_content"
+                            android:layout_height="42dp"
+                            android:paddingHorizontal="14dp"
+                            android:background="@drawable/bg_nav_button"
+                            android:text="🔍 Testiraj Cenzuro"
+                            android:textColor="@color/accent_cyan"
+                            android:textSize="12sp"
+                            android:focusable="true" />
+                    </LinearLayout>
+                </LinearLayout>
+
                 <!-- Clear Cache -->
                 <LinearLayout
                     android:layout_width="match_parent"

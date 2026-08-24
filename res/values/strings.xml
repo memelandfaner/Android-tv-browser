@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TV Brskalnik</string>
+    <string name="app_name">FreeNet Browser</string>
     <string name="url_hint">Vnesite naslov, vprašajte AI ali kliknite 🎤...</string>
     <string name="nav_browse">🌐 Brskanje</string>
     <string name="nav_bookmarks">⭐ Zaznamki</string>

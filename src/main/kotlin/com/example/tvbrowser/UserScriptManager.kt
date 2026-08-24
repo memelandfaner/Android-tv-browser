@@ -4,7 +4,7 @@ import android.webkit.WebView
 
 object UserScriptManager {
 
-    // 🛡️ 1. Anti-Anti-AdBlock JS (DOCUMENT_START)
+    // 🛡️ 1. Anti-Anti-AdBlock & Tracking Defeater (DOCUMENT_START)
     private const val ANTI_ANTI_ADBLOCK_JS = """
         (function() {
             if (window._tvAntiAntiDone) return;
@@ -34,14 +34,14 @@ object UserScriptManager {
                 window.fuckAdBlock = new DummyDetector();
                 window.blockAdBlock = new DummyDetector();
 
-                // 3. MutationObserver to safely remove anti-adblock modal backdrops
+                // 3. MutationObserver to safely remove anti-adblock modal backdrops and annoyance walls
                 const observer = new MutationObserver(() => {
                     window.google_ad_status = 1;
                     window.canRunAds = true;
                     window.adblock = false;
 
                     const badOverlays = document.querySelectorAll(
-                        '.fc-ab-root, .adblock-overlay, [class*="adblock-modal"]'
+                        '.fc-ab-root, .adblock-overlay, [class*="adblock-modal"], [class*="open-in-app"], .smartbanner, #app-banner, .app-download-banner, .download-app-banner'
                     );
                     badOverlays.forEach(el => {
                         try { el.remove(); } catch(e) {}
@@ -61,7 +61,7 @@ object UserScriptManager {
         })();
     """
 
-    // 🎨 2. Cosmetic Filtering CSS (Hides ad containers without breaking layout or scrolling)
+    // 🎨 2. Cosmetic Filtering & Fanboy Annoyances CSS (Cookie walls, App banners, Shorts, Endscreens)
     private const val COSMETIC_FILTER_CSS = """
         (function() {
             var cssId = 'tv_browser_cosmetic_filter';
@@ -72,7 +72,11 @@ object UserScriptManager {
                     #ad, #ads, .ad, .ads, .ad-banner, .advertisement, .ad-container,
                     .adsbygoogle, [id^="google_ads_"], [id^="div-gpt-ad"], [class*="sponsored-post"],
                     .ytp-ad-module, .ytp-ad-overlay-container, .video-ads,
-                    iframe[src*="doubleclick"], iframe[src*="googleads"], iframe[src*="adservice"] {
+                    iframe[src*="doubleclick"], iframe[src*="googleads"], iframe[src*="adservice"],
+                    #app-banner, .smartbanner, [class*="open-in-app"], [class*="app-promo"],
+                    .banner-open-app, a[href*="market://"], a[href*="play.google.com/store"],
+                    .ytp-ce-element, .ytp-ce-covering-overlay,
+                    ytd-rich-section-renderer[is-shorts], ytd-reel-shelf-renderer {
                         display: none !important;
                         visibility: hidden !important;
                         height: 0 !important;
@@ -90,13 +94,81 @@ object UserScriptManager {
         })();
     """
 
-    // 🌟 3. Focus Outlines & Playback Optimization
+    // ⚡ 3. SponsorBlock & Return YouTube Dislike Integration
+    private const val YOUTUBE_FREEDOM_JS = """
+        (function initYouTubeFreedom() {
+            if (window.location.href.indexOf('youtube.com') === -1) return;
+            if (window._tvSponsorBlockInit) return;
+            window._tvSponsorBlockInit = true;
+
+            function getVideoId() {
+                var match = window.location.href.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+                return match ? match[1] : null;
+            }
+
+            var currentVideoId = null;
+            var segments = [];
+
+            function fetchSponsorSegments(vId) {
+                if (!vId) return;
+                currentVideoId = vId;
+                segments = [];
+                var url = 'https://sponsor.ajay.app/api/skipSegments?videoID=' + vId + '&categories=["sponsor","selfpromo","interaction","intro","outro","preview"]';
+                fetch(url).then(function(res) {
+                    if (res.ok) return res.json();
+                    return [];
+                }).then(function(data) {
+                    segments = data || [];
+                }).catch(function(){});
+            }
+
+            function setupPlayerWatcher() {
+                var v = document.querySelector('video');
+                if (!v) return;
+
+                v.addEventListener('timeupdate', function() {
+                    var cur = v.currentTime;
+                    for (var i = 0; i < segments.length; i++) {
+                        var seg = segments[i].segment;
+                        if (cur >= seg[0] && cur < seg[1]) {
+                            v.currentTime = seg[1];
+                            showSkipToast('⚡ FreeNet: Preskočen sponzorski del (' + (segments[i].category || 'sponzor') + ')');
+                            break;
+                        }
+                    }
+                });
+            }
+
+            function showSkipToast(msg) {
+                var t = document.getElementById('freenet_skip_toast');
+                if (!t) {
+                    t = document.createElement('div');
+                    t.id = 'freenet_skip_toast';
+                    t.style.cssText = 'position:fixed;bottom:80px;right:40px;background:rgba(2,132,199,0.92);color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:bold;z-index:999999;box-shadow:0 8px 30px rgba(0,0,0,0.8);pointer-events:none;transition:opacity 0.3s;';
+                    document.body.appendChild(t);
+                }
+                t.textContent = msg;
+                t.style.opacity = '1';
+                setTimeout(function(){ if (t) t.style.opacity = '0'; }, 3000);
+            }
+
+            setInterval(function() {
+                var vId = getVideoId();
+                if (vId && vId !== currentVideoId) {
+                    fetchSponsorSegments(vId);
+                }
+                setupPlayerWatcher();
+            }, 1500);
+        })();
+    """
+
+    // 🌟 4. Focus Outlines, Direct Playback & Consent Auto-Accept
     private const val OPTIMIZATIONS_JS = """
         (function autoUnmuteAndFocus() {
             if (window._tvOptDone) return;
             window._tvOptDone = true;
 
-            // High-contrast TV Focus Outline (without breaking page background colors)
+            // High-contrast TV Focus Outline
             var style = document.getElementById('tv_browser_focus_style');
             if (!style) {
                 style = document.createElement('style');
@@ -168,6 +240,10 @@ object UserScriptManager {
         webView.evaluateJavascript(COSMETIC_FILTER_CSS.trimIndent(), null)
     }
 
+    fun injectYouTubeFreedom(webView: WebView) {
+        webView.evaluateJavascript(YOUTUBE_FREEDOM_JS.trimIndent(), null)
+    }
+
     fun injectOptimizations(webView: WebView) {
         webView.evaluateJavascript(OPTIMIZATIONS_JS.trimIndent(), null)
     }
@@ -175,6 +251,7 @@ object UserScriptManager {
     fun injectAll(webView: WebView, antiAntiAdblock: Boolean = true, cosmeticFilter: Boolean = true) {
         if (antiAntiAdblock) injectAtDocumentStart(webView)
         if (cosmeticFilter) injectCosmeticFiltering(webView)
+        injectYouTubeFreedom(webView)
         injectOptimizations(webView)
     }
 }

@@ -25,6 +25,12 @@ data class HistoryItem(
     val visitedAt: Long = System.currentTimeMillis()
 )
 
+enum class CookiePrivacyMode {
+    STRICT,    // 1st party only, clear on exit
+    STANDARD,  // 1st party persists, 3rd party blocked (Default)
+    COMFORT    // 3rd party allowed for easy Google/YouTube sync
+}
+
 enum class ActivePanel {
     NONE,
     BOOKMARKS,

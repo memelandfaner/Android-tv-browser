@@ -95,11 +95,11 @@ class ChromiumEngineView @JvmOverloads constructor(
         s.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
-        // 🍪 Pre-seed GDPR Consent Cookies (Google & YouTube)
+        // 🍪 Cookie Privacy Policy (Default: STANDARD -> No 3rd-party cross-site trackers)
         val cm = CookieManager.getInstance()
         cm.setAcceptCookie(true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            cm.setAcceptThirdPartyCookies(this, true)
+            cm.setAcceptThirdPartyCookies(this, false)
         }
         try {
             cm.setCookie(".youtube.com", "SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAnNsIAEaBgiA_LyaBg; path=/; domain=.youtube.com; SameSite=Lax")
@@ -115,7 +115,16 @@ class ChromiumEngineView @JvmOverloads constructor(
 
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val url = request?.url?.toString() ?: return false
+                val rawUrl = request?.url?.toString() ?: return false
+
+                // ⚡ 1. Anti-AMP & Tracking Stripper
+                val cleanUrl = adBlockEngine.sanitizeUrl(rawUrl)
+                if (cleanUrl != rawUrl && (cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://"))) {
+                    view?.loadUrl(cleanUrl)
+                    return true
+                }
+
+                val url = cleanUrl
                 if (!url.startsWith("http://") && !url.startsWith("https://")) {
                     try {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -284,5 +293,26 @@ class ChromiumEngineView @JvmOverloads constructor(
             return true
         }
         return super.onKeyDown(keyCode, event)
+    }
+
+    fun setCookiePrivacyMode(mode: CookiePrivacyMode) {
+        val cm = CookieManager.getInstance()
+        cm.setAcceptCookie(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            cm.setAcceptThirdPartyCookies(this, mode == CookiePrivacyMode.COMFORT)
+        }
+    }
+
+    fun openInAlternativeFrontend(engineName: String = "piped") {
+        val currentUrl = url ?: return
+        val match = Regex("[?&]v=([a-zA-Z0-9_-]{11})").find(currentUrl)
+        val vId = match?.groupValues?.get(1)
+        if (!vId.isNullOrEmpty()) {
+            val targetUrl = when (engineName.lowercase()) {
+                "invidious" -> "https://yewtu.be/watch?v=$vId"
+                else -> "https://piped.video/watch?v=$vId"
+            }
+            loadUrl(targetUrl)
+        }
     }
 }
