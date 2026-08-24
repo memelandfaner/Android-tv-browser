@@ -10,6 +10,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentHashMap
 
 class AdBlockEngine(context: Context? = null) {
     var isEnabled: Boolean = true
@@ -18,8 +19,9 @@ class AdBlockEngine(context: Context? = null) {
     var isAntiAmpEnabled: Boolean = true
     var isStripTrackingParamsEnabled: Boolean = true
 
-    // 🛡️ Pre-bundled High-Traffic Ad & Tracking Rules
-    private val blockedHostRules = hashSetOf(
+    // 🛡️ 100% Thread-Safe & Lock-Free KeySet for Maximum Multi-Threaded Performance
+    private val blockedHostRules: MutableSet<String> = ConcurrentHashMap.newKeySet<String>().apply {
+        addAll(listOf(
         // === Betting, Malware & Popunder Hijack Networks ===
         "20bet.com", "1xbet.com", "1xbet.eu", "betwinner.com", "melbet.com",
         "monetag.com", "popads.net", "popcash.net", "propellerads.com",
@@ -60,7 +62,7 @@ class AdBlockEngine(context: Context? = null) {
         "onesignal.com", "pushassist.com", "subscribers.com", "izooto.com",
         "pushwoosh.com", "wonderpush.com", "webpushr.com", "gravitec.net",
         "optinmonster.com", "sumo.com", "privy.com", "sleeknote.com"
-    )
+    ))}
 
     // 🔒 Essential Whitelist (Critical for Account Login, Banking & Essential Stream Services)
     private val whitelistDomains = hashSetOf(
