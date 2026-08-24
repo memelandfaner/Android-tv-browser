@@ -1,0 +1,45 @@
+package com.example.tvbrowser
+
+import android.view.KeyEvent
+import android.view.View
+import android.widget.EditText
+
+class TvFocusManager(
+    private val editUrl: EditText,
+    private val onToggleCursor: () -> Unit,
+    private val onStartVoice: () -> Unit,
+    private val onToggleBookmarks: () -> Unit
+) {
+
+    fun handleTvKey(keyCode: Int, event: KeyEvent?): Boolean {
+        if (event?.action != KeyEvent.ACTION_DOWN) return false
+
+        when (keyCode) {
+            // 🟢 Green Button / Menu (Keycode 82 or PROG_GREEN 184)
+            KeyEvent.KEYCODE_MENU, 184, KeyEvent.KEYCODE_PROG_GREEN -> {
+                editUrl.requestFocus()
+                editUrl.selectAll()
+                return true
+            }
+
+            // 🟡 Yellow Button (Keycode 185 or PROG_YELLOW) -> Toggle Cursor
+            185, KeyEvent.KEYCODE_PROG_YELLOW -> {
+                onToggleCursor()
+                return true
+            }
+
+            // 🔴 Red Button (Keycode 183 or PROG_RED) -> Launch Voice Search
+            183, KeyEvent.KEYCODE_PROG_RED -> {
+                onStartVoice()
+                return true
+            }
+
+            // 🔵 Blue Button (Keycode 186 or PROG_BLUE) -> Toggle Bookmarks
+            186, KeyEvent.KEYCODE_PROG_BLUE -> {
+                onToggleBookmarks()
+                return true
+            }
+        }
+        return false
+    }
+}
