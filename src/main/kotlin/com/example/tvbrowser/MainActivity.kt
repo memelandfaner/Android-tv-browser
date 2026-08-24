@@ -158,7 +158,7 @@ class MainActivity : android.app.Activity() {
 
     private fun performStrictPrivacyCleanupIfEnabled() {
         try {
-            val prefs = getSharedPreferences("tv_browser_prefs", Context.MODE_PRIVATE)
+            val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
             val cookieModeOrdinal = prefs.getInt("cookie_mode", CookiePrivacyMode.STANDARD.ordinal)
             if (cookieModeOrdinal == CookiePrivacyMode.STRICT.ordinal) {
                 android.webkit.CookieManager.getInstance().removeAllCookies(null)

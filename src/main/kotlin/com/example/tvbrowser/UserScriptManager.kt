@@ -298,10 +298,15 @@ object UserScriptManager {
         webView.evaluateJavascript(OPTIMIZATIONS_JS.trimIndent(), null)
     }
 
-    fun injectAll(webView: WebView, antiAntiAdblock: Boolean = true, cosmeticFilter: Boolean = true) {
+    fun injectAll(
+        webView: WebView,
+        antiAntiAdblock: Boolean = true,
+        cosmeticFilter: Boolean = true,
+        ytFreedom: Boolean = true
+    ) {
         if (antiAntiAdblock) injectAtDocumentStart(webView)
         if (cosmeticFilter) injectCosmeticFiltering(webView)
-        injectYouTubeFreedom(webView)
+        if (ytFreedom) injectYouTubeFreedom(webView)
         injectOptimizations(webView)
     }
 }

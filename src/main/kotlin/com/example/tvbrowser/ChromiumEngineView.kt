@@ -31,7 +31,7 @@ class ChromiumEngineView @JvmOverloads constructor(
     var onHideCustomViewListener: (() -> Unit)? = null
     var onEdgeReachedTopListener: (() -> Unit)? = null
 
-    val adBlockEngine = AdBlockEngine()
+    val adBlockEngine = AdBlockEngine(context)
     var currentUaMode: UserAgentMode = UserAgentMode.TV
 
     init {
@@ -117,9 +117,9 @@ class ChromiumEngineView @JvmOverloads constructor(
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val rawUrl = request?.url?.toString() ?: return false
 
-                // ⚡ 1. Anti-AMP & Tracking Stripper
+                // ⚡ 1. Anti-AMP & Tracking Stripper (Only for main-frame navigations)
                 val cleanUrl = adBlockEngine.sanitizeUrl(rawUrl)
-                if (cleanUrl != rawUrl && (cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://"))) {
+                if (request != null && request.isForMainFrame && cleanUrl != rawUrl) {
                     view?.loadUrl(cleanUrl)
                     return true
                 }
@@ -136,7 +136,7 @@ class ChromiumEngineView @JvmOverloads constructor(
                 }
 
                 // Top-Frame Lock against betting popunders
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && request.isForMainFrame) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && request != null && request.isForMainFrame) {
                     if (adBlockEngine.isBlocked(url)) return true
                 }
                 return false
@@ -163,32 +163,31 @@ class ChromiumEngineView @JvmOverloads constructor(
                 return super.shouldInterceptRequest(view, request)
             }
 
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                if (url != null) onUrlChangedListener?.invoke(url)
+            private fun runScriptInjections() {
+                val prefs = context.getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+                val ytFreedom = prefs.getBoolean("yt_freedom_enabled", true)
                 UserScriptManager.injectAll(
                     this@ChromiumEngineView,
                     adBlockEngine.isAntiAntiAdblockEnabled,
-                    adBlockEngine.isCosmeticFilteringEnabled
+                    adBlockEngine.isCosmeticFilteringEnabled,
+                    ytFreedom
                 )
+            }
+
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                if (url != null) onUrlChangedListener?.invoke(url)
+                runScriptInjections()
             }
 
             // ⚡ Ultra-Early Injection as soon as DOM is committed
             override fun onPageCommitVisible(view: WebView?, url: String?) {
                 super.onPageCommitVisible(view, url)
-                UserScriptManager.injectAll(
-                    this@ChromiumEngineView,
-                    adBlockEngine.isAntiAntiAdblockEnabled,
-                    adBlockEngine.isCosmeticFilteringEnabled
-                )
+                runScriptInjections()
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (url != null) onUrlChangedListener?.invoke(url)
-                UserScriptManager.injectAll(
-                    this@ChromiumEngineView,
-                    adBlockEngine.isAntiAntiAdblockEnabled,
-                    adBlockEngine.isCosmeticFilteringEnabled
-                )
+                runScriptInjections()
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
