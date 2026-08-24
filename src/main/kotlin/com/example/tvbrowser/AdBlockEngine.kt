@@ -64,14 +64,17 @@ class AdBlockEngine(context: Context? = null) {
         "optinmonster.com", "sumo.com", "privy.com", "sleeknote.com"
     ))}
 
-    // 🔒 Essential Whitelist (Critical for Account Login, Banking & Essential Stream Services)
+    // 🔒 Essential Whitelist (Critical for Search, Account Login, Banking & Core Web Backbone)
     private val whitelistDomains = hashSetOf(
-        "youtube.com", "m.youtube.com", "music.youtube.com", "googlevideo.com", "ytimg.com",
-        "accounts.google.com", "myaccount.google.com", "accounts.youtube.com",
+        "google.com", "www.google.com", "google.si", "www.google.si", "gstatic.com", "googleapis.com", "googleusercontent.com",
+        "duckduckgo.com", "bing.com", "www.bing.com", "yahoo.com", "wikipedia.org", "wikimedia.org",
+        "youtube.com", "m.youtube.com", "music.youtube.com", "googlevideo.com", "ytimg.com", "accounts.youtube.com",
+        "accounts.google.com", "myaccount.google.com",
         "nlb.si", "nkbm.si", "skb.si", "dh.si", "intesa.si", "intesasanpaolobank.si",
         "sparkasse.si", "revolut.com", "n26.com", "delavska-hranilnica.si",
         "bks-bank.si", "unicreditbank.si", "lon.si", "gorenjska-banka.si",
-        "rtvslo.si", "24ur.com", "siol.net", "github.com", "themoviedb.org", "tmdb.org"
+        "rtvslo.si", "24ur.com", "siol.net", "github.com", "themoviedb.org", "tmdb.org",
+        "cloudflare.com", "quad9.net", "jsdelivr.net", "cdnjs.cloudflare.com", "unpkg.com"
     )
 
     init {
@@ -86,7 +89,7 @@ class AdBlockEngine(context: Context? = null) {
             if (cacheFile.exists()) {
                 cacheFile.forEachLine { line ->
                     val clean = line.trim().lowercase()
-                    if (clean.isNotEmpty() && !clean.startsWith("#")) {
+                    if (clean.isNotEmpty() && !clean.startsWith("#") && !isWhitelisted(clean)) {
                         blockedHostRules.add(clean)
                     }
                 }
@@ -96,7 +99,8 @@ class AdBlockEngine(context: Context? = null) {
 
     /**
      * Downloads & Parses EasyList / EasyPrivacy (1x per day in background)
-     * Matches standard ||domain^ and ||domain/ rules
+     * Strictly matches whole-host rules ending in ^ (e.g. ||adserver.com^)
+     * Ignores path-based rules (e.g. ||site.com/ads/) to avoid blocking entire legitimate websites.
      */
     private fun startBackgroundEasyListUpdate(context: Context?) {
         if (context == null) return
@@ -127,17 +131,16 @@ class AdBlockEngine(context: Context? = null) {
                                 var line: String? = reader.readLine()
                                 while (line != null) {
                                     val trimmed = line.trim()
-                                    // Parse EasyList host rules: ||example.com^
-                                    if (trimmed.startsWith("||")) {
-                                        val endIdx = trimmed.indexOfAny(charArrayOf('^', '/', '$', '?'))
-                                        val domain = if (endIdx != -1) {
-                                            trimmed.substring(2, endIdx)
-                                        } else {
-                                            trimmed.substring(2)
-                                        }.lowercase().trim()
+                                    // Parse strictly whole-host rules: ||example.com^ or ||example.com^$third-party
+                                    // Do NOT parse path rules (having '/' before '^') as domain blocks!
+                                    if (trimmed.startsWith("||") && trimmed.contains("^")) {
+                                        val caretIdx = trimmed.indexOf('^')
+                                        val domainPart = trimmed.substring(2, caretIdx).lowercase().trim()
 
-                                        if (domain.contains(".") && !domain.contains("*") && !whitelistDomains.contains(domain)) {
-                                            parsedDomains.add(domain)
+                                        if (!domainPart.contains("/") && !domainPart.contains("*") && domainPart.contains(".")) {
+                                            if (!isWhitelisted(domainPart)) {
+                                                parsedDomains.add(domainPart)
+                                            }
                                         }
                                     }
                                     line = reader.readLine()
@@ -165,6 +168,22 @@ class AdBlockEngine(context: Context? = null) {
         }.start()
     }
 
+    fun isWhitelisted(host: String): Boolean {
+        var checkHost: String? = host.lowercase().trim()
+        while (checkHost != null && checkHost.contains(".")) {
+            if (whitelistDomains.contains(checkHost)) {
+                return true
+            }
+            val dotIdx = checkHost.indexOf('.')
+            if (dotIdx != -1 && dotIdx < checkHost.length - 1) {
+                checkHost = checkHost.substring(dotIdx + 1)
+            } else {
+                break
+            }
+        }
+        return false
+    }
+
     /**
      * Fast Host-Based Matching with Whitelist Guard:
      */
@@ -175,18 +194,9 @@ class AdBlockEngine(context: Context? = null) {
             val uri = Uri.parse(url)
             val host = uri.host?.lowercase() ?: return false
 
-            // Whitelist Check: Never block login, streaming backbone, or banking
-            var checkHost: String? = host
-            while (checkHost != null && checkHost.contains(".")) {
-                if (whitelistDomains.contains(checkHost)) {
-                    return false
-                }
-                val dotIdx = checkHost.indexOf('.')
-                if (dotIdx != -1 && dotIdx < checkHost.length - 1) {
-                    checkHost = checkHost.substring(dotIdx + 1)
-                } else {
-                    break
-                }
+            // Whitelist Check: Never block login, search engines, streaming backbone, or banking
+            if (isWhitelisted(host)) {
+                return false
             }
 
             // Blocklist Check: Host or parent domain
