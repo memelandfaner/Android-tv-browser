@@ -43,13 +43,17 @@ class ChromiumEngineView @JvmOverloads constructor(
         s.builtInZoomControls = false
         s.displayZoomControls = false
 
-        // 🌟 StreamNexus TV Scaling & Density
+        // 🌟 Full Google & YouTube Compatible Mobile/TV User-Agent (Pixel 5 / Chrome 122)
         s.useWideViewPort = true
         s.loadWithOverviewMode = true
         s.textZoom = 100
         s.defaultFontSize = 15
         s.defaultFixedFontSize = 13
-        s.userAgentString = "Mozilla/5.0 (Linux; Android 11; Philips TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        s.userAgentString = "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
+        s.setNeedInitialFocus(true)
+
+        isFocusable = true
+        isFocusableInTouchMode = true
 
         // 🌙 Forced Dark Engine (Android 10+ / API 29+)
         try {
@@ -152,13 +156,17 @@ class ChromiumEngineView @JvmOverloads constructor(
               if (!style) {
                 style = document.createElement('style');
                 style.id = 'tv_browser_forced_dark';
-                style.innerHTML = 'html, body { background-color: #0b0f19 !important; color: #e2e8f0 !important; } input, textarea, select { background-color: #1a2234 !important; color: #ffffff !important; }';
+                style.innerHTML = 'html, body { background-color: #0b0f19 !important; color: #e2e8f0 !important; } input, textarea, select { background-color: #1a2234 !important; color: #ffffff !important; } :focus, a:focus, button:focus, input:focus, [tabindex]:focus { outline: 3px solid #38bdf8 !important; outline-offset: 2px !important; }';
                 if (document.head) document.head.appendChild(style);
               }
               document.querySelectorAll('video').forEach(function(v) {
                 v.muted = false;
                 v.volume = 1.0;
               });
+              var ytpUnmute = document.querySelector('.ytp-unmute, .ytp-unmute-button, .ytp-mute-button, button[aria-label*="zvok"], button[aria-label*="unmute"]');
+              if (ytpUnmute) {
+                try { ytpUnmute.click(); } catch(e) {}
+              }
               function clickConsent() {
                 var target = document.querySelector('button#L2AGLb, button[aria-label*="Sprejmi"], button[aria-label*="Accept"], form[action*="consent"] button, ytd-consent-bump-v2-lightbox button, .consent-bump-v2 button');
                 if (target) { target.click(); return true; }
@@ -178,7 +186,7 @@ class ChromiumEngineView @JvmOverloads constructor(
                 setTimeout(clickConsent, 1000);
               }
               setTimeout(function() {
-                var dialogs = document.querySelectorAll('#consent-bump, ytd-consent-bump-v2-lightbox, .consent-bump-v2, ytd-popup-container');
+                var dialogs = document.querySelectorAll('#consent-bump, ytd-consent-bump-v2-lightbox, .consent-bump-v2');
                 dialogs.forEach(function(d) {
                   if (d.innerText && (d.innerText.indexOf('YouTube') !== -1 || d.innerText.indexOf('Piškotk') !== -1 || d.innerText.indexOf('Preden') !== -1)) {
                     d.remove();

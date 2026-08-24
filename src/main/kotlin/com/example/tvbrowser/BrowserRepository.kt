@@ -38,7 +38,7 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
 
     private fun seedDefaults(db: SQLiteDatabase) {
         db.delete("bookmarks", null, null)
-        insertBookmarkDirect(db, "📺 SmartTube Iskanje", "https://www.youtube.com/results?search_query=", "📺")
+        insertBookmarkDirect(db, "📺 YouTube", "https://www.youtube.com", "📺")
         insertBookmarkDirect(db, "🐙 GitHub", "https://github.com", "🐙")
         insertBookmarkDirect(db, "🍿 TMDB", "https://www.themoviedb.org", "🍿")
     }

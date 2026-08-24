@@ -118,9 +118,9 @@ class MainActivity : Activity() {
             stopVoiceSearch()
         }
 
-        // Fast Header Links
+        // Fast Header Links -> YouTube Home feed
         findViewById<View>(R.id.btnQuickSmartTube).setOnClickListener {
-            loadUrl("https://www.youtube.com/results?search_query=")
+            loadUrl("https://www.youtube.com")
         }
         findViewById<View>(R.id.btnQuickGithub).setOnClickListener {
             loadUrl("https://github.com")
@@ -128,6 +128,19 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.btnQuickTmdb).setOnClickListener {
             loadUrl("https://www.themoviedb.org")
         }
+
+        // TV D-Pad Focus Handoff: Pressing DOWN from header immediately focuses webpage
+        val focusToWebListener = View.OnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                getActiveWebView()?.requestFocus()
+                true
+            } else false
+        }
+        findViewById<View>(R.id.btnAddTab).setOnKeyListener(focusToWebListener)
+        findViewById<View>(R.id.btnQuickSmartTube).setOnKeyListener(focusToWebListener)
+        findViewById<View>(R.id.btnQuickGithub).setOnKeyListener(focusToWebListener)
+        findViewById<View>(R.id.btnQuickTmdb).setOnKeyListener(focusToWebListener)
+        findViewById<View>(R.id.tabsScrollView).setOnKeyListener(focusToWebListener)
 
         findViewById<View>(R.id.btnBack).setOnClickListener {
             val active = getActiveWebView()
@@ -165,6 +178,7 @@ class MainActivity : Activity() {
                 true
             } else false
         }
+        editUrl.setOnKeyListener(focusToWebListener)
 
         findViewById<View>(R.id.btnStarBookmark).setOnClickListener {
             val active = getActiveWebView()
