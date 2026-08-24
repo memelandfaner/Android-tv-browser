@@ -6,8 +6,10 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.webkit.*
 
@@ -125,6 +127,19 @@ class ChromiumEngineView @JvmOverloads constructor(
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (url != null) onUrlChangedListener?.invoke(url)
                 injectOptimizations()
+                if (url != null && url.contains("youtube.com/watch")) {
+                    postDelayed({
+                        try {
+                            val downTime = SystemClock.uptimeMillis()
+                            val eventDown = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 100f, 310f, 0)
+                            val eventUp = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, 100f, 310f, 0)
+                            dispatchTouchEvent(eventDown)
+                            dispatchTouchEvent(eventUp)
+                            eventDown.recycle()
+                            eventUp.recycle()
+                        } catch (ignored: Exception) {}
+                    }, 1200)
+                }
             }
         }
 
@@ -151,7 +166,7 @@ class ChromiumEngineView @JvmOverloads constructor(
 
     fun injectOptimizations() {
         val js = """
-            (function autoAcceptAndDark() {
+            (function autoUnmuteAndDark() {
               var style = document.getElementById('tv_browser_forced_dark');
               if (!style) {
                 style = document.createElement('style');
@@ -159,13 +174,35 @@ class ChromiumEngineView @JvmOverloads constructor(
                 style.innerHTML = 'html, body { background-color: #0b0f19 !important; color: #e2e8f0 !important; } input, textarea, select { background-color: #1a2234 !important; color: #ffffff !important; } :focus, a:focus, button:focus, input:focus, [tabindex]:focus { outline: 3px solid #38bdf8 !important; outline-offset: 2px !important; }';
                 if (document.head) document.head.appendChild(style);
               }
-              document.querySelectorAll('video').forEach(function(v) {
-                v.muted = false;
-                v.volume = 1.0;
-              });
-              var ytpUnmute = document.querySelector('.ytp-unmute, .ytp-unmute-button, .ytp-mute-button, button[aria-label*="zvok"], button[aria-label*="unmute"]');
-              if (ytpUnmute) {
-                try { ytpUnmute.click(); } catch(e) {}
+              function ensureUnmute() {
+                document.querySelectorAll('video, audio').forEach(function(v) {
+                  if (v.muted) v.muted = false;
+                  if (v.volume < 1.0) v.volume = 1.0;
+                });
+                var all = document.querySelectorAll('button, div, span, a, [role="button"]');
+                for (var i = 0; i < all.length; i++) {
+                  var el = all[i];
+                  var txt = (el.innerText || el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '').trim().toLowerCase();
+                  if (txt === 'vklopite zvok' || txt === 'vklopi zvok' || txt === 'unmute' || txt.indexOf('vklopite zvok') !== -1 || txt.indexOf('vklopi zvok') !== -1) {
+                    try {
+                      el.click();
+                      el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    } catch(e) {}
+                  }
+                }
+              }
+              ensureUnmute();
+              document.addEventListener('play', ensureUnmute, true);
+              document.addEventListener('playing', ensureUnmute, true);
+              document.addEventListener('loadeddata', ensureUnmute, true);
+              document.addEventListener('volumechange', function(e) {
+                if (e.target && e.target.muted) {
+                  e.target.muted = false;
+                  e.target.volume = 1.0;
+                }
+              }, true);
+              if (!window._tvUnmuteInterval) {
+                window._tvUnmuteInterval = setInterval(ensureUnmute, 800);
               }
               function clickConsent() {
                 var target = document.querySelector('button#L2AGLb, button[aria-label*="Sprejmi"], button[aria-label*="Accept"], form[action*="consent"] button, ytd-consent-bump-v2-lightbox button, .consent-bump-v2 button');
