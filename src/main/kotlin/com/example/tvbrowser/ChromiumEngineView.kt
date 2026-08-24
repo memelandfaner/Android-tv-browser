@@ -171,7 +171,7 @@ class ChromiumEngineView @JvmOverloads constructor(
               if (!style) {
                 style = document.createElement('style');
                 style.id = 'tv_browser_forced_dark';
-                style.innerHTML = 'html, body { background-color: #0b0f19 !important; color: #e2e8f0 !important; } input, textarea, select { background-color: #1a2234 !important; color: #ffffff !important; } :focus, a:focus, button:focus, input:focus, [tabindex]:focus { outline: 3px solid #38bdf8 !important; outline-offset: 2px !important; }';
+                style.innerHTML = 'html, body { background-color: #0b0f19 !important; color: #e2e8f0 !important; } input, textarea, select { background-color: #1a2234 !important; color: #ffffff !important; } :focus, a:focus, button:focus, input:focus, [tabindex]:focus, button.search-button:focus, [aria-label*="Iskanje"]:focus, [aria-label*="Search"]:focus, c3-icon:focus { outline: 3px solid #38bdf8 !important; outline-offset: 3px !important; box-shadow: 0 0 15px rgba(56, 189, 248, 0.6) !important; }';
                 if (document.head) document.head.appendChild(style);
               }
               function ensureUnmute() {

@@ -78,26 +78,15 @@
                 android:nextFocusDown="@id/tabsScrollView"
                 android:focusable="true" />
 
-            <!-- Voice Control Mic Button -->
-            <Button
-                android:id="@+id/btnMic"
-                android:layout_width="44dp"
-                android:layout_height="38dp"
-                android:background="@drawable/bg_nav_button"
-                android:text="🎤"
-                android:textColor="@color/accent_cyan"
-                android:textSize="15sp"
-                android:focusable="true" />
-
             <Button
                 android:id="@+id/btnGo"
-                android:layout_width="48dp"
+                android:layout_width="52dp"
                 android:layout_height="38dp"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_nav_button"
                 android:text="Išči"
                 android:textColor="@color/text_primary"
-                android:textSize="12sp"
+                android:textSize="13sp"
                 android:focusable="true" />
 
             <Button
@@ -116,7 +105,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
                 android:layout_marginStart="6dp"
-                android:paddingHorizontal="10dp"
+                android:paddingHorizontal="12dp"
                 android:background="@drawable/bg_nav_button"
                 android:text="Zaznamki"
                 android:textColor="@color/text_primary"
@@ -128,21 +117,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
                 android:layout_marginStart="6dp"
-                android:paddingHorizontal="10dp"
+                android:paddingHorizontal="12dp"
                 android:background="@drawable/bg_nav_button"
                 android:text="Prenosi"
-                android:textColor="@color/text_primary"
-                android:textSize="12sp"
-                android:focusable="true" />
-
-            <Button
-                android:id="@+id/btnToggleCursor"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:layout_marginStart="6dp"
-                android:paddingHorizontal="10dp"
-                android:background="@drawable/bg_nav_button"
-                android:text="🖱️ Kurzor"
                 android:textColor="@color/text_primary"
                 android:textSize="12sp"
                 android:focusable="true" />

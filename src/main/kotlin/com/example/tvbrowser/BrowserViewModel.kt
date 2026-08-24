@@ -135,10 +135,12 @@ class BrowserViewModel(context: Context) {
             raw = if (Patterns.WEB_URL.matcher(raw).matches() || (raw.contains(".") && !raw.contains(" "))) {
                 "https://$raw"
             } else {
-                try {
-                    defaultSearchEngine + URLEncoder.encode(raw, "UTF-8")
-                } catch (e: Exception) {
-                    defaultSearchEngine + raw
+                val current = state.tabs.getOrNull(state.activeTabIndex)?.url ?: ""
+                val encoded = try { URLEncoder.encode(raw, "UTF-8") } catch (e: Exception) { raw }
+                if (current.contains("youtube.com")) {
+                    "https://www.youtube.com/results?search_query=$encoded"
+                } else {
+                    defaultSearchEngine + encoded
                 }
             }
         }

@@ -34,7 +34,7 @@ enum class ActivePanel {
 }
 
 data class BrowserUiState(
-    val tabs: List<TabState> = listOf(TabState(id = "tab_initial")),
+    val tabs: List<TabState> = emptyList(),
     val activeTabIndex: Int = 0,
     val currentUrl: String = "https://www.google.com",
     val isCursorMode: Boolean = false,
@@ -43,6 +43,6 @@ data class BrowserUiState(
     val activePanel: ActivePanel = ActivePanel.NONE,
     val bookmarks: List<BookmarkItem> = emptyList(),
     val history: List<HistoryItem> = emptyList(),
-    val voiceStatusText: String = "Poslušam... Govorite zdaj!",
+    val voiceStatusText: String = "",
     val isVoiceListening: Boolean = false
 )

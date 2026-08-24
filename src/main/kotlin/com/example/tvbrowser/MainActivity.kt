@@ -82,9 +82,9 @@ class MainActivity : Activity() {
             renderTabsBar()
         }
 
-        // Handle initial intent if launched with URL
+        // Handle initial intent if launched with URL (Exact 1 tab)
         val initialUrl = intent?.data?.toString() ?: "https://www.google.com"
-        createAndSelectTab(initialUrl, if (initialUrl == "https://www.google.com") "Google Iskanje" else "Splet")
+        createAndSelectTab(initialUrl, "Google")
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -109,7 +109,7 @@ class MainActivity : Activity() {
         downloadsListContainer = findViewById(R.id.downloadsListContainer)
         tabsLayout = findViewById(R.id.tabsLayout)
 
-        // Voice Listening HUD
+        // Voice Listening HUD (Triggered via Remote Red Button)
         voiceListeningOverlay = findViewById(R.id.voiceListeningOverlay)
         textVoiceStatus = findViewById(R.id.textVoiceStatus)
         textVoiceMicIcon = findViewById(R.id.textVoiceMicIcon)
@@ -167,10 +167,12 @@ class MainActivity : Activity() {
             handleUrlSubmit()
         }
 
-        findViewById<View>(R.id.btnMic).setOnClickListener {
-            startVoiceSearch()
+        editUrl.setSelectAllOnFocus(true)
+        editUrl.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                editUrl.selectAll()
+            }
         }
-
         editUrl.setOnEditorActionListener { _, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_GO || (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER)) {
                 handleUrlSubmit()
@@ -200,10 +202,6 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.btnNavDownloads).setOnClickListener {
             if (downloadsPanel.visibility == View.VISIBLE) hideAllPanels()
             else showDownloadsPanel()
-        }
-
-        findViewById<View>(R.id.btnToggleCursor).setOnClickListener {
-            toggleCursorMode()
         }
 
         findViewById<View>(R.id.btnNavSettings).setOnClickListener {
@@ -586,14 +584,9 @@ class MainActivity : Activity() {
         cursorOverlay.setCursorEnabled(newMode)
         viewModel.setCursorMode(newMode)
 
-        val btn = findViewById<Button>(R.id.btnToggleCursor)
         if (newMode) {
-            btn.text = "🖱️ Kazalec"
-            btn.setBackgroundResource(R.drawable.bg_nav_button)
             Toast.makeText(this, "🟡 Kurzor VKLOPLJEN (Premikaj z D-Padom, OK za klik)", Toast.LENGTH_SHORT).show()
         } else {
-            btn.text = "🎛️ Kurzor"
-            btn.setBackgroundResource(R.drawable.bg_nav_button)
             Toast.makeText(this, "🟡 Kurzor IZKLOPLJEN (Standardni D-Pad fokus)", Toast.LENGTH_SHORT).show()
         }
     }
