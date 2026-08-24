@@ -31,13 +31,28 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS bookmarks")
-        db.execSQL("DROP TABLE IF EXISTS history")
-        onCreate(db)
+        // Safe migration: never drop user bookmarks!
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS bookmarks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                url TEXT NOT NULL,
+                icon TEXT,
+                created_at INTEGER
+            );
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                url TEXT NOT NULL,
+                visited_at INTEGER
+            );
+        """.trimIndent())
     }
 
     private fun seedDefaults(db: SQLiteDatabase) {
-        db.delete("bookmarks", null, null)
         insertBookmarkDirect(db, "📺 YouTube", "https://www.youtube.com", "📺")
         insertBookmarkDirect(db, "🐙 GitHub", "https://github.com", "🐙")
         insertBookmarkDirect(db, "🍿 TMDB", "https://www.themoviedb.org", "🍿")
@@ -64,41 +79,47 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
                 val title = it.getString(it.getColumnIndexOrThrow("title"))
                 val url = it.getString(it.getColumnIndexOrThrow("url"))
                 val icon = it.getString(it.getColumnIndexOrThrow("icon")) ?: "⭐"
-                val createdAt = it.getLong(it.getColumnIndexOrThrow("created_at"))
-                list.add(BookmarkItem(id, title, url, icon, createdAt))
+                list.add(BookmarkItem(id, title, url, icon))
             }
         }
         return list
     }
 
     @Synchronized
-    fun addBookmark(title: String, url: String, icon: String = "⭐"): Long {
+    fun addBookmark(title: String, url: String, icon: String = "⭐") {
         val db = writableDatabase
         val cv = ContentValues().apply {
-            put("title", title.ifEmpty { url })
+            put("title", title)
             put("url", url)
             put("icon", icon)
             put("created_at", System.currentTimeMillis())
         }
-        return db.insert("bookmarks", null, cv)
+        db.insert("bookmarks", null, cv)
     }
 
     @Synchronized
-    fun deleteBookmark(id: Int): Boolean {
+    fun deleteBookmark(id: Int) {
         val db = writableDatabase
-        return db.delete("bookmarks", "id = ?", arrayOf(id.toString())) > 0
+        db.delete("bookmarks", "id = ?", arrayOf(id.toString()))
     }
 
     @Synchronized
     fun addHistory(title: String, url: String) {
         if (url.isEmpty() || url.startsWith("about:") || url.startsWith("data:")) return
-        val db = writableDatabase
-        val cv = ContentValues().apply {
-            put("title", title.ifEmpty { url })
-            put("url", url)
-            put("visited_at", System.currentTimeMillis())
-        }
-        db.insert("history", null, cv)
+        try {
+            val db = writableDatabase
+            // Remove previous duplicate for clean chronological history
+            db.delete("history", "url = ?", arrayOf(url))
+            val cv = ContentValues().apply {
+                put("title", title.ifEmpty { url })
+                put("url", url)
+                put("visited_at", System.currentTimeMillis())
+            }
+            db.insert("history", null, cv)
+
+            // Keep max 100 entries to prevent DB bloat
+            db.execSQL("DELETE FROM history WHERE id NOT IN (SELECT id FROM history ORDER BY visited_at DESC LIMIT 100)")
+        } catch (ignored: Exception) {}
     }
 
     @Synchronized

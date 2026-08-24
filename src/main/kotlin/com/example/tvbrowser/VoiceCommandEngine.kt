@@ -48,8 +48,8 @@ object VoiceCommandEngine {
             return VoiceResult(CommandType.OPEN_URL, "https://github.com")
         }
 
-        if (raw.contains("streamnexus") || raw.contains("nexus")) {
-            return VoiceResult(CommandType.OPEN_URL, "http://192.168.0.135:3000")
+        if (raw.contains("streamnexus") || raw.contains("nexus") || raw.contains("filmi hd")) {
+            return VoiceResult(CommandType.OPEN_URL, "https://www.themoviedb.org/movie")
         }
 
         // 2. Browser Controls

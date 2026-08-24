@@ -46,15 +46,11 @@ class AdBlockEngine {
         val lower = url.lowercase()
         return lower.contains("fuckadblock") ||
                lower.contains("blockadblock") ||
-               lower.contains("ads.js") ||
                lower.contains("adblock-detect") ||
                lower.contains("disable-adblock") ||
-               lower.contains("adblocker") ||
                lower.contains("adblockdetector") ||
-               lower.contains("prebid") ||
-               lower.contains("showads.js") ||
-               lower.contains("prebid.js") ||
-               lower.contains("adframe.js")
+               lower.contains("adblock-checker") ||
+               lower.contains("detect-adblock")
     }
 
     fun isDevToolBlocker(url: String?): Boolean {

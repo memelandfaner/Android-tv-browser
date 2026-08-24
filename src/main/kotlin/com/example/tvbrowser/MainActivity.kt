@@ -1,41 +1,57 @@
 package com.example.tvbrowser
 
-import android.app.Activity
-import android.app.AlertDialog
+import android.Manifest
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.media.AudioManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StrictMode
+import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import android.view.*
+import android.text.TextUtils
+import android.view.Gravity
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.webkit.*
-import android.widget.*
+import android.webkit.CookieManager
+import android.webkit.WebChromeClient
+import android.webkit.WebStorage
+import android.widget.Button
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.GridLayout
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import java.io.File
 
-class MainActivity : Activity() {
+class MainActivity : android.app.Activity() {
 
     private lateinit var viewModel: BrowserViewModel
     private lateinit var focusManager: TvFocusManager
 
     private lateinit var webViewContainer: FrameLayout
     private lateinit var customViewContainer: FrameLayout
-    private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private var customView: View? = null
+    private var customViewCallback: WebChromeClient.CustomViewCallback? = null
 
     private lateinit var cursorOverlay: CursorOverlay
-    private var cursorSpeed = 26f
+    private var cursorSpeed = 24f
+    private var keyRepeatCount = 0
+    private var lastDirectionKeyCode = 0
 
     private lateinit var editUrl: EditText
     private lateinit var progressBar: ProgressBar
@@ -83,9 +99,17 @@ class MainActivity : Activity() {
             renderTabsBar()
         }
 
-        // Handle initial intent if launched with URL (Exact 1 tab)
-        val initialUrl = intent?.data?.toString() ?: "https://www.google.com"
-        createAndSelectTab(initialUrl, "Google")
+        // Handle initial intent or default search engine home (Max 1 initial tab)
+        val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+        val engine = prefs.getString("search_engine", "google") ?: "google"
+        val homeUrl = viewModel.getHomeUrl(engine)
+        val initialUrl = intent?.data?.toString() ?: homeUrl
+        val initialTitle = when (engine) {
+            "duckduckgo" -> "DuckDuckGo"
+            "bing" -> "Bing"
+            else -> "Google"
+        }
+        createAndSelectTab(initialUrl, initialTitle)
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -119,7 +143,7 @@ class MainActivity : Activity() {
             stopVoiceSearch()
         }
 
-        // Fast Header Links -> YouTube Home feed
+        // Fast Header Links -> YouTube / GitHub / TMDB
         findViewById<View>(R.id.btnQuickSmartTube).setOnClickListener {
             loadUrl("https://www.youtube.com")
         }
@@ -159,9 +183,11 @@ class MainActivity : Activity() {
             }
         }
 
-        // 🏠 Home -> Always Google Search
+        // 🏠 Home -> Selected Search Engine
         findViewById<View>(R.id.btnHome).setOnClickListener {
-            loadUrl("https://www.google.com")
+            val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+            val engine = prefs.getString("search_engine", "google") ?: "google"
+            loadUrl(viewModel.getHomeUrl(engine))
         }
 
         findViewById<View>(R.id.btnGo).setOnClickListener {
@@ -188,16 +214,23 @@ class MainActivity : Activity() {
             if (active != null) {
                 val currentUrl = active.url ?: ""
                 val currentTitle = active.title ?: currentUrl
-                if (currentUrl.isNotEmpty()) {
-                    viewModel.addBookmark(currentTitle, currentUrl, "⭐")
-                    Toast.makeText(this, "⭐ Shranjeno: $currentTitle", Toast.LENGTH_SHORT).show()
+                if (currentUrl.isNotEmpty() && currentUrl != "about:blank") {
+                    val icon = when {
+                        currentUrl.contains("youtube.com") -> "📺"
+                        currentUrl.contains("github.com") -> "🐙"
+                        currentUrl.contains("themoviedb.org") -> "🍿"
+                        else -> "⭐"
+                    }
+                    viewModel.addBookmark(currentTitle, currentUrl, icon)
+                    Toast.makeText(this, "⭐ Dodano med zaznamke: $currentTitle", Toast.LENGTH_SHORT).show()
                 }
             }
         }
 
+        // ⚙️ Settings Switches
         val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
-
-        // 🛡️ AdBlock Toggle
+        
+        // 🛡️ AdBlock & Top-Frame Lock Toggle
         val btnToggleAdblock = findViewById<Button>(R.id.btnToggleAdblock)
         var adblockEnabled = prefs.getBoolean("adblock_enabled", true)
         fun updateAdblockBtn() {
@@ -210,7 +243,7 @@ class MainActivity : Activity() {
             prefs.edit().putBoolean("adblock_enabled", adblockEnabled).apply()
             updateAdblockBtn()
             webViewPool.forEach { it.adBlockEngine.isEnabled = adblockEnabled }
-            Toast.makeText(this, "AdBlock: ${if (adblockEnabled) "Vklopljen" else "Izklopljen"}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "AdBlocker: ${if (adblockEnabled) "Vklopljen" else "Izklopljen"}", Toast.LENGTH_SHORT).show()
         }
 
         // ⚔️ Anti-Anti-AdBlock Toggle
@@ -264,6 +297,7 @@ class MainActivity : Activity() {
             val newMode = UserAgentMode.values()[uaModeOrdinal]
             updateUaUi()
             webViewPool.forEach { it.setUserAgentMode(newMode) }
+            getActiveWebView()?.reload()
             Toast.makeText(this, "Način spremenjen: ${textCurrentUa.text}", Toast.LENGTH_SHORT).show()
         }
 
@@ -306,9 +340,20 @@ class MainActivity : Activity() {
             else showSettingsPanel()
         }
 
-        // ➕ Add Tab -> Always Google Search
+        // ➕ Add Tab -> Max 4 Tabs limit
         findViewById<View>(R.id.btnAddTab).setOnClickListener {
-            createAndSelectTab("https://www.google.com", "Google Iskanje")
+            if (!viewModel.canAddTab()) {
+                Toast.makeText(this, "Maksimalno 4 zavihki so dovoljeni za nemoteno delovanje TV-ja.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val engine = prefs.getString("search_engine", "google") ?: "google"
+            val homeUrl = viewModel.getHomeUrl(engine)
+            val title = when (engine) {
+                "duckduckgo" -> "DuckDuckGo"
+                "bing" -> "Bing"
+                else -> "Google Iskanje"
+            }
+            createAndSelectTab(homeUrl, title)
             Toast.makeText(this, "➕ Odprt nov zavihek", Toast.LENGTH_SHORT).show()
         }
 
@@ -331,13 +376,24 @@ class MainActivity : Activity() {
         try {
             val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             am.setStreamMute(AudioManager.STREAM_MUSIC, false)
-            am.mode = AudioManager.MODE_NORMAL
+            am.setMode(AudioManager.MODE_NORMAL)
+        } catch (ignored: Exception) {}
+    }
+
+    private fun hideSoftKeyboard() {
+        try {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            val view = currentFocus ?: findViewById<View>(android.R.id.content)
+            if (view != null) {
+                imm.hideSoftInputFromWindow(view.windowToken, 0)
+            }
         } catch (ignored: Exception) {}
     }
 
     private fun handleUrlSubmit() {
-        hideSoftKeyboard()
-        val target = viewModel.processUrlInput(editUrl.text.toString())
+        val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+        val engine = prefs.getString("search_engine", "google") ?: "google"
+        val target = viewModel.processUrlInput(editUrl.text.toString(), engine)
         loadUrl(target)
         getActiveWebView()?.requestFocus()
     }
@@ -355,31 +411,40 @@ class MainActivity : Activity() {
     }
 
     private fun createAndSelectTab(url: String, title: String) {
-        val tabIndex = webViewPool.size
-
         val webView = ChromiumEngineView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
             onProgressChangedListener = { p ->
-                progressBar.progress = p
-                progressBar.visibility = if (p in 1..99) View.VISIBLE else View.GONE
-                viewModel.updateTabProgress(tabIndex, p)
+                val idx = webViewPool.indexOf(this)
+                if (idx != -1) {
+                    if (idx == viewModel.state.activeTabIndex) {
+                        progressBar.progress = p
+                        progressBar.visibility = if (p in 1..99) View.VISIBLE else View.GONE
+                    }
+                    viewModel.updateTabProgress(idx, p)
+                }
             }
             onTitleReceivedListener = { t ->
-                viewModel.updateTabTitle(tabIndex, t)
-                renderTabsBar()
+                val idx = webViewPool.indexOf(this)
+                if (idx != -1) {
+                    viewModel.updateTabTitle(idx, t)
+                    renderTabsBar()
+                }
             }
             onUrlChangedListener = { u ->
-                if (webViewPool.indexOf(this) == viewModel.state.activeTabIndex) {
-                    if (!editUrl.hasFocus()) {
-                        val display = formatDisplayUrl(u)
-                        editUrl.setText(display)
-                        updateOmniboxHint(u)
+                val idx = webViewPool.indexOf(this)
+                if (idx != -1) {
+                    if (idx == viewModel.state.activeTabIndex) {
+                        if (!editUrl.hasFocus()) {
+                            val display = formatDisplayUrl(u)
+                            editUrl.setText(display)
+                            updateOmniboxHint(u)
+                        }
                     }
+                    viewModel.updateTabUrl(idx, u)
                 }
-                viewModel.updateTabUrl(tabIndex, u)
             }
             onShowCustomViewListener = { v, cb ->
                 customView = v
@@ -425,11 +490,20 @@ class MainActivity : Activity() {
                 val q = uri.getQueryParameter("q")
                 if (!q.isNullOrEmpty()) return q
             }
+            if (rawUrl.contains("duckduckgo.com/")) {
+                val q = uri.getQueryParameter("q")
+                if (!q.isNullOrEmpty()) return q
+            }
+            if (rawUrl.contains("bing.com/search")) {
+                val q = uri.getQueryParameter("q")
+                if (!q.isNullOrEmpty()) return q
+            }
             if (rawUrl.contains("youtube.com/results")) {
                 val q = uri.getQueryParameter("search_query")
                 if (!q.isNullOrEmpty()) return q
             }
-            if (rawUrl.startsWith("https://www.google.") || rawUrl.startsWith("http://www.google.")) {
+            if (rawUrl.startsWith("https://www.google.") || rawUrl.startsWith("http://www.google.") ||
+                rawUrl.startsWith("https://duckduckgo.com") || rawUrl.startsWith("https://www.bing.com")) {
                 return ""
             }
         } catch (ignored: Exception) {}
@@ -452,12 +526,14 @@ class MainActivity : Activity() {
             if (i == index) {
                 v.visibility = View.VISIBLE
                 v.onResume()
+                v.resumeTimers()
                 val currentU = v.url ?: ""
                 editUrl.setText(formatDisplayUrl(currentU))
                 updateOmniboxHint(currentU)
             } else {
                 v.visibility = View.GONE
                 v.onPause()
+                v.pauseTimers()
             }
         }
 
@@ -470,6 +546,8 @@ class MainActivity : Activity() {
 
         val viewToRemove = webViewPool.removeAt(index)
         webViewContainer.removeView(viewToRemove)
+        viewToRemove.stopLoading()
+        viewToRemove.loadUrl("about:blank")
         viewToRemove.destroy()
 
         viewModel.closeTab(index)
@@ -509,6 +587,9 @@ class MainActivity : Activity() {
                 textSize = 12f
                 setTextColor(if (i == activeIndex) Color.parseColor("#38bdf8") else Color.parseColor("#94a3b8"))
                 typeface = if (i == activeIndex) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                maxWidth = 260
             }
             tabLayout.addView(textTitle)
 
@@ -520,7 +601,7 @@ class MainActivity : Activity() {
                     setTextColor(Color.parseColor("#ef4444"))
                     setPadding(16, 0, 4, 0)
                     isClickable = true
-                    isFocusable = false
+                    isFocusable = true
                     setOnClickListener {
                         closeTab(tabIdx)
                     }
@@ -530,25 +611,16 @@ class MainActivity : Activity() {
 
             val tabIdx = i
             tabLayout.setOnClickListener { selectTab(tabIdx) }
+            tabLayout.setOnLongClickListener {
+                if (webViewPool.size > 1) {
+                    closeTab(tabIdx)
+                    Toast.makeText(this, "Zavihek zaprt.", Toast.LENGTH_SHORT).show()
+                }
+                true
+            }
+
             tabsLayout.addView(tabLayout)
         }
-    }
-
-    private fun showBookmarksPanel() {
-        hideAllPanels()
-        bookmarksPanel.visibility = View.VISIBLE
-        renderBookmarksGrid()
-    }
-
-    private fun showDownloadsPanel() {
-        hideAllPanels()
-        downloadsPanel.visibility = View.VISIBLE
-        renderDownloadsList()
-    }
-
-    private fun showSettingsPanel() {
-        hideAllPanels()
-        settingsPanel.visibility = View.VISIBLE
     }
 
     private fun hideAllPanels() {
@@ -559,64 +631,71 @@ class MainActivity : Activity() {
         viewModel.hideAllPanels()
     }
 
+    private fun showBookmarksPanel() {
+        hideAllPanels()
+        bookmarksPanel.visibility = View.VISIBLE
+        renderBookmarksGrid()
+        viewModel.showPanel(ActivePanel.BOOKMARKS)
+    }
+
+    private fun showDownloadsPanel() {
+        hideAllPanels()
+        downloadsPanel.visibility = View.VISIBLE
+        renderDownloadsList()
+        viewModel.showPanel(ActivePanel.DOWNLOADS)
+    }
+
+    private fun showSettingsPanel() {
+        hideAllPanels()
+        settingsPanel.visibility = View.VISIBLE
+        viewModel.showPanel(ActivePanel.SETTINGS)
+    }
+
     private fun renderBookmarksGrid() {
         bookmarksGrid.removeAllViews()
         val bookmarks = viewModel.state.bookmarks
 
-        for (item in bookmarks) {
+        for (bm in bookmarks) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                setPadding(24, 24, 24, 24)
-                setBackgroundResource(R.drawable.bg_card)
+                setPadding(24, 20, 24, 20)
                 isFocusable = true
+                setBackgroundResource(R.drawable.bg_card)
                 val lp = GridLayout.LayoutParams().apply {
-                    width = 240
+                    width = 220
                     height = 140
                     setMargins(14, 14, 14, 14)
                 }
                 layoutParams = lp
             }
 
-            val textIcon = TextView(this).apply {
-                text = item.icon
+            val iconText = TextView(this).apply {
+                text = bm.icon
                 textSize = 28f
                 gravity = Gravity.CENTER
             }
-            val textTitle = TextView(this).apply {
-                text = item.title
+            card.addView(iconText)
+
+            val titleText = TextView(this).apply {
+                text = bm.title
                 textSize = 13f
                 setTextColor(Color.WHITE)
-                typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
                 maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                setPadding(0, 8, 0, 0)
             }
-            val textUrl = TextView(this).apply {
-                text = item.url
-                textSize = 10f
-                setTextColor(Color.parseColor("#94a3b8"))
-                gravity = Gravity.CENTER
-                maxLines = 1
-            }
-
-            card.addView(textIcon)
-            card.addView(textTitle)
-            card.addView(textUrl)
+            card.addView(titleText)
 
             card.setOnClickListener {
-                loadUrl(item.url)
+                loadUrl(bm.url)
             }
 
             card.setOnLongClickListener {
-                AlertDialog.Builder(this)
-                    .setTitle("Izbriši zaznamek?")
-                    .setMessage(item.title)
-                    .setPositiveButton("Izbriši", DialogInterface.OnClickListener { _, _ ->
-                        viewModel.deleteBookmark(item.id)
-                        renderBookmarksGrid()
-                    })
-                    .setNegativeButton("Prekliči", null)
-                    .show()
+                viewModel.deleteBookmark(bm.id)
+                Toast.makeText(this, "🗑️ Zaznamek odstranjen: ${bm.title}", Toast.LENGTH_SHORT).show()
+                renderBookmarksGrid()
                 true
             }
 
@@ -627,15 +706,16 @@ class MainActivity : Activity() {
     private fun renderDownloadsList() {
         downloadsListContainer.removeAllViews()
         val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val files = dir?.listFiles()?.sortedByDescending { it.lastModified() } ?: emptyList()
+        val files = dir.listFiles()?.sortedByDescending { it.lastModified() } ?: emptyList()
 
         if (files.isEmpty()) {
-            val emptyTv = TextView(this).apply {
-                text = "V mapi Prenosi še ni nobenih datotek."
+            val emptyText = TextView(this).apply {
+                text = "V mapi Prenosi trenutno ni datotek."
                 setTextColor(Color.parseColor("#94a3b8"))
-                setPadding(20, 20, 20, 20)
+                textSize = 14f
+                setPadding(16, 24, 16, 24)
             }
-            downloadsListContainer.addView(emptyTv)
+            downloadsListContainer.addView(emptyText)
             return
         }
 
@@ -644,8 +724,8 @@ class MainActivity : Activity() {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(20, 16, 20, 16)
-                setBackgroundResource(R.drawable.bg_card)
                 isFocusable = true
+                setBackgroundResource(R.drawable.bg_card)
                 val lp = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -655,35 +735,51 @@ class MainActivity : Activity() {
                 layoutParams = lp
             }
 
-            val iconTv = TextView(this).apply {
-                text = if (file.name.lowercase().endsWith(".apk")) "📦"
-                else if (file.name.lowercase().endsWith(".mp4") || file.name.lowercase().endsWith(".mkv")) "🎬"
-                else "📄"
+            val isApk = file.name.lowercase().endsWith(".apk")
+            val icon = TextView(this).apply {
+                text = if (isApk) "📦" else "📄"
                 textSize = 20f
                 setPadding(0, 0, 16, 0)
             }
+            row.addView(icon)
 
-            val nameTv = TextView(this).apply {
+            val infoLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f)
+            }
+
+            val name = TextView(this).apply {
                 text = file.name
-                textSize = 14f
                 setTextColor(Color.WHITE)
-                val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                layoutParams = lp
+                textSize = 14f
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
             }
+            infoLayout.addView(name)
 
-            val sizeTv = TextView(this).apply {
-                val sizeMb = file.length() / (1024.0 * 1024.0)
-                text = String.format("%.2f MB", sizeMb)
-                textSize = 12f
+            val size = TextView(this).apply {
+                val mb = file.length() / (1024.0 * 1024.0)
+                text = String.format("%.2f MB", mb)
                 setTextColor(Color.parseColor("#94a3b8"))
+                textSize = 11f
             }
+            infoLayout.addView(size)
+            row.addView(infoLayout)
 
-            row.addView(iconTv)
-            row.addView(nameTv)
-            row.addView(sizeTv)
+            val btnOpen = Button(this).apply {
+                text = if (isApk) "Namesti" else "Odpri"
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                isFocusable = false
+                setBackgroundResource(R.drawable.bg_nav_button)
+                setOnClickListener {
+                    DownloadHandler.openDownloadedFile(this@MainActivity, file)
+                }
+            }
+            row.addView(btnOpen)
 
             row.setOnClickListener {
-                DownloadHandler.openDownloadedFile(this, file)
+                DownloadHandler.openDownloadedFile(this@MainActivity, file)
             }
 
             downloadsListContainer.addView(row)
@@ -692,65 +788,72 @@ class MainActivity : Activity() {
 
     private fun showAddBookmarkDialog() {
         val active = getActiveWebView()
-        val curUrl = active?.url ?: "https://"
-        val curTitle = active?.title ?: "Zaznamek"
+        val currentUrl = active?.url ?: ""
+        val currentTitle = active?.title ?: ""
 
-        val layout = LinearLayout(this).apply {
+        val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(40, 20, 40, 20)
         }
 
         val inputTitle = EditText(this).apply {
-            hint = "Ime zaznamka"
-            setText(curTitle)
+            hint = "Ime portala (npr. TMDB Filmi)"
+            setText(currentTitle)
             setTextColor(Color.WHITE)
+            setHintTextColor(Color.parseColor("#64748b"))
         }
+        container.addView(inputTitle)
+
         val inputUrl = EditText(this).apply {
-            hint = "URL naslov"
-            setText(curUrl)
+            hint = "Spletni naslov (npr. https://...)"
+            setText(currentUrl)
             setTextColor(Color.WHITE)
+            setHintTextColor(Color.parseColor("#64748b"))
         }
+        container.addView(inputUrl)
 
-        layout.addView(inputTitle)
-        layout.addView(inputUrl)
-
-        AlertDialog.Builder(this)
-            .setTitle("⭐ Dodaj Zaznamek")
-            .setView(layout)
-            .setPositiveButton("Shrani", DialogInterface.OnClickListener { _, _ ->
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("⭐ Dodaj Nov Zaznamek")
+            .setView(container)
+            .setPositiveButton("Dodaj") { _, _ ->
                 val title = inputTitle.text.toString().trim()
                 val url = inputUrl.text.toString().trim()
-                if (url.isNotEmpty()) {
+                if (title.isNotEmpty() && url.isNotEmpty()) {
                     viewModel.addBookmark(title, url, "⭐")
                     renderBookmarksGrid()
                     Toast.makeText(this, "Zaznamek shranjen!", Toast.LENGTH_SHORT).show()
                 }
-            })
+            }
             .setNegativeButton("Prekliči", null)
             .show()
     }
 
     private fun toggleCursorMode() {
-        val newMode = !cursorOverlay.isCursorActive()
-        cursorOverlay.setCursorEnabled(newMode)
-        viewModel.setCursorMode(newMode)
-
-        if (newMode) {
-            Toast.makeText(this, "🟡 Kurzor VKLOPLJEN (Premikaj z D-Padom, OK za klik)", Toast.LENGTH_SHORT).show()
+        val current = cursorOverlay.isCursorActive()
+        val next = !current
+        cursorOverlay.setCursorEnabled(next)
+        viewModel.setCursorMode(next)
+        if (next) {
+            cursorOverlay.setCursorPosition(960f, 540f)
+            Toast.makeText(this, "🟡 Virtualni kurzor: VKLOPLJEN (Uporabite smerne tipke)", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "🟡 Kurzor IZKLOPLJEN (Standardni D-Pad fokus)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "D-Pad navigacija aktivna", Toast.LENGTH_SHORT).show()
+            getActiveWebView()?.requestFocus()
         }
     }
 
     // =========================================================================
-    // 🎙️ IN-APP VOICE RECOGNITION (Katniss / Assistant Bridge)
+    // 🎙️ SPEECH RECOGNITION (PHILIPS TV MIC INTEGRATION)
     // =========================================================================
     private fun startVoiceSearch() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), 102)
-                return
-            }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 102)
+            return
+        }
+
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            launchSpeechIntentFallback()
+            return
         }
 
         showVoiceListeningHUD()
@@ -760,13 +863,23 @@ class MainActivity : Activity() {
                 speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
             }
 
+            val recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sl-SI")
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "sl-SI")
+                putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "sl-SI")
+                putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            }
+
             speechRecognizer?.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
-                    textVoiceStatus.text = "Poslušam... Govorite zdaj!"
+                    textVoiceStatus.text = "Govorite zdaj... (npr. 'Odpri YouTube', 'TMDB Filmi')"
                 }
 
                 override fun onBeginningOfSpeech() {
-                    textVoiceStatus.text = "Zaznan govor... Prepoznavam..."
+                    textVoiceStatus.text = "Poslušam..."
                 }
 
                 override fun onRmsChanged(rmsdB: Float) {
@@ -776,18 +889,13 @@ class MainActivity : Activity() {
                 }
 
                 override fun onBufferReceived(buffer: ByteArray?) {}
-
                 override fun onEndOfSpeech() {
-                    textVoiceStatus.text = "Obdelujem ukaz..."
+                    textVoiceStatus.text = "Obdelujem glasovni ukaz..."
                 }
 
                 override fun onError(error: Int) {
                     hideVoiceListeningHUD()
-                    if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                        Toast.makeText(this@MainActivity, "Govor ni bil zaznan. Poskusite znova.", Toast.LENGTH_SHORT).show()
-                    } else {
-                        launchSpeechIntentFallback()
-                    }
+                    launchSpeechIntentFallback()
                 }
 
                 override fun onResults(results: Bundle?) {
@@ -801,27 +909,31 @@ class MainActivity : Activity() {
                 }
 
                 override fun onPartialResults(partialResults: Bundle?) {
-                    val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    if (!matches.isNullOrEmpty()) {
-                        textVoiceStatus.text = "🎙️ '${matches[0]}'"
+                    val partial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    if (!partial.isNullOrEmpty()) {
+                        textVoiceStatus.text = "» ${partial[0]} «"
                     }
                 }
 
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             })
 
-            val recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sl-SI")
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            }
-
             speechRecognizer?.startListening(recognizerIntent)
 
         } catch (e: Exception) {
             hideVoiceListeningHUD()
             launchSpeechIntentFallback()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 102) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startVoiceSearch()
+            } else {
+                Toast.makeText(this, "Dovoljenje za mikrofon je bilo zavrnjeno.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -880,7 +992,13 @@ class MainActivity : Activity() {
                 editUrl.setText(result.payload)
                 handleUrlSubmit()
             }
-            CommandType.NEW_TAB -> createAndSelectTab("https://www.google.com", "Google Iskanje")
+            CommandType.NEW_TAB -> {
+                if (viewModel.canAddTab()) {
+                    createAndSelectTab("https://www.google.com", "Google Iskanje")
+                } else {
+                    Toast.makeText(this, "Dosežen limit 4 zavihkov.", Toast.LENGTH_SHORT).show()
+                }
+            }
             CommandType.CLOSE_TAB -> {
                 if (webViewPool.size > 1) closeTab(viewModel.state.activeTabIndex)
             }
@@ -929,21 +1047,44 @@ class MainActivity : Activity() {
 
     private fun handleCursorKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
+            val isDirection = when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> true
+                else -> false
+            }
+
+            if (isDirection) {
+                if (event.keyCode == lastDirectionKeyCode) {
+                    keyRepeatCount++
+                } else {
+                    keyRepeatCount = 0
+                    lastDirectionKeyCode = event.keyCode
+                }
+            }
+
+            val currentSpeed = (cursorSpeed + (keyRepeatCount * 4f)).coerceAtMost(60f)
+
             when (event.keyCode) {
                 KeyEvent.KEYCODE_DPAD_UP -> {
-                    cursorOverlay.moveBy(0f, -cursorSpeed)
+                    cursorOverlay.moveBy(0f, -currentSpeed)
+                    if (cursorOverlay.getCursorY() <= 140f) {
+                        getActiveWebView()?.scrollBy(0, -60)
+                    }
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_DOWN -> {
-                    cursorOverlay.moveBy(0f, cursorSpeed)
+                    cursorOverlay.moveBy(0f, currentSpeed)
+                    if (cursorOverlay.getCursorY() >= 960f) {
+                        getActiveWebView()?.scrollBy(0, 60)
+                    }
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_LEFT -> {
-                    cursorOverlay.moveBy(-cursorSpeed, 0f)
+                    cursorOverlay.moveBy(-currentSpeed, 0f)
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    cursorOverlay.moveBy(cursorSpeed, 0f)
+                    cursorOverlay.moveBy(currentSpeed, 0f)
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
@@ -951,6 +1092,8 @@ class MainActivity : Activity() {
                     return true
                 }
             }
+        } else if (event.action == KeyEvent.ACTION_UP) {
+            keyRepeatCount = 0
         }
         return false
     }
@@ -958,36 +1101,39 @@ class MainActivity : Activity() {
     private fun dispatchHardwareTapAtCursor() {
         val cx = cursorOverlay.getCursorX()
         val cy = cursorOverlay.getCursorY()
-        val now = android.os.SystemClock.uptimeMillis()
 
-        val down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, cx, cy, 0)
-        val up = MotionEvent.obtain(now, now + 50, MotionEvent.ACTION_UP, cx, cy, 0)
+        val active = getActiveWebView() ?: return
 
-        val active = getActiveWebView()
-        if (active != null) {
-            active.dispatchTouchEvent(down)
-            active.dispatchTouchEvent(up)
-        } else {
-            window.decorView.dispatchTouchEvent(down)
-            window.decorView.dispatchTouchEvent(up)
-        }
+        val location = IntArray(2)
+        active.getLocationOnScreen(location)
+        val wvX = cx - location[0]
+        val wvY = cy - location[1]
 
+        val downTime = SystemClock.uptimeMillis()
+        val down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, wvX, wvY, 0)
+        val up = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, wvX, wvY, 0)
+
+        active.dispatchTouchEvent(down)
+        active.dispatchTouchEvent(up)
         down.recycle()
         up.recycle()
-    }
-
-    private fun hideSoftKeyboard() {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager?
-        val view = currentFocus
-        if (imm != null && view != null) {
-            imm.hideSoftInputFromWindow(view.windowToken, 0)
-        }
     }
 
     override fun onDestroy() {
         try {
             speechRecognizer?.destroy()
+            speechRecognizer = null
         } catch (ignored: Exception) {}
+
+        try {
+            webViewPool.forEach {
+                it.stopLoading()
+                it.loadUrl("about:blank")
+                it.destroy()
+            }
+            webViewPool.clear()
+        } catch (ignored: Exception) {}
+
         super.onDestroy()
     }
 }

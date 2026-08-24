@@ -4,7 +4,7 @@ import android.webkit.WebView
 
 object UserScriptManager {
 
-    // 🛡️ 1. Comprehensive Anti-Anti-AdBlock JS (Runs at DOCUMENT_START)
+    // 🛡️ 1. Anti-Anti-AdBlock JS (DOCUMENT_START)
     private const val ANTI_ANTI_ADBLOCK_JS = """
         (function() {
             try {
@@ -17,13 +17,7 @@ object UserScriptManager {
                 window.adBlockEnabled = false;
                 window.isAdBlockActive = false;
 
-                // 2. Document visibility spoofing (prevents background throttle / anti-adblock sleep)
-                try {
-                    Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
-                    Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
-                } catch(e) {}
-
-                // 3. Override common Anti-AdBlock detection libraries
+                // 2. Override common Anti-AdBlock detection libraries
                 function DummyDetector() {
                     this.onDetected = function(){ return this; };
                     this.onNotDetected = function(cb){ if (typeof cb === 'function') cb(); return this; };
@@ -37,25 +31,18 @@ object UserScriptManager {
                 window.BlockAdBlock = DummyDetector;
                 window.fuckAdBlock = new DummyDetector();
                 window.blockAdBlock = new DummyDetector();
-                window.Snackbars = window.Snackbars || {};
 
-                // 4. MutationObserver to remove anti-adblock modal backdrops and re-assert spoofs
-                const observer = new MutationObserver((mutations) => {
+                // 3. MutationObserver to safely remove anti-adblock modal backdrops and re-assert spoofs
+                const observer = new MutationObserver(() => {
                     window.google_ad_status = 1;
                     window.canRunAds = true;
                     window.adblock = false;
 
-                    // Remove blocking overlays if present
                     const badOverlays = document.querySelectorAll(
-                        '[class*="adblock"], [id*="adblock"], [class*="ad-blocker"], ' +
-                        '.fc-ab-root, .adblock-overlay, .ad-banner-overlay, [aria-label*="AdBlock"]'
+                        '.fc-ab-root, .adblock-overlay, [class*="adblock-modal"]'
                     );
                     badOverlays.forEach(el => {
-                        try {
-                            el.remove();
-                            document.documentElement.style.overflow = 'auto';
-                            document.body.style.overflow = 'auto';
-                        } catch(e) {}
+                        try { el.remove(); } catch(e) {}
                     });
                 });
 
@@ -63,14 +50,16 @@ object UserScriptManager {
                     observer.observe(document.documentElement, { childList: true, subtree: true });
                 } else {
                     document.addEventListener('DOMContentLoaded', () => {
-                        observer.observe(document.documentElement, { childList: true, subtree: true });
+                        if (document.documentElement) {
+                            observer.observe(document.documentElement, { childList: true, subtree: true });
+                        }
                     });
                 }
             } catch(err) {}
         })();
     """
 
-    // 🎨 2. Cosmetic Filtering CSS (Hides ad containers, banners, and empty spaces)
+    // 🎨 2. Cosmetic Filtering CSS (Hides ad containers without breaking layout or scrolling)
     private const val COSMETIC_FILTER_CSS = """
         (function() {
             var cssId = 'tv_browser_cosmetic_filter';
@@ -81,18 +70,13 @@ object UserScriptManager {
                     #ad, #ads, .ad, .ads, .ad-banner, .advertisement, .ad-container,
                     .adsbygoogle, [id^="google_ads_"], [id^="div-gpt-ad"], [class*="sponsored-post"],
                     .ytp-ad-module, .ytp-ad-overlay-container, .video-ads,
-                    iframe[src*="doubleclick"], iframe[src*="googleads"], iframe[src*="adservice"],
-                    .fc-ab-root, .fc-dialog-overlay, [class*="adblock-modal"] {
+                    iframe[src*="doubleclick"], iframe[src*="googleads"], iframe[src*="adservice"] {
                         display: none !important;
                         visibility: hidden !important;
                         height: 0 !important;
                         max-height: 0 !important;
                         pointer-events: none !important;
                         opacity: 0 !important;
-                    }
-                    html, body {
-                        overflow: auto !important;
-                        position: static !important;
                     }
                 `;
                 if (document.head) {
@@ -117,23 +101,12 @@ object UserScriptManager {
                 else if (document.documentElement) document.documentElement.appendChild(style);
             }
 
-            // Audio Unmute Watchdog
+            // Direct Media Audio Unmute (Zero CPU overhead)
             function ensureUnmute() {
                 document.querySelectorAll('video, audio').forEach(function(v) {
                     if (v.muted) v.muted = false;
                     if (v.volume < 1.0) v.volume = 1.0;
                 });
-                var all = document.querySelectorAll('button, div, span, a, [role="button"]');
-                for (var i = 0; i < all.length; i++) {
-                    var el = all[i];
-                    var txt = (el.innerText || el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '').trim().toLowerCase();
-                    if (txt === 'vklopite zvok' || txt === 'vklopi zvok' || txt === 'unmute' || txt.indexOf('vklopite zvok') !== -1 || txt.indexOf('vklopi zvok') !== -1) {
-                        try {
-                            el.click();
-                            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                        } catch(e) {}
-                    }
-                }
             }
             ensureUnmute();
             document.addEventListener('play', ensureUnmute, true);
@@ -145,8 +118,17 @@ object UserScriptManager {
                     e.target.volume = 1.0;
                 }
             }, true);
-            if (!window._tvUnmuteInterval) {
-                window._tvUnmuteInterval = setInterval(ensureUnmute, 800);
+
+            // YouTube Auto-Play trigger via JS directly
+            if (window.location.href.indexOf('youtube.com/watch') !== -1) {
+                setTimeout(function() {
+                    var v = document.querySelector('video');
+                    if (v && v.paused) {
+                        v.muted = false;
+                        v.volume = 1.0;
+                        v.play().catch(function(){});
+                    }
+                }, 800);
             }
 
             // GDPR Consent Auto-Accept

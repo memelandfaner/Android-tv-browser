@@ -56,9 +56,11 @@ object DownloadHandler {
         val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
 
         try {
+            val contentUri = TvFileProvider.getUriForFile(context, file)
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(Uri.fromFile(file), mime)
+                setDataAndType(contentUri, mime)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(intent)
         } catch (e: Exception) {
@@ -68,8 +70,9 @@ object DownloadHandler {
 
     private fun installApk(context: Context, apkFile: File) {
         try {
+            val contentUri = TvFileProvider.getUriForFile(context, apkFile)
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(Uri.fromFile(apkFile), "application/vnd.android.package-archive")
+                setDataAndType(contentUri, "application/vnd.android.package-archive")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }

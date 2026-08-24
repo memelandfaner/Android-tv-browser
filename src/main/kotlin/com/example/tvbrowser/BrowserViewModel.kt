@@ -19,10 +19,27 @@ class BrowserViewModel(context: Context) {
             onStateChanged?.invoke(value)
         }
 
-    private var defaultSearchEngine = "https://www.google.com/search?q="
-    private val homeSearchUrl = "https://www.google.com"
+    fun getSearchBaseUrl(engine: String): String {
+        return when (engine.lowercase()) {
+            "duckduckgo" -> "https://duckduckgo.com/?q="
+            "bing" -> "https://www.bing.com/search?q="
+            else -> "https://www.google.com/search?q="
+        }
+    }
 
-    fun addNewTab(initialUrl: String = homeSearchUrl, title: String = "Google Iskanje") {
+    fun getHomeUrl(engine: String): String {
+        return when (engine.lowercase()) {
+            "duckduckgo" -> "https://duckduckgo.com"
+            "bing" -> "https://www.bing.com"
+            else -> "https://www.google.com"
+        }
+    }
+
+    fun canAddTab(): Boolean = state.tabs.size < 4
+
+    fun addNewTab(initialUrl: String = "https://www.google.com", title: String = "Google Iskanje") {
+        if (!canAddTab()) return
+
         val newTab = TabState(
             id = "tab_${System.currentTimeMillis()}",
             title = title,
@@ -50,7 +67,7 @@ class BrowserViewModel(context: Context) {
 
     fun closeTab(index: Int) {
         val current = state.tabs
-        if (current.size <= 1) return
+        if (current.size <= 1 || index !in current.indices) return
 
         val updated = current.toMutableList().apply { removeAt(index) }
         val newActive = when {
@@ -70,7 +87,9 @@ class BrowserViewModel(context: Context) {
         val tabs = state.tabs
         if (index in tabs.indices) {
             tabs[index].url = url
-            state = state.copy(currentUrl = url)
+            if (index == state.activeTabIndex) {
+                state = state.copy(currentUrl = url)
+            }
         }
     }
 
@@ -80,7 +99,6 @@ class BrowserViewModel(context: Context) {
             tabs[index].title = title
             state = state.copy(tabs = tabs.toList())
             repository.addHistory(title, tabs[index].url)
-            state = state.copy(history = repository.getHistory())
         }
     }
 
@@ -89,7 +107,8 @@ class BrowserViewModel(context: Context) {
         if (index in tabs.indices) {
             tabs[index].progress = progress
             tabs[index].isLoading = progress in 1..99
-            state = state.copy(tabs = tabs.toList())
+            // Don't overwrite whole state to prevent unnecessary UI rebuilds
+            tabs[index].progress = progress
         }
     }
 
@@ -127,9 +146,10 @@ class BrowserViewModel(context: Context) {
         )
     }
 
-    fun processUrlInput(input: String): String {
+    fun processUrlInput(input: String, searchEngine: String = "google"): String {
         var raw = input.trim()
-        if (raw.isEmpty()) return homeSearchUrl
+        val homeUrl = getHomeUrl(searchEngine)
+        if (raw.isEmpty()) return homeUrl
 
         if (!raw.startsWith("http://") && !raw.startsWith("https://")) {
             raw = if (Patterns.WEB_URL.matcher(raw).matches() || (raw.contains(".") && !raw.contains(" "))) {
@@ -140,7 +160,7 @@ class BrowserViewModel(context: Context) {
                 if (current.contains("youtube.com")) {
                     "https://www.youtube.com/results?search_query=$encoded"
                 } else {
-                    defaultSearchEngine + encoded
+                    getSearchBaseUrl(searchEngine) + encoded
                 }
             }
         }
