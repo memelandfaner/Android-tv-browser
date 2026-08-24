@@ -20,7 +20,7 @@ import android.speech.SpeechRecognizer
 import android.view.*
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.webkit.WebChromeClient
+import android.webkit.*
 import android.widget.*
 import java.io.File
 
@@ -195,6 +195,102 @@ class MainActivity : Activity() {
             }
         }
 
+        val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+
+        // 🛡️ AdBlock Toggle
+        val btnToggleAdblock = findViewById<Button>(R.id.btnToggleAdblock)
+        var adblockEnabled = prefs.getBoolean("adblock_enabled", true)
+        fun updateAdblockBtn() {
+            btnToggleAdblock.text = if (adblockEnabled) "VKLOPLJENO" else "IZKLOPLJENO"
+            btnToggleAdblock.setTextColor(Color.parseColor(if (adblockEnabled) "#38bdf8" else "#ef4444"))
+        }
+        updateAdblockBtn()
+        btnToggleAdblock.setOnClickListener {
+            adblockEnabled = !adblockEnabled
+            prefs.edit().putBoolean("adblock_enabled", adblockEnabled).apply()
+            updateAdblockBtn()
+            webViewPool.forEach { it.adBlockEngine.isEnabled = adblockEnabled }
+            Toast.makeText(this, "AdBlock: ${if (adblockEnabled) "Vklopljen" else "Izklopljen"}", Toast.LENGTH_SHORT).show()
+        }
+
+        // ⚔️ Anti-Anti-AdBlock Toggle
+        val btnToggleAntiAnti = findViewById<Button>(R.id.btnToggleAntiAnti)
+        var antiAntiEnabled = prefs.getBoolean("anti_anti_adblock", true)
+        fun updateAntiAntiBtn() {
+            btnToggleAntiAnti.text = if (antiAntiEnabled) "VKLOPLJENO" else "IZKLOPLJENO"
+            btnToggleAntiAnti.setTextColor(Color.parseColor(if (antiAntiEnabled) "#38bdf8" else "#ef4444"))
+        }
+        updateAntiAntiBtn()
+        btnToggleAntiAnti.setOnClickListener {
+            antiAntiEnabled = !antiAntiEnabled
+            prefs.edit().putBoolean("anti_anti_adblock", antiAntiEnabled).apply()
+            updateAntiAntiBtn()
+            webViewPool.forEach { it.adBlockEngine.isAntiAntiAdblockEnabled = antiAntiEnabled }
+            Toast.makeText(this, "Anti-Anti-AdBlock: ${if (antiAntiEnabled) "Vklopljen" else "Izklopljen"}", Toast.LENGTH_SHORT).show()
+        }
+
+        // 🎨 Cosmetic Filtering Toggle
+        val btnToggleCosmetic = findViewById<Button>(R.id.btnToggleCosmetic)
+        var cosmeticEnabled = prefs.getBoolean("cosmetic_filtering", true)
+        fun updateCosmeticBtn() {
+            btnToggleCosmetic.text = if (cosmeticEnabled) "VKLOPLJENO" else "IZKLOPLJENO"
+            btnToggleCosmetic.setTextColor(Color.parseColor(if (cosmeticEnabled) "#38bdf8" else "#ef4444"))
+        }
+        updateCosmeticBtn()
+        btnToggleCosmetic.setOnClickListener {
+            cosmeticEnabled = !cosmeticEnabled
+            prefs.edit().putBoolean("cosmetic_filtering", cosmeticEnabled).apply()
+            updateCosmeticBtn()
+            webViewPool.forEach { it.adBlockEngine.isCosmeticFilteringEnabled = cosmeticEnabled }
+            Toast.makeText(this, "Kozmetično filtriranje: ${if (cosmeticEnabled) "Vklopljeno" else "Izklopljeno"}", Toast.LENGTH_SHORT).show()
+        }
+
+        // 🖥️ User-Agent Mode Switcher
+        val textCurrentUa = findViewById<TextView>(R.id.textCurrentUa)
+        val btnSwitchUa = findViewById<Button>(R.id.btnSwitchUa)
+        var uaModeOrdinal = prefs.getInt("ua_mode", UserAgentMode.TV.ordinal)
+        fun updateUaUi() {
+            val mode = UserAgentMode.values().getOrElse(uaModeOrdinal) { UserAgentMode.TV }
+            textCurrentUa.text = when (mode) {
+                UserAgentMode.TV -> "Trenutno: Android TV (Optimizirano)"
+                UserAgentMode.DESKTOP -> "Trenutno: Namizni Računalnik (Desktop)"
+                UserAgentMode.MOBILE -> "Trenutno: Mobilni Telefon (Mobile)"
+            }
+        }
+        updateUaUi()
+        btnSwitchUa.setOnClickListener {
+            uaModeOrdinal = (uaModeOrdinal + 1) % UserAgentMode.values().size
+            prefs.edit().putInt("ua_mode", uaModeOrdinal).apply()
+            val newMode = UserAgentMode.values()[uaModeOrdinal]
+            updateUaUi()
+            webViewPool.forEach { it.setUserAgentMode(newMode) }
+            Toast.makeText(this, "Način spremenjen: ${textCurrentUa.text}", Toast.LENGTH_SHORT).show()
+        }
+
+        // 🔍 Search Engine Mode Switcher
+        val textCurrentEngine = findViewById<TextView>(R.id.textCurrentEngine)
+        val btnSwitchEngine = findViewById<Button>(R.id.btnSwitchEngine)
+        var searchEngineMode = prefs.getString("search_engine", "google") ?: "google"
+        fun updateEngineUi() {
+            textCurrentEngine.text = when (searchEngineMode) {
+                "google" -> "Trenutno: Google Iskanje"
+                "duckduckgo" -> "Trenutno: DuckDuckGo (Zasebno)"
+                "bing" -> "Trenutno: Microsoft Bing"
+                else -> "Trenutno: Google Iskanje"
+            }
+        }
+        updateEngineUi()
+        btnSwitchEngine.setOnClickListener {
+            searchEngineMode = when (searchEngineMode) {
+                "google" -> "duckduckgo"
+                "duckduckgo" -> "bing"
+                else -> "google"
+            }
+            prefs.edit().putString("search_engine", searchEngineMode).apply()
+            updateEngineUi()
+            Toast.makeText(this, "Iskalnik: ${textCurrentEngine.text}", Toast.LENGTH_SHORT).show()
+        }
+
         findViewById<View>(R.id.btnNavBookmarks).setOnClickListener {
             if (bookmarksPanel.visibility == View.VISIBLE) hideAllPanels()
             else showBookmarksPanel()
@@ -222,7 +318,12 @@ class MainActivity : Activity() {
 
         findViewById<View>(R.id.btnClearCache).setOnClickListener {
             BrowserRepository(this).clearHistory()
-            Toast.makeText(this, "Predpomnilnik in zgodovina sta bila izbrisana.", Toast.LENGTH_SHORT).show()
+            try {
+                WebStorage.getInstance().deleteAllData()
+                CookieManager.getInstance().removeAllCookies(null)
+                CookieManager.getInstance().flush()
+            } catch (ignored: Exception) {}
+            Toast.makeText(this, "Predpomnilnik, piškotki in zgodovina so bili izbrisani.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -300,6 +401,13 @@ class MainActivity : Activity() {
                 editUrl.selectAll()
             }
         }
+
+        val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+        webView.adBlockEngine.isEnabled = prefs.getBoolean("adblock_enabled", true)
+        webView.adBlockEngine.isAntiAntiAdblockEnabled = prefs.getBoolean("anti_anti_adblock", true)
+        webView.adBlockEngine.isCosmeticFilteringEnabled = prefs.getBoolean("cosmetic_filtering", true)
+        val uaOrdinal = prefs.getInt("ua_mode", UserAgentMode.TV.ordinal)
+        webView.setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
 
         webViewPool.add(webView)
         webViewContainer.addView(webView)

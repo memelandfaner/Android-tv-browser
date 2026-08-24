@@ -408,6 +408,136 @@
                         android:focusable="true" />
                 </LinearLayout>
 
+                <!-- Anti-Anti-Adblock Toggle -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="16dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="⚔️ Anti-Anti-AdBlock Modul"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Nevtralizira FuckAdBlock in lažne preglede oglasov s takojšnjim JS spoofingom."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnToggleAntiAnti"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:paddingHorizontal="16dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="VKLOPLJENO"
+                        android:textColor="@color/accent_cyan"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Cosmetic Filtering Toggle -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="16dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🎨 Kozmetično Filtriranje (Cosmetic Hiding)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Skrije prazne okvirje oglasov, pasice in pojavna okna s CSS pravili."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnToggleCosmetic"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:paddingHorizontal="16dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="VKLOPLJENO"
+                        android:textColor="@color/accent_cyan"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- User-Agent Selection -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="16dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🖥️ Način Prikaza (User-Agent)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/textCurrentUa"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Trenutno: Android TV (Optimizirano)"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnSwitchUa"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:paddingHorizontal="16dp"
+                        android:background="@drawable/bg_nav_button"
+                        android:text="Zamenjaj"
+                        android:textColor="@color/text_primary"
+                        android:focusable="true" />
+                </LinearLayout>
+
                 <!-- Search Engine Selection -->
                 <LinearLayout
                     android:layout_width="match_parent"

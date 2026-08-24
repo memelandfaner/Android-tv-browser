@@ -1,0 +1,201 @@
+package com.example.tvbrowser
+
+import android.webkit.WebView
+
+object UserScriptManager {
+
+    // 🛡️ 1. Comprehensive Anti-Anti-AdBlock JS (Runs at DOCUMENT_START)
+    private const val ANTI_ANTI_ADBLOCK_JS = """
+        (function() {
+            try {
+                // 1. Google Ad Status Spoofing
+                window.google_ad_status = 1;
+                window.canRunAds = true;
+                window.google_ads_status = 1;
+                window.adsBlocked = false;
+                window.adblock = false;
+                window.adBlockEnabled = false;
+                window.isAdBlockActive = false;
+
+                // 2. Document visibility spoofing (prevents background throttle / anti-adblock sleep)
+                try {
+                    Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
+                    Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+                } catch(e) {}
+
+                // 3. Override common Anti-AdBlock detection libraries
+                function DummyDetector() {
+                    this.onDetected = function(){ return this; };
+                    this.onNotDetected = function(cb){ if (typeof cb === 'function') cb(); return this; };
+                    this.on = function(detected, cb){ if (!detected && typeof cb === 'function') cb(); return this; };
+                    this.check = function(){ return false; };
+                    this.emitEvent = function(){};
+                    this.clearEvent = function(){};
+                }
+
+                window.FuckAdBlock = DummyDetector;
+                window.BlockAdBlock = DummyDetector;
+                window.fuckAdBlock = new DummyDetector();
+                window.blockAdBlock = new DummyDetector();
+                window.Snackbars = window.Snackbars || {};
+
+                // 4. MutationObserver to remove anti-adblock modal backdrops and re-assert spoofs
+                const observer = new MutationObserver((mutations) => {
+                    window.google_ad_status = 1;
+                    window.canRunAds = true;
+                    window.adblock = false;
+
+                    // Remove blocking overlays if present
+                    const badOverlays = document.querySelectorAll(
+                        '[class*="adblock"], [id*="adblock"], [class*="ad-blocker"], ' +
+                        '.fc-ab-root, .adblock-overlay, .ad-banner-overlay, [aria-label*="AdBlock"]'
+                    );
+                    badOverlays.forEach(el => {
+                        try {
+                            el.remove();
+                            document.documentElement.style.overflow = 'auto';
+                            document.body.style.overflow = 'auto';
+                        } catch(e) {}
+                    });
+                });
+
+                if (document.documentElement) {
+                    observer.observe(document.documentElement, { childList: true, subtree: true });
+                } else {
+                    document.addEventListener('DOMContentLoaded', () => {
+                        observer.observe(document.documentElement, { childList: true, subtree: true });
+                    });
+                }
+            } catch(err) {}
+        })();
+    """
+
+    // 🎨 2. Cosmetic Filtering CSS (Hides ad containers, banners, and empty spaces)
+    private const val COSMETIC_FILTER_CSS = """
+        (function() {
+            var cssId = 'tv_browser_cosmetic_filter';
+            if (!document.getElementById(cssId)) {
+                var style = document.createElement('style');
+                style.id = cssId;
+                style.innerHTML = `
+                    #ad, #ads, .ad, .ads, .ad-banner, .advertisement, .ad-container,
+                    .adsbygoogle, [id^="google_ads_"], [id^="div-gpt-ad"], [class*="sponsored-post"],
+                    .ytp-ad-module, .ytp-ad-overlay-container, .video-ads,
+                    iframe[src*="doubleclick"], iframe[src*="googleads"], iframe[src*="adservice"],
+                    .fc-ab-root, .fc-dialog-overlay, [class*="adblock-modal"] {
+                        display: none !important;
+                        visibility: hidden !important;
+                        height: 0 !important;
+                        max-height: 0 !important;
+                        pointer-events: none !important;
+                        opacity: 0 !important;
+                    }
+                    html, body {
+                        overflow: auto !important;
+                        position: static !important;
+                    }
+                `;
+                if (document.head) {
+                    document.head.appendChild(style);
+                } else if (document.documentElement) {
+                    document.documentElement.appendChild(style);
+                }
+            }
+        })();
+    """
+
+    // 🌟 3. Combined Performance & UI Optimizations
+    private const val OPTIMIZATIONS_JS = """
+        (function autoUnmuteAndDark() {
+            // Dark mode and High-contrast Focus Outline
+            var style = document.getElementById('tv_browser_forced_dark');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'tv_browser_forced_dark';
+                style.innerHTML = 'html, body { background-color: #0b0f19 !important; color: #e2e8f0 !important; } input, textarea, select { background-color: #1a2234 !important; color: #ffffff !important; } :focus, a:focus, button:focus, input:focus, [tabindex]:focus, button.search-button:focus, [aria-label*="Iskanje"]:focus, [aria-label*="Search"]:focus, c3-icon:focus { outline: 3px solid #38bdf8 !important; outline-offset: 3px !important; box-shadow: 0 0 15px rgba(56, 189, 248, 0.6) !important; }';
+                if (document.head) document.head.appendChild(style);
+                else if (document.documentElement) document.documentElement.appendChild(style);
+            }
+
+            // Audio Unmute Watchdog
+            function ensureUnmute() {
+                document.querySelectorAll('video, audio').forEach(function(v) {
+                    if (v.muted) v.muted = false;
+                    if (v.volume < 1.0) v.volume = 1.0;
+                });
+                var all = document.querySelectorAll('button, div, span, a, [role="button"]');
+                for (var i = 0; i < all.length; i++) {
+                    var el = all[i];
+                    var txt = (el.innerText || el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '').trim().toLowerCase();
+                    if (txt === 'vklopite zvok' || txt === 'vklopi zvok' || txt === 'unmute' || txt.indexOf('vklopite zvok') !== -1 || txt.indexOf('vklopi zvok') !== -1) {
+                        try {
+                            el.click();
+                            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                        } catch(e) {}
+                    }
+                }
+            }
+            ensureUnmute();
+            document.addEventListener('play', ensureUnmute, true);
+            document.addEventListener('playing', ensureUnmute, true);
+            document.addEventListener('loadeddata', ensureUnmute, true);
+            document.addEventListener('volumechange', function(e) {
+                if (e.target && e.target.muted) {
+                    e.target.muted = false;
+                    e.target.volume = 1.0;
+                }
+            }, true);
+            if (!window._tvUnmuteInterval) {
+                window._tvUnmuteInterval = setInterval(ensureUnmute, 800);
+            }
+
+            // GDPR Consent Auto-Accept
+            function clickConsent() {
+                var target = document.querySelector('button#L2AGLb, button[aria-label*="Sprejmi"], button[aria-label*="Accept"], form[action*="consent"] button, ytd-consent-bump-v2-lightbox button, .consent-bump-v2 button');
+                if (target) { target.click(); return true; }
+                var all = document.querySelectorAll('button, input[type="submit"], a, [role="button"]');
+                for (var i = 0; i < all.length; i++) {
+                    var el = all[i];
+                    var txt = (el.innerText || el.textContent || el.getAttribute('aria-label') || '').trim().toLowerCase();
+                    if (txt === 'sprejmi vse' || txt === 'sprejmi' || txt === 'accept all' || txt === 'i agree' || txt === 'strinjam se' || txt === 'soglašam' || txt.indexOf('sprejmi vse') !== -1 || txt.indexOf('accept all') !== -1) {
+                        el.click();
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (!clickConsent()) {
+                setTimeout(clickConsent, 400);
+                setTimeout(clickConsent, 1000);
+            }
+
+            // Auto-blur search inputs on results page to hide virtual keyboard
+            if (window.location.href.indexOf('/search') !== -1 || window.location.href.indexOf('results?search_query') !== -1) {
+                setTimeout(function() {
+                    var qInput = document.querySelector('input[name="q"], textarea[name="q"], input[name="search_query"]');
+                    if (qInput && document.activeElement === qInput) {
+                        qInput.blur();
+                    }
+                }, 350);
+            }
+        })();
+    """
+
+    fun injectAtDocumentStart(webView: WebView) {
+        webView.evaluateJavascript(ANTI_ANTI_ADBLOCK_JS.trimIndent(), null)
+    }
+
+    fun injectCosmeticFiltering(webView: WebView) {
+        webView.evaluateJavascript(COSMETIC_FILTER_CSS.trimIndent(), null)
+    }
+
+    fun injectOptimizations(webView: WebView) {
+        webView.evaluateJavascript(OPTIMIZATIONS_JS.trimIndent(), null)
+    }
+
+    fun injectAll(webView: WebView, antiAntiAdblock: Boolean = true, cosmeticFilter: Boolean = true) {
+        if (antiAntiAdblock) injectAtDocumentStart(webView)
+        if (cosmeticFilter) injectCosmeticFiltering(webView)
+        injectOptimizations(webView)
+    }
+}

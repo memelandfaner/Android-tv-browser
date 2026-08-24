@@ -13,6 +13,10 @@ import android.view.MotionEvent
 import android.view.View
 import android.webkit.*
 
+enum class UserAgentMode {
+    TV, DESKTOP, MOBILE
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 class ChromiumEngineView @JvmOverloads constructor(
     context: Context,
@@ -27,10 +31,33 @@ class ChromiumEngineView @JvmOverloads constructor(
     var onHideCustomViewListener: (() -> Unit)? = null
     var onEdgeReachedTopListener: (() -> Unit)? = null
 
-    private val adBlockEngine = AdBlockEngine()
+    val adBlockEngine = AdBlockEngine()
+    var currentUaMode: UserAgentMode = UserAgentMode.TV
 
     init {
         configureUngoogledChromiumSettings()
+    }
+
+    fun setUserAgentMode(mode: UserAgentMode) {
+        currentUaMode = mode
+        val s = settings
+        when (mode) {
+            UserAgentMode.TV -> {
+                s.userAgentString = "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
+                s.useWideViewPort = true
+                s.loadWithOverviewMode = true
+            }
+            UserAgentMode.DESKTOP -> {
+                s.userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                s.useWideViewPort = true
+                s.loadWithOverviewMode = true
+            }
+            UserAgentMode.MOBILE -> {
+                s.userAgentString = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1"
+                s.useWideViewPort = false
+                s.loadWithOverviewMode = false
+            }
+        }
     }
 
     private fun configureUngoogledChromiumSettings() {
@@ -45,13 +72,11 @@ class ChromiumEngineView @JvmOverloads constructor(
         s.builtInZoomControls = false
         s.displayZoomControls = false
 
-        // 🌟 Full Google & YouTube Compatible Mobile/TV User-Agent (Pixel 5 / Chrome 122)
-        s.useWideViewPort = true
-        s.loadWithOverviewMode = true
+        // Default: TV / Optimized Pixel 5 User-Agent
+        setUserAgentMode(UserAgentMode.TV)
         s.textZoom = 100
         s.defaultFontSize = 15
         s.defaultFixedFontSize = 13
-        s.userAgentString = "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
         s.setNeedInitialFocus(true)
 
         isFocusable = true
@@ -110,23 +135,53 @@ class ChromiumEngineView @JvmOverloads constructor(
 
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val url = request?.url?.toString() ?: return null
+
+                // 🛡️ 1. Anti-Anti-AdBlock Interceptor: Return dummy JS to satisfy detection
+                if (adBlockEngine.isAntiAdblockScript(url)) {
+                    return adBlockEngine.createEmptyJsResponse()
+                }
+
+                // 🛡️ 2. DevTool Crash Protection
+                if (adBlockEngine.isDevToolBlocker(url)) {
+                    return adBlockEngine.createEmptyJsResponse()
+                }
+
+                // 🚫 3. Ad & Popunder Domain Blocking
                 if (adBlockEngine.isBlocked(url)) {
                     return AdBlockEngine.createEmptyResponse("text/plain")
                 }
-                if (adBlockEngine.isDevToolBlocker(url)) {
-                    return AdBlockEngine.createEmptyResponse("application/javascript")
-                }
+
                 return super.shouldInterceptRequest(view, request)
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 if (url != null) onUrlChangedListener?.invoke(url)
-                injectOptimizations()
+                UserScriptManager.injectAll(
+                    this@ChromiumEngineView,
+                    adBlockEngine.isAntiAntiAdblockEnabled,
+                    adBlockEngine.isCosmeticFilteringEnabled
+                )
+            }
+
+            // ⚡ Ultra-Early Injection as soon as DOM is committed
+            override fun onPageCommitVisible(view: WebView?, url: String?) {
+                super.onPageCommitVisible(view, url)
+                UserScriptManager.injectAll(
+                    this@ChromiumEngineView,
+                    adBlockEngine.isAntiAntiAdblockEnabled,
+                    adBlockEngine.isCosmeticFilteringEnabled
+                )
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (url != null) onUrlChangedListener?.invoke(url)
-                injectOptimizations()
+                UserScriptManager.injectAll(
+                    this@ChromiumEngineView,
+                    adBlockEngine.isAntiAntiAdblockEnabled,
+                    adBlockEngine.isCosmeticFilteringEnabled
+                )
+
+                // YouTube Auto-play touch trigger
                 if (url != null && url.contains("youtube.com/watch")) {
                     postDelayed({
                         try {
@@ -139,6 +194,72 @@ class ChromiumEngineView @JvmOverloads constructor(
                             eventUp.recycle()
                         } catch (ignored: Exception) {}
                     }, 1200)
+                }
+            }
+
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                if (request?.isForMainFrame == true) {
+                    val failingUrl = request.url.toString()
+                    val errorHtml = """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <style>
+                                body {
+                                    background: #0b0f19;
+                                    color: #f8fafc;
+                                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                                    display: flex;
+                                    flex-direction: column;
+                                    align-items: center;
+                                    justify-content: center;
+                                    height: 100vh;
+                                    margin: 0;
+                                    text-align: center;
+                                }
+                                .card {
+                                    background: #131b2e;
+                                    border: 1px solid rgba(56, 189, 248, 0.3);
+                                    border-radius: 20px;
+                                    padding: 40px;
+                                    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+                                    max-width: 600px;
+                                }
+                                h1 { font-size: 28px; margin-bottom: 12px; color: #38bdf8; }
+                                p { font-size: 16px; color: #94a3b8; margin-bottom: 24px; line-height: 1.5; }
+                                .btn-group { display: flex; gap: 16px; justify-content: center; }
+                                button {
+                                    background: linear-gradient(135deg, #0284c7, #0369a1);
+                                    color: white;
+                                    border: none;
+                                    padding: 14px 28px;
+                                    font-size: 16px;
+                                    font-weight: bold;
+                                    border-radius: 12px;
+                                    cursor: pointer;
+                                    outline: none;
+                                }
+                                button:focus {
+                                    outline: 3px solid #38bdf8;
+                                    box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="card">
+                                <h1>⚠️ Povezave ni bilo mogoče vzpostaviti</h1>
+                                <p>Preverite internetno povezavo ali naslov spletne strani:<br><small style="color: #64748b;">$failingUrl</small></p>
+                                <div class="btn-group">
+                                    <button onclick="window.location.reload();" autofocus>🔄 Poskusi znova</button>
+                                    <button onclick="window.location.href='https://www.google.com';">🏠 Domov</button>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    """.trimIndent()
+                    view?.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null)
                 }
             }
         }
@@ -162,86 +283,6 @@ class ChromiumEngineView @JvmOverloads constructor(
                 onHideCustomViewListener?.invoke()
             }
         }
-    }
-
-    fun injectOptimizations() {
-        val js = """
-            (function autoUnmuteAndDark() {
-              var style = document.getElementById('tv_browser_forced_dark');
-              if (!style) {
-                style = document.createElement('style');
-                style.id = 'tv_browser_forced_dark';
-                style.innerHTML = 'html, body { background-color: #0b0f19 !important; color: #e2e8f0 !important; } input, textarea, select { background-color: #1a2234 !important; color: #ffffff !important; } :focus, a:focus, button:focus, input:focus, [tabindex]:focus, button.search-button:focus, [aria-label*="Iskanje"]:focus, [aria-label*="Search"]:focus, c3-icon:focus { outline: 3px solid #38bdf8 !important; outline-offset: 3px !important; box-shadow: 0 0 15px rgba(56, 189, 248, 0.6) !important; }';
-                if (document.head) document.head.appendChild(style);
-              }
-              function ensureUnmute() {
-                document.querySelectorAll('video, audio').forEach(function(v) {
-                  if (v.muted) v.muted = false;
-                  if (v.volume < 1.0) v.volume = 1.0;
-                });
-                var all = document.querySelectorAll('button, div, span, a, [role="button"]');
-                for (var i = 0; i < all.length; i++) {
-                  var el = all[i];
-                  var txt = (el.innerText || el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '').trim().toLowerCase();
-                  if (txt === 'vklopite zvok' || txt === 'vklopi zvok' || txt === 'unmute' || txt.indexOf('vklopite zvok') !== -1 || txt.indexOf('vklopi zvok') !== -1) {
-                    try {
-                      el.click();
-                      el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                    } catch(e) {}
-                  }
-                }
-              }
-              ensureUnmute();
-              document.addEventListener('play', ensureUnmute, true);
-              document.addEventListener('playing', ensureUnmute, true);
-              document.addEventListener('loadeddata', ensureUnmute, true);
-              document.addEventListener('volumechange', function(e) {
-                if (e.target && e.target.muted) {
-                  e.target.muted = false;
-                  e.target.volume = 1.0;
-                }
-              }, true);
-              if (!window._tvUnmuteInterval) {
-                window._tvUnmuteInterval = setInterval(ensureUnmute, 800);
-              }
-              function clickConsent() {
-                var target = document.querySelector('button#L2AGLb, button[aria-label*="Sprejmi"], button[aria-label*="Accept"], form[action*="consent"] button, ytd-consent-bump-v2-lightbox button, .consent-bump-v2 button');
-                if (target) { target.click(); return true; }
-                var all = document.querySelectorAll('button, input[type="submit"], a, [role="button"]');
-                for (var i = 0; i < all.length; i++) {
-                  var el = all[i];
-                  var txt = (el.innerText || el.textContent || el.getAttribute('aria-label') || '').trim().toLowerCase();
-                  if (txt === 'sprejmi vse' || txt === 'sprejmi' || txt === 'accept all' || txt === 'i agree' || txt === 'strinjam se' || txt === 'soglašam' || txt.indexOf('sprejmi vse') !== -1 || txt.indexOf('accept all') !== -1) {
-                    el.click();
-                    return true;
-                  }
-                }
-                return false;
-              }
-              if (!clickConsent()) {
-                setTimeout(clickConsent, 400);
-                setTimeout(clickConsent, 1000);
-              }
-              if (window.location.href.indexOf('/search') !== -1 || window.location.href.indexOf('results?search_query') !== -1) {
-                setTimeout(function() {
-                  var qInput = document.querySelector('input[name="q"], textarea[name="q"], input[name="search_query"]');
-                  if (qInput && document.activeElement === qInput) {
-                    qInput.blur();
-                  }
-                }, 350);
-              }
-              setTimeout(function() {
-                var dialogs = document.querySelectorAll('#consent-bump, ytd-consent-bump-v2-lightbox, .consent-bump-v2');
-                dialogs.forEach(function(d) {
-                  if (d.innerText && (d.innerText.indexOf('YouTube') !== -1 || d.innerText.indexOf('Piškotk') !== -1 || d.innerText.indexOf('Preden') !== -1)) {
-                    d.remove();
-                    document.body.style.overflow = 'auto';
-                  }
-                });
-              }, 1200);
-            })();
-        """.trimIndent()
-        evaluateJavascript(js, null)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
