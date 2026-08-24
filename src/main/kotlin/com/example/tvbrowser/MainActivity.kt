@@ -116,10 +116,8 @@ class MainActivity : android.app.Activity() {
 
     override fun onPause() {
         super.onPause()
-        webViewPool.forEach {
-            it.onPause()
-            it.pauseTimers()
-        }
+        webViewPool.forEach { it.onPause() }
+        getActiveWebView()?.pauseTimers()
     }
 
     override fun onResume() {
@@ -337,6 +335,7 @@ class MainActivity : android.app.Activity() {
                 "bing" -> "Trenutno: Microsoft Bing"
                 else -> "Trenutno: Google Iskanje"
             }
+            getActiveWebView()?.url?.let { updateOmniboxHint(it) }
         }
         updateEngineUi()
         btnSwitchEngine.setOnClickListener {
@@ -428,7 +427,6 @@ class MainActivity : android.app.Activity() {
     }
 
     private fun createAndSelectTab(url: String, title: String) {
-        // Max 4 zavihki — prepreči OOM na TV
         if (webViewPool.size >= 4) {
             Toast.makeText(this, "Največ 4 zavihki. Zapri enega.", Toast.LENGTH_SHORT).show()
             return
@@ -440,7 +438,6 @@ class MainActivity : android.app.Activity() {
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
             onProgressChangedListener = { p ->
-                // Progress samo za aktivni zavihek — NE kliči viewModel (ne rebuild tab bara)
                 if (webViewPool.indexOf(this) == viewModel.state.activeTabIndex) {
                     progressBar.progress = p
                     progressBar.visibility = if (p in 1..99) View.VISIBLE else View.GONE
@@ -450,7 +447,6 @@ class MainActivity : android.app.Activity() {
                 val idx = webViewPool.indexOf(this)
                 if (idx >= 0) {
                     viewModel.updateTabTitle(idx, t)
-                    renderTabsBar()
                 }
             }
             onUrlChangedListener = { u ->
@@ -531,7 +527,14 @@ class MainActivity : android.app.Activity() {
         if (url.contains("youtube.com")) {
             editUrl.hint = "🔍 Išči v YouTubu ali vnesite naslov..."
         } else {
-            editUrl.hint = "🔍 Išči v Googlu ali vnesite naslov..."
+            val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+            val engine = prefs.getString("search_engine", "google") ?: "google"
+            val name = when (engine) {
+                "duckduckgo" -> "DuckDuckGo"
+                "bing" -> "Bingu"
+                else -> "Googlu"
+            }
+            editUrl.hint = "🔍 Išči v $name ali vnesite naslov..."
         }
     }
 
@@ -708,9 +711,16 @@ class MainActivity : android.app.Activity() {
             }
 
             card.setOnLongClickListener {
-                viewModel.deleteBookmark(bm.id)
-                Toast.makeText(this, "🗑️ Zaznamek odstranjen: ${bm.title}", Toast.LENGTH_SHORT).show()
-                renderBookmarksGrid()
+                android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("🗑️ Odstrani Zaznamek")
+                    .setMessage("Ali res želite odstraniti zaznamek \"${bm.title}\"?")
+                    .setPositiveButton("Odstrani") { _, _ ->
+                        viewModel.deleteBookmark(bm.id)
+                        Toast.makeText(this, "Zaznamek odstranjen.", Toast.LENGTH_SHORT).show()
+                        renderBookmarksGrid()
+                    }
+                    .setNegativeButton("Prekliči", null)
+                    .show()
                 true
             }
 
@@ -849,7 +859,9 @@ class MainActivity : android.app.Activity() {
         cursorOverlay.setCursorEnabled(next)
         viewModel.setCursorMode(next)
         if (next) {
-            cursorOverlay.setCursorPosition(960f, 540f)
+            val cx = if (cursorOverlay.width > 0) cursorOverlay.width / 2f else 960f
+            val cy = if (cursorOverlay.height > 0) cursorOverlay.height / 2f else 540f
+            cursorOverlay.setCursorPosition(cx, cy)
             Toast.makeText(this, "🟡 Virtualni kurzor: VKLOPLJEN (Uporabite smerne tipke)", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(this, "D-Pad navigacija aktivna", Toast.LENGTH_SHORT).show()
@@ -910,7 +922,13 @@ class MainActivity : android.app.Activity() {
 
                 override fun onError(error: Int) {
                     hideVoiceListeningHUD()
-                    launchSpeechIntentFallback()
+                    if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                        Toast.makeText(this@MainActivity, "Govor ni bil zaznan. Poskusite znova.", Toast.LENGTH_SHORT).show()
+                    } else if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
+                        // Ignore busy error
+                    } else {
+                        launchSpeechIntentFallback()
+                    }
                 }
 
                 override fun onResults(results: Bundle?) {
@@ -1079,18 +1097,19 @@ class MainActivity : android.app.Activity() {
             }
 
             val currentSpeed = (cursorSpeed + (keyRepeatCount * 4f)).coerceAtMost(60f)
+            val h = if (cursorOverlay.height > 0) cursorOverlay.height.toFloat() else 1080f
 
             when (event.keyCode) {
                 KeyEvent.KEYCODE_DPAD_UP -> {
                     cursorOverlay.moveBy(0f, -currentSpeed)
-                    if (cursorOverlay.getCursorY() <= 140f) {
+                    if (cursorOverlay.getCursorY() <= h * 0.15f) {
                         getActiveWebView()?.scrollBy(0, -60)
                     }
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_DOWN -> {
                     cursorOverlay.moveBy(0f, currentSpeed)
-                    if (cursorOverlay.getCursorY() >= 960f) {
+                    if (cursorOverlay.getCursorY() >= h * 0.85f) {
                         getActiveWebView()?.scrollBy(0, 60)
                     }
                     return true
@@ -1120,14 +1139,9 @@ class MainActivity : android.app.Activity() {
 
         val active = getActiveWebView() ?: return
 
-        val location = IntArray(2)
-        active.getLocationOnScreen(location)
-        val wvX = cx - location[0]
-        val wvY = cy - location[1]
-
         val downTime = SystemClock.uptimeMillis()
-        val down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, wvX, wvY, 0)
-        val up = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, wvX, wvY, 0)
+        val down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, cx, cy, 0)
+        val up = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, cx, cy, 0)
 
         active.dispatchTouchEvent(down)
         active.dispatchTouchEvent(up)

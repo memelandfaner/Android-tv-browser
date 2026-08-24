@@ -90,18 +90,18 @@ object UserScriptManager {
         })();
     """
 
-    // 🌟 3. Combined Performance & UI Optimizations (Runs Once with Event-driven Unmute)
+    // 🌟 3. Focus Outlines & Playback Optimization
     private const val OPTIMIZATIONS_JS = """
-        (function autoUnmuteAndDark() {
+        (function autoUnmuteAndFocus() {
             if (window._tvOptDone) return;
             window._tvOptDone = true;
 
-            // Dark mode and High-contrast Focus Outline
-            var style = document.getElementById('tv_browser_forced_dark');
+            // High-contrast TV Focus Outline (without breaking page background colors)
+            var style = document.getElementById('tv_browser_focus_style');
             if (!style) {
                 style = document.createElement('style');
-                style.id = 'tv_browser_forced_dark';
-                style.innerHTML = 'html, body { background-color: #0b0f19 !important; color: #e2e8f0 !important; } input, textarea, select { background-color: #1a2234 !important; color: #ffffff !important; } :focus, a:focus, button:focus, input:focus, [tabindex]:focus, button.search-button:focus, [aria-label*="Iskanje"]:focus, [aria-label*="Search"]:focus, c3-icon:focus { outline: 3px solid #38bdf8 !important; outline-offset: 3px !important; box-shadow: 0 0 15px rgba(56, 189, 248, 0.6) !important; }';
+                style.id = 'tv_browser_focus_style';
+                style.innerHTML = ':focus, a:focus, button:focus, input:focus, [tabindex]:focus, button.search-button:focus, [aria-label*="Iskanje"]:focus, [aria-label*="Search"]:focus, c3-icon:focus { outline: 3px solid #38bdf8 !important; outline-offset: 3px !important; box-shadow: 0 0 15px rgba(56, 189, 248, 0.6) !important; }';
                 if (document.head) document.head.appendChild(style);
                 else if (document.documentElement) document.documentElement.appendChild(style);
             }

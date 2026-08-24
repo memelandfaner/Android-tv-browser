@@ -6,6 +6,7 @@ import android.content.Context
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import java.io.File
@@ -65,7 +66,13 @@ class TvFileProvider : ContentProvider() {
     private fun getFileForUri(uri: Uri): File {
         val path = uri.path ?: throw FileNotFoundException("Prazna pot")
         val realPath = if (path.startsWith("/")) path else "/$path"
-        return File(realPath)
+        val file = File(realPath)
+        val canonical = file.canonicalPath
+        val externalStorage = Environment.getExternalStorageDirectory().canonicalPath
+        if (!canonical.startsWith(externalStorage)) {
+            throw SecurityException("Nedovoljen dostop do poti: $canonical")
+        }
+        return file
     }
 
     companion object {

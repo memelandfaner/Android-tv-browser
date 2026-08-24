@@ -26,7 +26,7 @@ class AdBlockEngine {
         "smartadserver.com", "yieldmo.com", "inmobi.com", "applovin.com",
         "unityads.unity3d.com", "vungle.com", "chartboost.com", "adcolony.com",
         "fyber.com", "ironsrc.com", "smaato.net", "amazon-adsystem.com",
-        "facebook.com/tr", "analytics.google.com", "googletagmanager.com",
+        "facebook.com/tr", "analytics.google.com",
         "hotjar.com", "segment.io", "mixpanel.com", "scorecardresearch.com",
         "quantserve.com", "imrworldwide.com", "moatads.com", "casalemedia.com",
         "advertising.com", "admob.com", "adtech.de", "serving-sys.com",

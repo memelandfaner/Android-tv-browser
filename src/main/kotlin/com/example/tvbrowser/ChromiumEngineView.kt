@@ -245,7 +245,7 @@ class ChromiumEngineView @JvmOverloads constructor(
                         </body>
                         </html>
                     """.trimIndent()
-                    view?.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null)
+                    view?.loadDataWithBaseURL(rawUrl, errorHtml, "text/html", "UTF-8", rawUrl)
                 }
             }
         }

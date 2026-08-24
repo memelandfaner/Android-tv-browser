@@ -31,7 +31,7 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // NE DROP — uporabnikovi zaznamki in zgodovina ostanejo nedotaknjeni
+        // Safe migration: never drop user bookmarks or history
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS bookmarks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,7 +53,6 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     }
 
     private fun seedDefaults(db: SQLiteDatabase) {
-        // Seed samo če je tabela prazna
         val c = db.rawQuery("SELECT COUNT(*) FROM bookmarks", null)
         val count = if (c.moveToFirst()) c.getInt(0) else 0
         c.close()
@@ -94,6 +93,11 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     @Synchronized
     fun addBookmark(title: String, url: String, icon: String = "⭐") {
         val db = writableDatabase
+        // Prevent duplicate bookmark URLs
+        val cursor = db.query("bookmarks", arrayOf("id"), "url = ?", arrayOf(url), null, null, null)
+        val exists = cursor?.use { it.moveToFirst() } ?: false
+        if (exists) return
+
         val cv = ContentValues().apply {
             put("title", title)
             put("url", url)
@@ -114,7 +118,7 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         if (url.isEmpty() || url.startsWith("about:") || url.startsWith("data:")) return
         try {
             val db = writableDatabase
-            // Posodobi obstoječi URL namesto neskončnih insertov
+            // Posodobi obstoječi URL namesto neskončnih podvojenih zapisov
             db.delete("history", "url = ?", arrayOf(url))
             val cv = ContentValues().apply {
                 put("title", title.ifEmpty { url })
@@ -123,8 +127,14 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
             }
             db.insert("history", null, cv)
 
-            // Ohrani max 100 najnovejših vnosov
-            db.execSQL("DELETE FROM history WHERE id NOT IN (SELECT id FROM history ORDER BY visited_at DESC LIMIT 100)")
+            // Čiščenje starih vnosov (ohrani max 100 najnovejših)
+            db.execSQL("""
+                DELETE FROM history WHERE id NOT IN (
+                    SELECT id FROM (
+                        SELECT id FROM history ORDER BY visited_at DESC LIMIT 100
+                    )
+                )
+            """.trimIndent())
         } catch (ignored: Exception) {}
     }
 
