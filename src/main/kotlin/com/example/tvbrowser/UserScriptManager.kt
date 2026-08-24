@@ -4,13 +4,20 @@ import android.webkit.WebView
 
 object UserScriptManager {
 
-    // 🛡️ 1. Anti-Anti-AdBlock & Tracking Defeater (DOCUMENT_START)
+    // 🛡️ 1. Anti-Anti-AdBlock, GPC Privacy Control & Anti-Tracker (DOCUMENT_START)
     private const val ANTI_ANTI_ADBLOCK_JS = """
         (function() {
             if (window._tvAntiAntiDone) return;
             window._tvAntiAntiDone = true;
             try {
-                // 1. Google Ad Status Spoofing
+                // 1. Global Privacy Control (GPC) & Do Not Track Signal
+                try {
+                    navigator.globalPrivacyControl = true;
+                    Object.defineProperty(navigator, 'globalPrivacyControl', { value: true, writable: false });
+                    Object.defineProperty(navigator, 'doNotTrack', { value: "1", writable: false });
+                } catch(e) {}
+
+                // 2. Google Ad Status Spoofing
                 window.google_ad_status = 1;
                 window.canRunAds = true;
                 window.google_ads_status = 1;
@@ -19,7 +26,7 @@ object UserScriptManager {
                 window.adBlockEnabled = false;
                 window.isAdBlockActive = false;
 
-                // 2. Override common Anti-AdBlock detection libraries
+                // 3. Override common Anti-AdBlock detection libraries
                 function DummyDetector() {
                     this.onDetected = function(){ return this; };
                     this.onNotDetected = function(cb){ if (typeof cb === 'function') cb(); return this; };
@@ -34,7 +41,7 @@ object UserScriptManager {
                 window.fuckAdBlock = new DummyDetector();
                 window.blockAdBlock = new DummyDetector();
 
-                // 3. MutationObserver to safely remove anti-adblock modal backdrops and annoyance walls
+                // 4. MutationObserver to safely remove anti-adblock modal backdrops and annoyance walls
                 const observer = new MutationObserver(() => {
                     window.google_ad_status = 1;
                     window.canRunAds = true;
@@ -61,7 +68,7 @@ object UserScriptManager {
         })();
     """
 
-    // 🎨 2. Cosmetic Filtering & Fanboy Annoyances CSS (Cookie walls, App banners, Shorts, Endscreens)
+    // 🎨 2. Cosmetic Filtering & CMP Annoyances CSS (Cookie walls, App banners, Shorts, Endscreens)
     private const val COSMETIC_FILTER_CSS = """
         (function() {
             var cssId = 'tv_browser_cosmetic_filter';
@@ -76,6 +83,7 @@ object UserScriptManager {
                     #app-banner, .smartbanner, [class*="open-in-app"], [class*="app-promo"],
                     .banner-open-app, a[href*="market://"], a[href*="play.google.com/store"],
                     .ytp-ce-element, .ytp-ce-covering-overlay,
+                    #onetrust-banner-sdk, .fc-consent-root, .didomi-popup-container,
                     ytd-rich-section-renderer[is-shorts], ytd-reel-shelf-renderer {
                         display: none !important;
                         visibility: hidden !important;
@@ -94,12 +102,12 @@ object UserScriptManager {
         })();
     """
 
-    // ⚡ 3. SponsorBlock & Return YouTube Dislike Integration
+    // ⚡ 3. YouTube Freedom: SponsorBlock & Return YouTube Dislike (RYD)
     private const val YOUTUBE_FREEDOM_JS = """
         (function initYouTubeFreedom() {
             if (window.location.href.indexOf('youtube.com') === -1) return;
-            if (window._tvSponsorBlockInit) return;
-            window._tvSponsorBlockInit = true;
+            if (window._tvYtFreedomDone) return;
+            window._tvYtFreedomDone = true;
 
             function getVideoId() {
                 var match = window.location.href.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
@@ -108,6 +116,7 @@ object UserScriptManager {
 
             var currentVideoId = null;
             var segments = [];
+            var boundVideoElement = null;
 
             function fetchSponsorSegments(vId) {
                 if (!vId) return;
@@ -122,21 +131,54 @@ object UserScriptManager {
                 }).catch(function(){});
             }
 
-            function setupPlayerWatcher() {
-                var v = document.querySelector('video');
-                if (!v) return;
-
-                v.addEventListener('timeupdate', function() {
-                    var cur = v.currentTime;
-                    for (var i = 0; i < segments.length; i++) {
-                        var seg = segments[i].segment;
-                        if (cur >= seg[0] && cur < seg[1]) {
-                            v.currentTime = seg[1];
-                            showSkipToast('⚡ FreeNet: Preskočen sponzorski del (' + (segments[i].category || 'sponzor') + ')');
-                            break;
-                        }
+            function fetchDislikes(vId) {
+                if (!vId) return;
+                var url = 'https://returnyoutubedislikeapi.com/votes?videoId=' + vId;
+                fetch(url).then(function(res) {
+                    if (res.ok) return res.json();
+                    return null;
+                }).then(function(data) {
+                    if (data && data.dislikes !== undefined) {
+                        renderDislikeBadge(data.dislikes, data.likes);
                     }
-                });
+                }).catch(function(){});
+            }
+
+            function renderDislikeBadge(dislikes, likes) {
+                var badge = document.getElementById('freenet_dislike_badge');
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.id = 'freenet_dislike_badge';
+                    badge.style.cssText = 'position:fixed;top:80px;right:40px;background:rgba(15,23,42,0.9);border:1px solid rgba(56,189,248,0.4);color:#fff;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:bold;z-index:999999;box-shadow:0 8px 24px rgba(0,0,0,0.6);pointer-events:none;';
+                    document.body.appendChild(badge);
+                }
+                var dislikeText = Number(dislikes).toLocaleString();
+                var likeText = likes ? Number(likes).toLocaleString() : '';
+                badge.innerHTML = '👍 ' + likeText + ' &nbsp;|&nbsp; 👎 ' + dislikeText;
+            }
+
+            function onVideoTimeUpdate() {
+                if (!boundVideoElement) return;
+                var cur = boundVideoElement.currentTime;
+                for (var i = 0; i < segments.length; i++) {
+                    var seg = segments[i].segment;
+                    if (cur >= seg[0] && cur < seg[1]) {
+                        boundVideoElement.currentTime = seg[1];
+                        showSkipToast('⚡ FreeNet: Preskočen segment (' + (segments[i].category || 'sponzor') + ')');
+                        break;
+                    }
+                }
+            }
+
+            function attachPlayer() {
+                var v = document.querySelector('video');
+                if (v && v !== boundVideoElement) {
+                    if (boundVideoElement) {
+                        boundVideoElement.removeEventListener('timeupdate', onVideoTimeUpdate);
+                    }
+                    boundVideoElement = v;
+                    boundVideoElement.addEventListener('timeupdate', onVideoTimeUpdate);
+                }
             }
 
             function showSkipToast(msg) {
@@ -156,13 +198,14 @@ object UserScriptManager {
                 var vId = getVideoId();
                 if (vId && vId !== currentVideoId) {
                     fetchSponsorSegments(vId);
+                    fetchDislikes(vId);
                 }
-                setupPlayerWatcher();
-            }, 1500);
+                attachPlayer();
+            }, 1200);
         })();
     """
 
-    // 🌟 4. Focus Outlines, Direct Playback & Consent Auto-Accept
+    // 🌟 4. Focus Outlines, Direct Playback & Reject Tracking CMP
     private const val OPTIMIZATIONS_JS = """
         (function autoUnmuteAndFocus() {
             if (window._tvOptDone) return;
@@ -201,23 +244,30 @@ object UserScriptManager {
                 }, 600);
             }
 
-            // GDPR Consent Auto-Accept
-            function clickConsent() {
-                var target = document.querySelector('button#L2AGLb, button[aria-label*="Sprejmi"], button[aria-label*="Accept"], form[action*="consent"] button, ytd-consent-bump-v2-lightbox button, .consent-bump-v2 button');
-                if (target) { target.click(); return true; }
-                var all = document.querySelectorAll('button, input[type="submit"], a, [role="button"]');
-                for (var i = 0; i < all.length; i++) {
-                    var el = all[i];
+            // Privacy-First CMP: Prefer "Reject All" / "Zavrni vse" over blind acceptance!
+            function handleConsentPrivacy() {
+                // 1. Check for explicit Reject / Decline buttons first
+                var rejectBtns = document.querySelectorAll('button, a, [role="button"]');
+                for (var i = 0; i < rejectBtns.length; i++) {
+                    var el = rejectBtns[i];
                     var txt = (el.innerText || el.textContent || el.getAttribute('aria-label') || '').trim().toLowerCase();
-                    if (txt === 'sprejmi vse' || txt === 'sprejmi' || txt === 'accept all' || txt === 'i agree' || txt === 'strinjam se' || txt === 'soglašam' || txt.indexOf('sprejmi vse') !== -1 || txt.indexOf('accept all') !== -1) {
+                    if (txt === 'zavrni vse' || txt === 'zavrni' || txt === 'reject all' || txt === 'reject' || txt === 'decline' || txt === 'samo nujni' || txt === 'necessary only') {
                         el.click();
                         return true;
                     }
                 }
+
+                // 2. Fallback to dismiss Google/YouTube popup if no reject button
+                var googleBtn = document.querySelector('button#L2AGLb, ytd-consent-bump-v2-lightbox button, .consent-bump-v2 button');
+                if (googleBtn) {
+                    googleBtn.click();
+                    return true;
+                }
                 return false;
             }
-            if (!clickConsent()) {
-                setTimeout(clickConsent, 350);
+
+            if (!handleConsentPrivacy()) {
+                setTimeout(handleConsentPrivacy, 400);
             }
 
             // Auto-blur search inputs on results page to hide virtual keyboard

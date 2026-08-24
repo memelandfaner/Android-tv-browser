@@ -130,6 +130,11 @@ class MainActivity : android.app.Activity() {
         getActiveWebView()?.onResume()
     }
 
+    override fun onStop() {
+        super.onStop()
+        performStrictPrivacyCleanupIfEnabled()
+    }
+
     override fun onDestroy() {
         try {
             speechRecognizer?.destroy()
@@ -146,7 +151,21 @@ class MainActivity : android.app.Activity() {
         }
         webViewPool.clear()
 
+        performStrictPrivacyCleanupIfEnabled()
+
         super.onDestroy()
+    }
+
+    private fun performStrictPrivacyCleanupIfEnabled() {
+        try {
+            val prefs = getSharedPreferences("tv_browser_prefs", Context.MODE_PRIVATE)
+            val cookieModeOrdinal = prefs.getInt("cookie_mode", CookiePrivacyMode.STANDARD.ordinal)
+            if (cookieModeOrdinal == CookiePrivacyMode.STRICT.ordinal) {
+                android.webkit.CookieManager.getInstance().removeAllCookies(null)
+                android.webkit.CookieManager.getInstance().flush()
+                android.webkit.WebStorage.getInstance().deleteAllData()
+            }
+        } catch (ignored: Exception) {}
     }
 
     private fun initViews() {
@@ -434,6 +453,17 @@ class MainActivity : android.app.Activity() {
                         .show()
                 }
             }.start()
+        }
+
+        findViewById<View>(R.id.btnSwitchPiped).setOnClickListener {
+            val curUrl = getActiveWebView()?.url ?: ""
+            if (curUrl.contains("youtube.com/watch") || curUrl.contains("youtu.be/")) {
+                getActiveWebView()?.openInAlternativeFrontend("piped")
+                Toast.makeText(this, "⚡ Odpiram video na Piped (Brez oglasov & telemetrije)...", Toast.LENGTH_SHORT).show()
+            } else {
+                getActiveWebView()?.loadUrl("https://piped.video")
+                Toast.makeText(this, "⚡ Odpiram Piped - Odprtokodni YouTube...", Toast.LENGTH_SHORT).show()
+            }
         }
 
         findViewById<View>(R.id.btnNavBookmarks).setOnClickListener {

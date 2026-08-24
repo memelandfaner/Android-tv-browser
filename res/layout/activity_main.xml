@@ -101,6 +101,18 @@
                 android:focusable="true" />
 
             <Button
+                android:id="@+id/btnSwitchPiped"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginStart="6dp"
+                android:paddingHorizontal="10dp"
+                android:background="@drawable/bg_nav_button"
+                android:text="⚡ Piped"
+                android:textColor="@color/accent_cyan"
+                android:textSize="12sp"
+                android:focusable="true" />
+
+            <Button
                 android:id="@+id/btnNavBookmarks"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"

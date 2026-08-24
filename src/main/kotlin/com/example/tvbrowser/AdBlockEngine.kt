@@ -3,8 +3,12 @@ package com.example.tvbrowser
 import android.content.Context
 import android.net.Uri
 import android.webkit.WebResourceResponse
+import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.charset.StandardCharsets
 
 class AdBlockEngine(context: Context? = null) {
@@ -14,7 +18,7 @@ class AdBlockEngine(context: Context? = null) {
     var isAntiAmpEnabled: Boolean = true
     var isStripTrackingParamsEnabled: Boolean = true
 
-    // 🛡️ Comprehensive EasyList, EasyPrivacy & Fanboy Annoyances Blocklist
+    // 🛡️ Pre-bundled High-Traffic Ad & Tracking Rules
     private val blockedHostRules = hashSetOf(
         // === Betting, Malware & Popunder Hijack Networks ===
         "20bet.com", "1xbet.com", "1xbet.eu", "betwinner.com", "melbet.com",
@@ -52,22 +56,31 @@ class AdBlockEngine(context: Context? = null) {
         "tr.snapchat.com", "analytics.twitter.com", "analytics.tiktok.com",
         "byteoversea.com", "ib.adnxs.com", "pixel.wp.com",
 
-        // === Annoyances, Cookie Walls & Push Prompt Networks ===
+        // === Push Prompt Networks (Non-CMP) ===
         "onesignal.com", "pushassist.com", "subscribers.com", "izooto.com",
         "pushwoosh.com", "wonderpush.com", "webpushr.com", "gravitec.net",
-        "optinmonster.com", "sumo.com", "privy.com", "sleeknote.com",
-        "trustarc.com", "cookielaw.org", "onetrust.com", "cookiebot.com",
-        "didomi.io", "quantcast.mgr.consensu.org", "consensu.org"
+        "optinmonster.com", "sumo.com", "privy.com", "sleeknote.com"
+    )
+
+    // 🔒 Essential Whitelist (Critical for Account Login, Banking & Essential Stream Services)
+    private val whitelistDomains = hashSetOf(
+        "youtube.com", "m.youtube.com", "music.youtube.com", "googlevideo.com", "ytimg.com",
+        "accounts.google.com", "myaccount.google.com", "accounts.youtube.com",
+        "nlb.si", "nkbm.si", "skb.si", "dh.si", "intesa.si", "intesasanpaolobank.si",
+        "sparkasse.si", "revolut.com", "n26.com", "delavska-hranilnica.si",
+        "bks-bank.si", "unicreditbank.si", "lon.si", "gorenjska-banka.si",
+        "rtvslo.si", "24ur.com", "siol.net", "github.com", "themoviedb.org", "tmdb.org"
     )
 
     init {
-        loadCustomRulesFromDisk(context)
+        loadCachedRules(context)
+        startBackgroundEasyListUpdate(context)
     }
 
-    private fun loadCustomRulesFromDisk(context: Context?) {
+    private fun loadCachedRules(context: Context?) {
         if (context == null) return
         try {
-            val cacheFile = File(context.filesDir, "custom_adblock_rules.txt")
+            val cacheFile = File(context.filesDir, "easylist_cache.txt")
             if (cacheFile.exists()) {
                 cacheFile.forEachLine { line ->
                     val clean = line.trim().lowercase()
@@ -80,8 +93,78 @@ class AdBlockEngine(context: Context? = null) {
     }
 
     /**
-     * Fast Host-Based Matching:
-     * Extracts host from URL and checks if host or any parent domain is in the blocklist.
+     * Downloads & Parses EasyList / EasyPrivacy (1x per day in background)
+     * Matches standard ||domain^ and ||domain/ rules
+     */
+    private fun startBackgroundEasyListUpdate(context: Context?) {
+        if (context == null) return
+        Thread {
+            try {
+                val prefs = context.getSharedPreferences("freenet_adblock", Context.MODE_PRIVATE)
+                val lastUpdate = prefs.getLong("last_easylist_update", 0L)
+                val now = System.currentTimeMillis()
+                val oneDayMs = 24 * 60 * 60 * 1000L
+
+                val cacheFile = File(context.filesDir, "easylist_cache.txt")
+                if (!cacheFile.exists() || (now - lastUpdate > oneDayMs)) {
+                    val parsedDomains = mutableSetOf<String>()
+
+                    val urls = listOf(
+                        "https://easylist.to/easylist/easylist.txt",
+                        "https://easylist.to/easylist/easyprivacy.txt"
+                    )
+
+                    for (u in urls) {
+                        try {
+                            val conn = URL(u).openConnection() as HttpURLConnection
+                            conn.connectTimeout = 10000
+                            conn.readTimeout = 15000
+                            conn.requestMethod = "GET"
+                            if (conn.responseCode == 200) {
+                                val reader = BufferedReader(InputStreamReader(conn.inputStream))
+                                var line: String? = reader.readLine()
+                                while (line != null) {
+                                    val trimmed = line.trim()
+                                    // Parse EasyList host rules: ||example.com^
+                                    if (trimmed.startsWith("||")) {
+                                        val endIdx = trimmed.indexOfAny(charArrayOf('^', '/', '$', '?'))
+                                        val domain = if (endIdx != -1) {
+                                            trimmed.substring(2, endIdx)
+                                        } else {
+                                            trimmed.substring(2)
+                                        }.lowercase().trim()
+
+                                        if (domain.contains(".") && !domain.contains("*") && !whitelistDomains.contains(domain)) {
+                                            parsedDomains.add(domain)
+                                        }
+                                    }
+                                    line = reader.readLine()
+                                }
+                                reader.close()
+                            }
+                            conn.disconnect()
+                        } catch (ignored: Exception) {}
+                    }
+
+                    if (parsedDomains.isNotEmpty()) {
+                        cacheFile.bufferedWriter().use { writer ->
+                            parsedDomains.forEach { d ->
+                                writer.write(d)
+                                writer.newLine()
+                            }
+                        }
+                        synchronized(blockedHostRules) {
+                            blockedHostRules.addAll(parsedDomains)
+                        }
+                        prefs.edit().putLong("last_easylist_update", now).apply()
+                    }
+                }
+            } catch (ignored: Exception) {}
+        }.start()
+    }
+
+    /**
+     * Fast Host-Based Matching with Whitelist Guard:
      */
     fun isBlocked(url: String?): Boolean {
         if (!isEnabled || url == null || url.isEmpty()) return false
@@ -90,7 +173,21 @@ class AdBlockEngine(context: Context? = null) {
             val uri = Uri.parse(url)
             val host = uri.host?.lowercase() ?: return false
 
-            // Check exact host or parent host domains (e.g., "ads.google.com" -> "google.com")
+            // Whitelist Check: Never block login, streaming backbone, or banking
+            var checkHost: String? = host
+            while (checkHost != null && checkHost.contains(".")) {
+                if (whitelistDomains.contains(checkHost)) {
+                    return false
+                }
+                val dotIdx = checkHost.indexOf('.')
+                if (dotIdx != -1 && dotIdx < checkHost.length - 1) {
+                    checkHost = checkHost.substring(dotIdx + 1)
+                } else {
+                    break
+                }
+            }
+
+            // Blocklist Check: Host or parent domain
             var currentHost: String? = host
             while (currentHost != null && currentHost.contains(".")) {
                 if (blockedHostRules.contains(currentHost)) {
@@ -108,10 +205,6 @@ class AdBlockEngine(context: Context? = null) {
         return false
     }
 
-    /**
-     * Anti-Anti-AdBlock Detection:
-     * Intercepts known anti-adblock detector libraries to return valid dummy 200 OK JS.
-     */
     fun isAntiAdblockScript(url: String?): Boolean {
         if (!isAntiAntiAdblockEnabled || url == null) return false
         val lower = url.lowercase()
@@ -125,10 +218,6 @@ class AdBlockEngine(context: Context? = null) {
                 lower.contains("antiadblock")
     }
 
-    /**
-     * DevTool Blocker Protection:
-     * Intercepts third-party anti-inspection scripts that crash TV WebViews.
-     */
     fun isDevToolBlocker(url: String?): Boolean {
         if (url == null) return false
         val lower = url.lowercase()
@@ -137,11 +226,6 @@ class AdBlockEngine(context: Context? = null) {
                 lower.contains("console-ban")
     }
 
-    /**
-     * Anti-AMP & Tracking Stripper:
-     * 1. Converts Google AMP URLs (e.g. google.com/amp/s/example.com) to canonical https://example.com
-     * 2. Strips surveillance parameters (utm_*, fbclid, gclid, etc.)
-     */
     fun sanitizeUrl(rawUrl: String): String {
         var cleanUrl = rawUrl.trim()
 
@@ -156,7 +240,7 @@ class AdBlockEngine(context: Context? = null) {
             }
         }
 
-        // 2. Strip Tracking Surveillance Query Parameters
+        // 2. Strip Surveillance Parameters
         if (isStripTrackingParamsEnabled && cleanUrl.contains("?")) {
             try {
                 val uri = Uri.parse(cleanUrl)
@@ -172,7 +256,7 @@ class AdBlockEngine(context: Context? = null) {
                         lower == "mc_eid" ||
                         lower == "_hsenc" ||
                         lower == "_hsmi") {
-                        continue // Drop surveillance tracker
+                        continue
                     }
                     for (valStr in uri.getQueryParameters(param)) {
                         cleanBuilder.appendQueryParameter(param, valStr)
