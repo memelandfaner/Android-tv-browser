@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TV Brskalnik</string>
-    <string name="url_hint">Vnesite naslov ali poiščite z Google...</string>
+    <string name="url_hint">Vnesite naslov, vprašajte AI ali kliknite 🎤...</string>
     <string name="nav_browse">🌐 Brskanje</string>
     <string name="nav_bookmarks">⭐ Zaznamki</string>
     <string name="nav_downloads">⬇️ Prenosi</string>
@@ -12,4 +12,5 @@
     <string name="no_downloads_title">Ni prenesenih datotek</string>
     <string name="cursor_mode_on">Virtualni kurzor: VKLOPLJEN</string>
     <string name="cursor_mode_off">Virtualni kurzor: IZKLOPLJEN</string>
+    <string name="voice_prompt">Govorite zdaj (npr. Odpri YouTube ali Poišči film)...</string>
 </resources>

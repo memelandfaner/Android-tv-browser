@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
+import android.speech.RecognizerIntent;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -37,14 +38,16 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends Activity {
+    private static final int REQ_VOICE_SEARCH = 101;
     private static final String DEFAULT_HOME_URL = "http://192.168.0.135:3000";
     private static final String DESKTOP_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
     private static final String TV_UA = "Mozilla/5.0 (Linux; Android 11; Philips UHD Android TV Build/RTM4.220308.106) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 
-    private WebView mWebView;
+    private FrameLayout mWebViewContainer;
     private FrameLayout mCustomViewContainer;
     private WebChromeClient.CustomViewCallback mCustomViewCallback;
     private View mCustomView;
@@ -55,6 +58,7 @@ public class MainActivity extends Activity {
 
     private BookmarkManager mBookmarkManager;
     private AdBlockEngine mAdBlockEngine;
+    private TabManager mTabManager;
 
     private EditText mEditUrl;
     private ProgressBar mProgressBar;
@@ -63,6 +67,8 @@ public class MainActivity extends Activity {
     private ScrollView mSettingsPanel;
     private GridLayout mBookmarksGrid;
     private LinearLayout mDownloadsListContainer;
+    private LinearLayout mTabsLayout;
+    private LinearLayout mAiSuggestionsLayout;
 
     private String mCurrentSearchEngine = "https://www.google.com/search?q=";
     private boolean mIsDesktopMode = true;
@@ -80,22 +86,24 @@ public class MainActivity extends Activity {
 
         mBookmarkManager = new BookmarkManager(this);
         mAdBlockEngine = new AdBlockEngine();
+        mTabManager = new TabManager();
 
         initViews();
-        initWebView();
+        initAiSuggestions();
         unmuteAudioHardware();
 
-        // Handle Intent if launched with URL
+        // Create initial tab
         Intent intent = getIntent();
         if (intent != null && intent.getData() != null) {
-            loadUrl(intent.getData().toString());
+            createAndSelectTab(intent.getData().toString(), "Začetna stran");
         } else {
+            createAndSelectTab(DEFAULT_HOME_URL, "StreamNexus HD");
             showBookmarksPanel();
         }
     }
 
     private void initViews() {
-        mWebView = findViewById(R.id.mainWebView);
+        mWebViewContainer = findViewById(R.id.webViewContainer);
         mCustomViewContainer = findViewById(R.id.customViewContainer);
         mCursorOverlay = findViewById(R.id.cursorOverlay);
         mEditUrl = findViewById(R.id.editUrl);
@@ -106,13 +114,16 @@ public class MainActivity extends Activity {
         mSettingsPanel = findViewById(R.id.settingsPanel);
         mBookmarksGrid = findViewById(R.id.bookmarksGrid);
         mDownloadsListContainer = findViewById(R.id.downloadsListContainer);
+        mTabsLayout = findViewById(R.id.tabsLayout);
+        mAiSuggestionsLayout = findViewById(R.id.aiSuggestionsLayout);
 
         // Edge scroll listener for virtual cursor
         mCursorOverlay.setOnEdgeScrollListener(new CursorOverlay.OnEdgeScrollListener() {
             @Override
             public void onEdgeScroll(int scrollY) {
-                if (mWebView != null && mCursorMode) {
-                    mWebView.scrollBy(0, scrollY);
+                WebView activeView = getActiveWebView();
+                if (activeView != null && mCursorMode) {
+                    activeView.scrollBy(0, scrollY);
                 }
             }
         });
@@ -121,9 +132,10 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnBack).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mWebView.canGoBack()) {
+                WebView active = getActiveWebView();
+                if (active != null && active.canGoBack()) {
                     hideAllPanels();
-                    mWebView.goBack();
+                    active.goBack();
                 }
             }
         });
@@ -131,9 +143,10 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnForward).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mWebView.canGoForward()) {
+                WebView active = getActiveWebView();
+                if (active != null && active.canGoForward()) {
                     hideAllPanels();
-                    mWebView.goForward();
+                    active.goForward();
                 }
             }
         });
@@ -142,7 +155,8 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 hideAllPanels();
-                mWebView.reload();
+                WebView active = getActiveWebView();
+                if (active != null) active.reload();
             }
         });
 
@@ -157,6 +171,13 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 handleUrlSubmit();
+            }
+        });
+
+        findViewById(R.id.btnMic).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startVoiceSearch();
             }
         });
 
@@ -175,13 +196,16 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnStarBookmark).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String currentUrl = mWebView.getUrl();
-                String currentTitle = mWebView.getTitle();
-                if (currentUrl != null && !currentUrl.isEmpty()) {
-                    mBookmarkManager.addBookmark(currentTitle, currentUrl, "⭐");
-                    Toast.makeText(MainActivity.this, "⭐ Shranjeno med zaznamke: " + (currentTitle != null ? currentTitle : currentUrl), Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(MainActivity.this, "Ni aktivne strani za shranjevanje.", Toast.LENGTH_SHORT).show();
+                WebView active = getActiveWebView();
+                if (active != null) {
+                    String currentUrl = active.getUrl();
+                    String currentTitle = active.getTitle();
+                    if (currentUrl != null && !currentUrl.isEmpty()) {
+                        mBookmarkManager.addBookmark(currentTitle, currentUrl, "⭐");
+                        Toast.makeText(MainActivity.this, "⭐ Shranjeno med zaznamke: " + (currentTitle != null ? currentTitle : currentUrl), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "Ni aktivne strani za shranjevanje.", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });
@@ -214,6 +238,14 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
                 if (mSettingsPanel.getVisibility() == View.VISIBLE) hideAllPanels();
                 else showSettingsPanel();
+            }
+        });
+
+        findViewById(R.id.btnAddTab).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                createAndSelectTab("https://www.google.com", "Nov zavihek");
+                Toast.makeText(MainActivity.this, "➕ Odprt nov zavihek", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -257,10 +289,15 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 mIsDesktopMode = !mIsDesktopMode;
-                mWebView.getSettings().setUserAgentString(mIsDesktopMode ? DESKTOP_UA : TV_UA);
+                for (TabManager.TabItem item : mTabManager.getTabs()) {
+                    if (item.webView != null) {
+                        item.webView.getSettings().setUserAgentString(mIsDesktopMode ? DESKTOP_UA : TV_UA);
+                    }
+                }
                 ((TextView) findViewById(R.id.textCurrentUserAgent)).setText(mIsDesktopMode ?
                         "Trenutno: 4K Desktop Mode (Polna ločljivost strani)" : "Trenutno: Android TV Mode");
-                mWebView.reload();
+                WebView active = getActiveWebView();
+                if (active != null) active.reload();
                 Toast.makeText(MainActivity.this, "Način prikaza: " + (mIsDesktopMode ? "Desktop 4K" : "TV Mode"), Toast.LENGTH_SHORT).show();
             }
         });
@@ -268,8 +305,12 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnClearCache).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mWebView.clearCache(true);
-                mWebView.clearHistory();
+                for (TabManager.TabItem item : mTabManager.getTabs()) {
+                    if (item.webView != null) {
+                        item.webView.clearCache(true);
+                        item.webView.clearHistory();
+                    }
+                }
                 CookieManager.getInstance().removeAllCookies(null);
                 CookieManager.getInstance().flush();
                 Toast.makeText(MainActivity.this, "🧹 Predpomnilnik in piškotki počiščeni!", Toast.LENGTH_SHORT).show();
@@ -277,8 +318,173 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void initWebView() {
-        WebSettings settings = mWebView.getSettings();
+    private void initAiSuggestions() {
+        mAiSuggestionsLayout.removeAllViews();
+
+        class Suggestion {
+            String label;
+            String target;
+            Suggestion(String l, String t) { label = l; target = t; }
+        }
+
+        Suggestion[] list = {
+            new Suggestion("🎬 StreamNexus HD", "http://192.168.0.135:3000"),
+            new Suggestion("🍿 TOP Filmi Danes", "https://www.themoviedb.org/movie"),
+            new Suggestion("📺 YouTube TV", "https://www.youtube.com"),
+            new Suggestion("🤖 Vprašaj AI", "https://www.google.com/search?q=AI+Smart+Assistant"),
+            new Suggestion("🎵 Radio & Glasba", "https://radio.garden"),
+            new Suggestion("💬 Reddit TV", "https://www.reddit.com"),
+            new Suggestion("🐙 GitHub", "https://github.com"),
+            new Suggestion("🎮 Twitch TV", "https://www.twitch.tv")
+        };
+
+        for (final Suggestion item : list) {
+            Button pill = new Button(this);
+            pill.setBackgroundResource(R.drawable.bg_ai_pill);
+            pill.setText(item.label);
+            pill.setTextColor(Color.WHITE);
+            pill.setTextSize(12);
+            pill.setPadding(20, 0, 20, 0);
+            pill.setFocusable(true);
+
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            params.setMargins(0, 0, 10, 0);
+            pill.setLayoutParams(params);
+
+            pill.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    loadUrl(item.target);
+                }
+            });
+
+            mAiSuggestionsLayout.addView(pill);
+        }
+    }
+
+    // =========================================================================
+    // 📑 MULTI-TAB ENGINE
+    // =========================================================================
+    public void createAndSelectTab(String url, String title) {
+        WebView newWebView = createConfiguredWebView();
+        String id = "tab_" + System.currentTimeMillis();
+        TabManager.TabItem newTab = new TabManager.TabItem(id, title, url, newWebView);
+        mTabManager.addTab(newTab);
+
+        mWebViewContainer.addView(newWebView);
+        selectTab(mTabManager.getActiveIndex());
+
+        if (url != null && !url.isEmpty()) {
+            newWebView.loadUrl(url);
+        }
+    }
+
+    public void selectTab(int index) {
+        mTabManager.setActiveIndex(index);
+        TabManager.TabItem active = mTabManager.getActiveTab();
+
+        for (int i = 0; i < mWebViewContainer.getChildCount(); i++) {
+            View child = mWebViewContainer.getChildAt(i);
+            child.setVisibility(View.GONE);
+        }
+
+        if (active != null && active.webView != null) {
+            active.webView.setVisibility(View.VISIBLE);
+            active.webView.requestFocus();
+            if (active.webView.getUrl() != null) {
+                mEditUrl.setText(active.webView.getUrl());
+            }
+        }
+
+        renderTabsBar();
+    }
+
+    public void closeTab(int index) {
+        TabManager.TabItem item = mTabManager.getTabs().get(index);
+        if (item.webView != null) {
+            mWebViewContainer.removeView(item.webView);
+        }
+        mTabManager.removeTab(index);
+        selectTab(mTabManager.getActiveIndex());
+    }
+
+    private void renderTabsBar() {
+        mTabsLayout.removeAllViews();
+        List<TabManager.TabItem> tabs = mTabManager.getTabs();
+        int activeIdx = mTabManager.getActiveIndex();
+
+        for (int i = 0; i < tabs.size(); i++) {
+            final int pos = i;
+            final TabManager.TabItem tab = tabs.get(i);
+            boolean isActive = (i == activeIdx);
+
+            LinearLayout tabView = new LinearLayout(this);
+            tabView.setOrientation(LinearLayout.HORIZONTAL);
+            tabView.setGravity(Gravity.CENTER_VERTICAL);
+            tabView.setBackgroundResource(isActive ? R.drawable.bg_tab_active : R.drawable.bg_tab_inactive);
+            tabView.setFocusable(true);
+            tabView.setPadding(16, 6, 12, 6);
+
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            params.setMargins(0, 0, 8, 0);
+            tabView.setLayoutParams(params);
+
+            TextView titleText = new TextView(this);
+            titleText.setText("🌐 " + tab.title);
+            titleText.setTextColor(isActive ? Color.parseColor("#00d2ff") : Color.WHITE);
+            titleText.setTextSize(13);
+            titleText.setMaxWidth(300);
+            titleText.setSingleLine(true);
+
+            Button closeBtn = new Button(this);
+            closeBtn.setText("✕");
+            closeBtn.setTextColor(Color.parseColor("#9ca3af"));
+            closeBtn.setBackgroundColor(Color.TRANSPARENT);
+            closeBtn.setTextSize(12);
+            closeBtn.setPadding(8, 0, 8, 0);
+            closeBtn.setFocusable(true);
+
+            closeBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mTabManager.getCount() > 1) {
+                        closeTab(pos);
+                    } else {
+                        Toast.makeText(MainActivity.this, "Zadnjega zavihka ni mogoče zapreti.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+
+            tabView.addView(titleText);
+            if (tabs.size() > 1) {
+                tabView.addView(closeBtn);
+            }
+
+            tabView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    selectTab(pos);
+                }
+            });
+
+            mTabsLayout.addView(tabView);
+        }
+    }
+
+    private WebView getActiveWebView() {
+        TabManager.TabItem active = mTabManager.getActiveTab();
+        return active != null ? active.webView : null;
+    }
+
+    private WebView createConfiguredWebView() {
+        final WebView webView = new WebView(this);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        webView.setLayoutParams(params);
+
+        WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
@@ -289,19 +495,19 @@ public class MainActivity extends Activity {
         settings.setDisplayZoomControls(false);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
-        settings.setUserAgentString(DESKTOP_UA);
+        settings.setUserAgentString(mIsDesktopMode ? DESKTOP_UA : TV_UA);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
-        mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
-        mWebView.setDownloadListener(new DownloadListener() {
+        webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
                 DownloadHandler.enqueueDownload(MainActivity.this, url, userAgent, contentDisposition, mimeType);
             }
         });
 
-        mWebView.setWebViewClient(new WebViewClient() {
+        webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (request == null || request.getUrl() == null) return false;
@@ -345,13 +551,25 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 mProgressBar.setVisibility(View.VISIBLE);
-                if (url != null) mEditUrl.setText(url);
+                if (view == getActiveWebView() && url != null) {
+                    mEditUrl.setText(url);
+                }
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 mProgressBar.setVisibility(View.GONE);
-                if (url != null) mEditUrl.setText(url);
+                if (view == getActiveWebView() && url != null) {
+                    mEditUrl.setText(url);
+                }
+
+                TabManager.TabItem active = mTabManager.getActiveTab();
+                if (active != null && active.webView == view) {
+                    if (view.getTitle() != null && !view.getTitle().isEmpty()) {
+                        active.title = view.getTitle();
+                        renderTabsBar();
+                    }
+                }
 
                 // Auto-unmute video tags and inject clean TV styling
                 String js = "(function() {" +
@@ -364,11 +582,23 @@ public class MainActivity extends Activity {
             }
         });
 
-        mWebView.setWebChromeClient(new WebChromeClient() {
+        webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
                 mProgressBar.setProgress(newProgress);
                 if (newProgress == 100) mProgressBar.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onReceivedTitle(WebView view, String title) {
+                super.onReceivedTitle(view, title);
+                for (TabManager.TabItem tab : mTabManager.getTabs()) {
+                    if (tab.webView == view && title != null && !title.isEmpty()) {
+                        tab.title = title;
+                        renderTabsBar();
+                        break;
+                    }
+                }
             }
 
             @Override
@@ -381,7 +611,7 @@ public class MainActivity extends Activity {
                 mCustomViewCallback = callback;
                 mCustomViewContainer.addView(view);
                 mCustomViewContainer.setVisibility(View.VISIBLE);
-                findViewById(R.id.navBar).setVisibility(View.GONE);
+                findViewById(R.id.headerContainer).setVisibility(View.GONE);
             }
 
             @Override
@@ -390,13 +620,80 @@ public class MainActivity extends Activity {
                 mCustomViewContainer.removeView(mCustomView);
                 mCustomView = null;
                 mCustomViewContainer.setVisibility(View.GONE);
-                findViewById(R.id.navBar).setVisibility(View.VISIBLE);
+                findViewById(R.id.headerContainer).setVisibility(View.VISIBLE);
                 if (mCustomViewCallback != null) {
                     mCustomViewCallback.onCustomViewHidden();
                     mCustomViewCallback = null;
                 }
             }
         });
+
+        return webView;
+    }
+
+    // =========================================================================
+    // 🎙️ GLASOVNO UPRAVLJANJE & AI INTENTI
+    // =========================================================================
+    private void startVoiceSearch() {
+        try {
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt));
+            startActivityForResult(intent, REQ_VOICE_SEARCH);
+        } catch (Exception e) {
+            Toast.makeText(this, "Glasovno prepoznavanje ni na voljo: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_VOICE_SEARCH && resultCode == RESULT_OK && data != null) {
+            ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            if (matches != null && !matches.isEmpty()) {
+                String spoken = matches.get(0);
+                Toast.makeText(this, "🎙️ '" + spoken + "'", Toast.LENGTH_SHORT).show();
+                executeVoiceCommand(spoken);
+            }
+        }
+    }
+
+    public void executeVoiceCommand(String spokenText) {
+        VoiceCommandEngine.CommandResult result = VoiceCommandEngine.parse(spokenText);
+
+        switch (result.type) {
+            case OPEN_URL:
+                loadUrl(result.payload);
+                break;
+            case SEARCH:
+                mEditUrl.setText(result.payload);
+                handleUrlSubmit();
+                break;
+            case NEW_TAB:
+                createAndSelectTab("https://www.google.com", "Nov zavihek");
+                break;
+            case CLOSE_TAB:
+                if (mTabManager.getCount() > 1) {
+                    closeTab(mTabManager.getActiveIndex());
+                }
+                break;
+            case OPEN_BOOKMARKS:
+                showBookmarksPanel();
+                break;
+            case OPEN_DOWNLOADS:
+                showDownloadsPanel();
+                break;
+            case OPEN_SETTINGS:
+                showSettingsPanel();
+                break;
+            case TOGGLE_CURSOR:
+                toggleCursorMode();
+                break;
+            case RELOAD:
+                WebView active = getActiveWebView();
+                if (active != null) active.reload();
+                break;
+        }
     }
 
     private void unmuteAudioHardware() {
@@ -426,8 +723,11 @@ public class MainActivity extends Activity {
 
     private void loadUrl(String url) {
         hideAllPanels();
-        mWebView.loadUrl(url);
-        mWebView.requestFocus();
+        WebView active = getActiveWebView();
+        if (active != null) {
+            active.loadUrl(url);
+            active.requestFocus();
+        }
     }
 
     private void toggleCursorMode() {
@@ -441,7 +741,7 @@ public class MainActivity extends Activity {
 
     private void showBookmarksPanel() {
         hideAllPanels();
-        mWebView.setVisibility(View.GONE);
+        mWebViewContainer.setVisibility(View.GONE);
         mBookmarksPanel.setVisibility(View.VISIBLE);
         mBookmarksPanel.bringToFront();
         renderBookmarksGrid();
@@ -449,7 +749,7 @@ public class MainActivity extends Activity {
 
     private void showDownloadsPanel() {
         hideAllPanels();
-        mWebView.setVisibility(View.GONE);
+        mWebViewContainer.setVisibility(View.GONE);
         mDownloadsPanel.setVisibility(View.VISIBLE);
         mDownloadsPanel.bringToFront();
         renderDownloadsList();
@@ -457,7 +757,7 @@ public class MainActivity extends Activity {
 
     private void showSettingsPanel() {
         hideAllPanels();
-        mWebView.setVisibility(View.GONE);
+        mWebViewContainer.setVisibility(View.GONE);
         mSettingsPanel.setVisibility(View.VISIBLE);
         mSettingsPanel.bringToFront();
     }
@@ -466,7 +766,7 @@ public class MainActivity extends Activity {
         mBookmarksPanel.setVisibility(View.GONE);
         mDownloadsPanel.setVisibility(View.GONE);
         mSettingsPanel.setVisibility(View.GONE);
-        mWebView.setVisibility(View.VISIBLE);
+        mWebViewContainer.setVisibility(View.VISIBLE);
     }
 
     private void renderBookmarksGrid() {
@@ -602,12 +902,13 @@ public class MainActivity extends Activity {
         final EditText titleInput = new EditText(this);
         titleInput.setHint("Naslov zaznamka (npr. Moj Portal)");
         titleInput.setTextColor(Color.WHITE);
-        titleInput.setText(mWebView.getTitle());
+        WebView active = getActiveWebView();
+        titleInput.setText(active != null ? active.getTitle() : "");
 
         final EditText urlInput = new EditText(this);
         urlInput.setHint("URL povezava (https://...)");
         urlInput.setTextColor(Color.WHITE);
-        urlInput.setText(mWebView.getUrl() != null ? mWebView.getUrl() : "https://");
+        urlInput.setText(active != null && active.getUrl() != null ? active.getUrl() : "https://");
 
         layout.addView(titleInput);
         layout.addView(urlInput);
@@ -650,6 +951,12 @@ public class MainActivity extends Activity {
                 return true;
             }
 
+            // 🔴 Rdeči gumb (183) -> Glasovno iskanje!
+            if (keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == 183) {
+                startVoiceSearch();
+                return true;
+            }
+
             // Če je kurzorski način vklopljen in smo na spletni strani
             if (mCursorMode && mBookmarksPanel.getVisibility() != View.VISIBLE &&
                     mDownloadsPanel.getVisibility() != View.VISIBLE &&
@@ -669,7 +976,10 @@ public class MainActivity extends Activity {
                     mCursorOverlay.moveCursor(mCursorSpeed, 0);
                     return true;
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_BUTTON_A) {
-                    mCursorOverlay.clickAtCursor(mWebView);
+                    WebView active = getActiveWebView();
+                    if (active != null) {
+                        mCursorOverlay.clickAtCursor(active);
+                    }
                     return true;
                 }
             }
@@ -677,7 +987,10 @@ public class MainActivity extends Activity {
             // Tipka Nazaj (Back)
             if (keyCode == KeyEvent.KEYCODE_BACK) {
                 if (mCustomView != null) {
-                    mWebView.getWebChromeClient().onHideCustomView();
+                    WebView active = getActiveWebView();
+                    if (active != null && active.getWebChromeClient() != null) {
+                        active.getWebChromeClient().onHideCustomView();
+                    }
                     return true;
                 }
                 if (mBookmarksPanel.getVisibility() == View.VISIBLE ||
@@ -686,8 +999,9 @@ public class MainActivity extends Activity {
                     hideAllPanels();
                     return true;
                 }
-                if (mWebView.canGoBack()) {
-                    mWebView.goBack();
+                WebView active = getActiveWebView();
+                if (active != null && active.canGoBack()) {
+                    active.goBack();
                     return true;
                 }
             }
@@ -699,19 +1013,23 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         unmuteAudioHardware();
-        mWebView.onResume();
+        WebView active = getActiveWebView();
+        if (active != null) active.onResume();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        mWebView.onPause();
+        WebView active = getActiveWebView();
+        if (active != null) active.onPause();
     }
 
     @Override
     protected void onDestroy() {
-        if (mWebView != null) {
-            mWebView.destroy();
+        for (TabManager.TabItem item : mTabManager.getTabs()) {
+            if (item.webView != null) {
+                item.webView.destroy();
+            }
         }
         super.onDestroy();
     }
