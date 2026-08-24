@@ -112,6 +112,16 @@ public class MainActivity extends Activity {
         }
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent != null && intent.getData() != null) {
+            String url = intent.getData().toString();
+            loadUrl(url);
+        }
+    }
+
     private void initViews() {
         mWebViewContainer = findViewById(R.id.webViewContainer);
         mCustomViewContainer = findViewById(R.id.customViewContainer);
@@ -490,6 +500,20 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
+        // Pre-seed Google & YouTube GDPR consent cookies
+        CookieManager cm = CookieManager.getInstance();
+        cm.setAcceptCookie(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            cm.setAcceptThirdPartyCookies(webView, true);
+        }
+        try {
+            cm.setCookie(".youtube.com", "SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAnNsIAEaBgiA_LyaBg; path=/; domain=.youtube.com; SameSite=Lax");
+            cm.setCookie(".youtube.com", "CONSENT=YES+cb.20230531-04-p0.sl+FX+999; path=/; domain=.youtube.com");
+            cm.setCookie(".google.com", "SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAnNsIAEaBgiA_LyaBg; path=/; domain=.google.com; SameSite=Lax");
+            cm.setCookie(".google.com", "CONSENT=YES+cb.20230531-04-p0.sl+FX+999; path=/; domain=.google.com");
+            cm.flush();
+        } catch (Exception ignored) {}
+
         webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
@@ -544,7 +568,7 @@ public class MainActivity extends Activity {
                 if (view == getActiveWebView() && url != null) {
                     mEditUrl.setText(url);
                 }
-                injectDarkModeCss(view);
+                injectPageOptimizations(view);
             }
 
             @Override
@@ -562,8 +586,7 @@ public class MainActivity extends Activity {
                     }
                 }
 
-                // Auto-unmute and force dark CSS styling
-                injectDarkModeCss(view);
+                injectPageOptimizations(view);
             }
         });
 
@@ -616,8 +639,8 @@ public class MainActivity extends Activity {
         return webView;
     }
 
-    private void injectDarkModeCss(WebView view) {
-        String js = "(function() {" +
+    private void injectPageOptimizations(WebView view) {
+        String js = "(function autoAcceptAndDark() {" +
                 "  var style = document.getElementById('tv_browser_forced_dark');" +
                 "  if (!style) {" +
                 "    style = document.createElement('style');" +
@@ -629,6 +652,33 @@ public class MainActivity extends Activity {
                 "    v.muted = false;" +
                 "    v.volume = 1.0;" +
                 "  });" +
+                "  function clickConsent() {" +
+                "    var target = document.querySelector('button#L2AGLb, button[aria-label*=\"Sprejmi\"], button[aria-label*=\"Accept\"], form[action*=\"consent\"] button, ytd-consent-bump-v2-lightbox button, .consent-bump-v2 button');" +
+                "    if (target) { target.click(); return true; }" +
+                "    var all = document.querySelectorAll('button, input[type=\"submit\"], a, [role=\"button\"]');" +
+                "    for (var i = 0; i < all.length; i++) {" +
+                "      var el = all[i];" +
+                "      var txt = (el.innerText || el.textContent || el.getAttribute('aria-label') || '').trim().toLowerCase();" +
+                "      if (txt === 'sprejmi vse' || txt === 'sprejmi' || txt === 'accept all' || txt === 'i agree' || txt === 'strinjam se' || txt === 'soglašam' || txt.indexOf('sprejmi vse') !== -1 || txt.indexOf('accept all') !== -1) {" +
+                "        el.click();" +
+                "        return true;" +
+                "      }" +
+                "    }" +
+                "    return false;" +
+                "  }" +
+                "  if (!clickConsent()) {" +
+                "    setTimeout(clickConsent, 400);" +
+                "    setTimeout(clickConsent, 1000);" +
+                "  }" +
+                "  setTimeout(function() {" +
+                "    var dialogs = document.querySelectorAll('#consent-bump, ytd-consent-bump-v2-lightbox, .consent-bump-v2, ytd-popup-container');" +
+                "    dialogs.forEach(function(d) {" +
+                "      if (d.innerText && (d.innerText.indexOf('YouTube') !== -1 || d.innerText.indexOf('Piškotk') !== -1 || d.innerText.indexOf('Preden') !== -1)) {" +
+                "        d.remove();" +
+                "        document.body.style.overflow = 'auto';" +
+                "      }" +
+                "    });" +
+                "  }, 1200);" +
                 "})();";
         view.evaluateJavascript(js, null);
     }
