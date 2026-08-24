@@ -43,9 +43,10 @@ import java.util.List;
 
 public class MainActivity extends Activity {
     private static final int REQ_VOICE_SEARCH = 101;
-    private static final String DEFAULT_HOME_URL = "http://192.168.0.135:3000";
-    private static final String DESKTOP_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
-    private static final String TV_UA = "Mozilla/5.0 (Linux; Android 11; Philips UHD Android TV Build/RTM4.220308.106) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+    private static final String DEFAULT_TV_UA = "Mozilla/5.0 (Linux; Android 11; Philips TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    private static final String URL_SMARTTUBE = "https://www.youtube.com/results?search_query=";
+    private static final String URL_GITHUB = "https://github.com";
+    private static final String URL_TMDB = "https://www.themoviedb.org";
 
     private FrameLayout mWebViewContainer;
     private FrameLayout mCustomViewContainer;
@@ -54,7 +55,7 @@ public class MainActivity extends Activity {
 
     private CursorOverlay mCursorOverlay;
     private boolean mCursorMode = false;
-    private float mCursorSpeed = 24f;
+    private float mCursorSpeed = 26f;
 
     private BookmarkManager mBookmarkManager;
     private AdBlockEngine mAdBlockEngine;
@@ -68,10 +69,8 @@ public class MainActivity extends Activity {
     private GridLayout mBookmarksGrid;
     private LinearLayout mDownloadsListContainer;
     private LinearLayout mTabsLayout;
-    private LinearLayout mAiSuggestionsLayout;
 
     private String mCurrentSearchEngine = "https://www.google.com/search?q=";
-    private boolean mIsDesktopMode = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,16 +88,14 @@ public class MainActivity extends Activity {
         mTabManager = new TabManager();
 
         initViews();
-        initAiSuggestions();
         unmuteAudioHardware();
 
-        // Create initial tab
+        // Initial default tab
         Intent intent = getIntent();
         if (intent != null && intent.getData() != null) {
             createAndSelectTab(intent.getData().toString(), "Začetna stran");
         } else {
-            createAndSelectTab(DEFAULT_HOME_URL, "StreamNexus HD");
-            showBookmarksPanel();
+            createAndSelectTab(URL_TMDB, "TMDB Filmi");
         }
     }
 
@@ -115,7 +112,6 @@ public class MainActivity extends Activity {
         mBookmarksGrid = findViewById(R.id.bookmarksGrid);
         mDownloadsListContainer = findViewById(R.id.downloadsListContainer);
         mTabsLayout = findViewById(R.id.tabsLayout);
-        mAiSuggestionsLayout = findViewById(R.id.aiSuggestionsLayout);
 
         // Edge scroll listener for virtual cursor
         mCursorOverlay.setOnEdgeScrollListener(new CursorOverlay.OnEdgeScrollListener() {
@@ -148,15 +144,6 @@ public class MainActivity extends Activity {
                     hideAllPanels();
                     active.goForward();
                 }
-            }
-        });
-
-        findViewById(R.id.btnRefresh).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                hideAllPanels();
-                WebView active = getActiveWebView();
-                if (active != null) active.reload();
             }
         });
 
@@ -244,7 +231,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnAddTab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                createAndSelectTab("https://www.google.com", "Nov zavihek");
+                createAndSelectTab(URL_TMDB, "TMDB");
                 Toast.makeText(MainActivity.this, "➕ Odprt nov zavihek", Toast.LENGTH_SHORT).show();
             }
         });
@@ -253,6 +240,28 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 showAddBookmarkDialog();
+            }
+        });
+
+        // Quick Top Bar Links (SmartTube, GitHub, TMDB)
+        findViewById(R.id.btnQuickSmartTube).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadUrl(URL_SMARTTUBE);
+            }
+        });
+
+        findViewById(R.id.btnQuickGithub).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadUrl(URL_GITHUB);
+            }
+        });
+
+        findViewById(R.id.btnQuickTmdb).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadUrl(URL_TMDB);
             }
         });
 
@@ -285,23 +294,6 @@ public class MainActivity extends Activity {
             }
         });
 
-        findViewById(R.id.btnToggleUserAgent).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mIsDesktopMode = !mIsDesktopMode;
-                for (TabManager.TabItem item : mTabManager.getTabs()) {
-                    if (item.webView != null) {
-                        item.webView.getSettings().setUserAgentString(mIsDesktopMode ? DESKTOP_UA : TV_UA);
-                    }
-                }
-                ((TextView) findViewById(R.id.textCurrentUserAgent)).setText(mIsDesktopMode ?
-                        "Trenutno: 4K Desktop Mode (Polna ločljivost strani)" : "Trenutno: Android TV Mode");
-                WebView active = getActiveWebView();
-                if (active != null) active.reload();
-                Toast.makeText(MainActivity.this, "Način prikaza: " + (mIsDesktopMode ? "Desktop 4K" : "TV Mode"), Toast.LENGTH_SHORT).show();
-            }
-        });
-
         findViewById(R.id.btnClearCache).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -313,54 +305,10 @@ public class MainActivity extends Activity {
                 }
                 CookieManager.getInstance().removeAllCookies(null);
                 CookieManager.getInstance().flush();
+                mBookmarkManager.resetToDefaults();
                 Toast.makeText(MainActivity.this, "🧹 Predpomnilnik in piškotki počiščeni!", Toast.LENGTH_SHORT).show();
             }
         });
-    }
-
-    private void initAiSuggestions() {
-        mAiSuggestionsLayout.removeAllViews();
-
-        class Suggestion {
-            String label;
-            String target;
-            Suggestion(String l, String t) { label = l; target = t; }
-        }
-
-        Suggestion[] list = {
-            new Suggestion("🎬 StreamNexus HD", "http://192.168.0.135:3000"),
-            new Suggestion("🍿 TOP Filmi Danes", "https://www.themoviedb.org/movie"),
-            new Suggestion("📺 YouTube TV", "https://www.youtube.com"),
-            new Suggestion("🤖 Vprašaj AI", "https://www.google.com/search?q=AI+Smart+Assistant"),
-            new Suggestion("🎵 Radio & Glasba", "https://radio.garden"),
-            new Suggestion("💬 Reddit TV", "https://www.reddit.com"),
-            new Suggestion("🐙 GitHub", "https://github.com"),
-            new Suggestion("🎮 Twitch TV", "https://www.twitch.tv")
-        };
-
-        for (final Suggestion item : list) {
-            Button pill = new Button(this);
-            pill.setBackgroundResource(R.drawable.bg_ai_pill);
-            pill.setText(item.label);
-            pill.setTextColor(Color.WHITE);
-            pill.setTextSize(12);
-            pill.setPadding(20, 0, 20, 0);
-            pill.setFocusable(true);
-
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            params.setMargins(0, 0, 10, 0);
-            pill.setLayoutParams(params);
-
-            pill.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    loadUrl(item.target);
-                }
-            });
-
-            mAiSuggestionsLayout.addView(pill);
-        }
     }
 
     // =========================================================================
@@ -424,26 +372,26 @@ public class MainActivity extends Activity {
             tabView.setGravity(Gravity.CENTER_VERTICAL);
             tabView.setBackgroundResource(isActive ? R.drawable.bg_tab_active : R.drawable.bg_tab_inactive);
             tabView.setFocusable(true);
-            tabView.setPadding(16, 6, 12, 6);
+            tabView.setPadding(12, 4, 8, 4);
 
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            params.setMargins(0, 0, 8, 0);
+            params.setMargins(0, 0, 6, 0);
             tabView.setLayoutParams(params);
 
             TextView titleText = new TextView(this);
-            titleText.setText("🌐 " + tab.title);
+            titleText.setText(tab.title);
             titleText.setTextColor(isActive ? Color.parseColor("#00d2ff") : Color.WHITE);
-            titleText.setTextSize(13);
-            titleText.setMaxWidth(300);
+            titleText.setTextSize(12);
+            titleText.setMaxWidth(260);
             titleText.setSingleLine(true);
 
             Button closeBtn = new Button(this);
             closeBtn.setText("✕");
             closeBtn.setTextColor(Color.parseColor("#9ca3af"));
             closeBtn.setBackgroundColor(Color.TRANSPARENT);
-            closeBtn.setTextSize(12);
-            closeBtn.setPadding(8, 0, 8, 0);
+            closeBtn.setTextSize(11);
+            closeBtn.setPadding(6, 0, 6, 0);
             closeBtn.setFocusable(true);
 
             closeBtn.setOnClickListener(new View.OnClickListener() {
@@ -483,6 +431,7 @@ public class MainActivity extends Activity {
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         webView.setLayoutParams(params);
+        webView.setBackgroundColor(Color.parseColor("#0b0f19"));
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -491,13 +440,29 @@ public class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
-        settings.setBuiltInZoomControls(true);
+        settings.setSupportZoom(false);
+        settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+
+        // 🌟 STREAMNEXUS TV SCALING & DENSITY
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
-        settings.setUserAgentString(mIsDesktopMode ? DESKTOP_UA : TV_UA);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        settings.setTextZoom(100);
+        settings.setDefaultFontSize(15);
+        settings.setDefaultFixedFontSize(13);
+        settings.setUserAgentString(DEFAULT_TV_UA);
 
+        // 🌙 FORCED DARK MODE (Android 10+ / API 29+)
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                settings.setForceDark(WebSettings.FORCE_DARK_ON);
+            }
+        } catch (Throwable ignored) {}
+        try {
+            settings.getClass().getMethod("setAlgorithmicDarkeningAllowed", boolean.class).invoke(settings, true);
+        } catch (Throwable ignored) {}
+
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
         webView.setDownloadListener(new DownloadListener() {
@@ -554,6 +519,7 @@ public class MainActivity extends Activity {
                 if (view == getActiveWebView() && url != null) {
                     mEditUrl.setText(url);
                 }
+                injectDarkModeCss(view);
             }
 
             @Override
@@ -571,14 +537,8 @@ public class MainActivity extends Activity {
                     }
                 }
 
-                // Auto-unmute video tags and inject clean TV styling
-                String js = "(function() {" +
-                        "  document.querySelectorAll('video').forEach(function(v) {" +
-                        "    v.muted = false;" +
-                        "    v.volume = 1.0;" +
-                        "  });" +
-                        "})();";
-                view.evaluateJavascript(js, null);
+                // Auto-unmute and force dark CSS styling
+                injectDarkModeCss(view);
             }
         });
 
@@ -631,6 +591,23 @@ public class MainActivity extends Activity {
         return webView;
     }
 
+    private void injectDarkModeCss(WebView view) {
+        String js = "(function() {" +
+                "  var style = document.getElementById('tv_browser_forced_dark');" +
+                "  if (!style) {" +
+                "    style = document.createElement('style');" +
+                "    style.id = 'tv_browser_forced_dark';" +
+                "    style.innerHTML = 'html, body { background-color: #0b0f19 !important; color: #e2e8f0 !important; } input, textarea, select { background-color: #1a2234 !important; color: #ffffff !important; }';" +
+                "    if (document.head) document.head.appendChild(style);" +
+                "  }" +
+                "  document.querySelectorAll('video').forEach(function(v) {" +
+                "    v.muted = false;" +
+                "    v.volume = 1.0;" +
+                "  });" +
+                "})();";
+        view.evaluateJavascript(js, null);
+    }
+
     // =========================================================================
     // 🎙️ GLASOVNO UPRAVLJANJE & AI INTENTI
     // =========================================================================
@@ -670,7 +647,7 @@ public class MainActivity extends Activity {
                 handleUrlSubmit();
                 break;
             case NEW_TAB:
-                createAndSelectTab("https://www.google.com", "Nov zavihek");
+                createAndSelectTab(URL_TMDB, "TMDB");
                 break;
             case CLOSE_TAB:
                 if (mTabManager.getCount() > 1) {
@@ -736,7 +713,7 @@ public class MainActivity extends Activity {
         Button btn = findViewById(R.id.btnToggleCursor);
         btn.setText(mCursorMode ? "🖱️ Kurzor: VKLOP" : "🖱️ Kurzor");
         btn.setTextColor(mCursorMode ? Color.parseColor("#00d2ff") : Color.WHITE);
-        Toast.makeText(this, mCursorMode ? "Virtualni kurzor: VKLOPLJEN (Krmilite z D-Padom ali gobico)" : "Virtualni kurzor: IZKLOPLJEN", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, mCursorMode ? "Virtualni kurzor: VKLOPLJEN" : "Virtualni kurzor: IZKLOPLJEN", Toast.LENGTH_SHORT).show();
     }
 
     private void showBookmarksPanel() {
@@ -940,13 +917,16 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {}
     }
 
+    // =========================================================================
+    // 🎮 SEAMLESS TV FOCUS & KEY EVENT DISPATCH
+    // =========================================================================
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             int keyCode = event.getKeyCode();
 
-            // 🟡 Rumeni gumb (185) ali MENU (82) -> Hitri preklop virtualnega kurzorja!
-            if (keyCode == KeyEvent.KEYCODE_PROG_YELLOW || keyCode == 185 || keyCode == KeyEvent.KEYCODE_MENU) {
+            // 🟡 Rumeni gumb (185) -> Hitri preklop virtualnega kurzorja!
+            if (keyCode == KeyEvent.KEYCODE_PROG_YELLOW || keyCode == 185) {
                 toggleCursorMode();
                 return true;
             }
@@ -954,6 +934,12 @@ public class MainActivity extends Activity {
             // 🔴 Rdeči gumb (183) -> Glasovno iskanje!
             if (keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == 183) {
                 startVoiceSearch();
+                return true;
+            }
+
+            // 🟢 Zeleni gumb (184) ali MENU (82) -> Hipni skok na iskalno vrstico / orodno vrstico!
+            if (keyCode == KeyEvent.KEYCODE_PROG_GREEN || keyCode == 184 || keyCode == KeyEvent.KEYCODE_MENU) {
+                mEditUrl.requestFocus();
                 return true;
             }
 
@@ -981,6 +967,17 @@ public class MainActivity extends Activity {
                         mCursorOverlay.clickAtCursor(active);
                     }
                     return true;
+                }
+            }
+
+            // D-Pad navigacija: Če smo na vrhu spletne strani in pritisnemo GOR -> takoj skoči na iskalnik / zavihke!
+            if (!mCursorMode && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                WebView active = getActiveWebView();
+                if (active != null && active.hasFocus()) {
+                    if (active.getScrollY() <= 10) {
+                        mEditUrl.requestFocus();
+                        return true;
+                    }
                 }
             }
 
