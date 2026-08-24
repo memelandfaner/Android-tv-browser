@@ -75,6 +75,7 @@ if [ "$1" == "--install" ] || [ "$1" == "-i" ] || [ -z "$1" ]; then
     adb -s "$TV_IP" wait-for-device
     echo "📲 Nameščam na televizor..."
     adb -s "$TV_IP" install -r -d "$FINAL_APK"
+    adb -s "$TV_IP" shell pm grant com.example.tvbrowser android.permission.RECORD_AUDIO 2>/dev/null || true
     echo "🚀 Zaganjam TV Brskalnik..."
     adb -s "$TV_IP" shell am start -n com.example.tvbrowser/.MainActivity
     echo "✅ Uspešno zagnano na televizorju!"

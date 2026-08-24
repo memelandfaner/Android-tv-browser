@@ -1,10 +1,13 @@
 package com.example.tvbrowser;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.media.AudioManager;
@@ -12,7 +15,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
+import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -43,6 +48,7 @@ import java.util.List;
 
 public class MainActivity extends Activity {
     private static final int REQ_VOICE_SEARCH = 101;
+    private static final int REQ_PERM_AUDIO = 102;
     private static final String DEFAULT_TV_UA = "Mozilla/5.0 (Linux; Android 11; Philips TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     private static final String URL_SMARTTUBE = "https://www.youtube.com/results?search_query=";
     private static final String URL_GITHUB = "https://github.com";
@@ -69,6 +75,12 @@ public class MainActivity extends Activity {
     private GridLayout mBookmarksGrid;
     private LinearLayout mDownloadsListContainer;
     private LinearLayout mTabsLayout;
+
+    // Voice Engine components
+    private SpeechRecognizer mSpeechRecognizer;
+    private View mVoiceListeningOverlay;
+    private TextView mTextVoiceStatus;
+    private TextView mTextVoiceMicIcon;
 
     private String mCurrentSearchEngine = "https://www.google.com/search?q=";
 
@@ -112,6 +124,18 @@ public class MainActivity extends Activity {
         mBookmarksGrid = findViewById(R.id.bookmarksGrid);
         mDownloadsListContainer = findViewById(R.id.downloadsListContainer);
         mTabsLayout = findViewById(R.id.tabsLayout);
+
+        // Voice Listening HUD
+        mVoiceListeningOverlay = findViewById(R.id.voiceListeningOverlay);
+        mTextVoiceStatus = findViewById(R.id.textVoiceStatus);
+        mTextVoiceMicIcon = findViewById(R.id.textVoiceMicIcon);
+
+        findViewById(R.id.btnCancelVoice).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopInAppSpeechRecognition();
+            }
+        });
 
         // Edge scroll listener for virtual cursor
         mCursorOverlay.setOnEdgeScrollListener(new CursorOverlay.OnEdgeScrollListener() {
@@ -609,16 +633,179 @@ public class MainActivity extends Activity {
     }
 
     // =========================================================================
-    // 🎙️ GLASOVNO UPRAVLJANJE & AI INTENTI
+    // 🎙️ GLASOVNO UPRAVLJANJE (MULTI-TIER SPEECH ENGINE)
     // =========================================================================
     private void startVoiceSearch() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_PERM_AUDIO);
+                return;
+            }
+        }
+        startInAppSpeechRecognition();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_PERM_AUDIO) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startInAppSpeechRecognition();
+            } else {
+                Toast.makeText(this, "Dovoljenje za mikrofon je potrebno za glasovno iskanje.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void startInAppSpeechRecognition() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (mSpeechRecognizer != null) {
+                        try { mSpeechRecognizer.destroy(); } catch (Exception ignored) {}
+                        mSpeechRecognizer = null;
+                    }
+
+                    if (SpeechRecognizer.isRecognitionAvailable(MainActivity.this)) {
+                        mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
+                    } else {
+                        try {
+                            ComponentName katniss = ComponentName.unflattenFromString("com.google.android.katniss/com.google.android.apps.speech.recognition.google.Service");
+                            mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this, katniss);
+                        } catch (Exception e) {
+                            mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
+                        }
+                    }
+
+                    if (mSpeechRecognizer == null) {
+                        launchSpeechIntentFallback();
+                        return;
+                    }
+
+                    showVoiceListeningHUD();
+
+                    mSpeechRecognizer.setRecognitionListener(new RecognitionListener() {
+                        @Override
+                        public void onReadyForSpeech(Bundle params) {
+                            if (mTextVoiceStatus != null) {
+                                mTextVoiceStatus.setText("Poslušam... Govorite zdaj!");
+                            }
+                            if (mTextVoiceMicIcon != null) {
+                                mTextVoiceMicIcon.setScaleX(1.2f);
+                                mTextVoiceMicIcon.setScaleY(1.2f);
+                            }
+                        }
+
+                        @Override
+                        public void onBeginningOfSpeech() {
+                            if (mTextVoiceStatus != null) {
+                                mTextVoiceStatus.setText("🎙️ Snemam vaš glas...");
+                            }
+                        }
+
+                        @Override
+                        public void onRmsChanged(float rmsdB) {
+                            if (mTextVoiceMicIcon != null) {
+                                float scale = 1.0f + Math.max(0f, rmsdB) / 12f;
+                                mTextVoiceMicIcon.setScaleX(Math.min(1.4f, scale));
+                                mTextVoiceMicIcon.setScaleY(Math.min(1.4f, scale));
+                            }
+                        }
+
+                        @Override
+                        public void onBufferReceived(byte[] buffer) {}
+
+                        @Override
+                        public void onEndOfSpeech() {
+                            if (mTextVoiceStatus != null) {
+                                mTextVoiceStatus.setText("Obdelujem ukaz...");
+                            }
+                        }
+
+                        @Override
+                        public void onError(int error) {
+                            hideVoiceListeningHUD();
+                            if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                                Toast.makeText(MainActivity.this, "Govor ni bil zaznan. Poskusite znova.", Toast.LENGTH_SHORT).show();
+                            } else {
+                                launchSpeechIntentFallback();
+                            }
+                        }
+
+                        @Override
+                        public void onResults(Bundle results) {
+                            hideVoiceListeningHUD();
+                            ArrayList<String> matches = results != null ? results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) : null;
+                            if (matches != null && !matches.isEmpty()) {
+                                String spoken = matches.get(0);
+                                Toast.makeText(MainActivity.this, "🎙️ '" + spoken + "'", Toast.LENGTH_SHORT).show();
+                                executeVoiceCommand(spoken);
+                            }
+                        }
+
+                        @Override
+                        public void onPartialResults(Bundle partialResults) {
+                            ArrayList<String> matches = partialResults != null ? partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) : null;
+                            if (matches != null && !matches.isEmpty() && mTextVoiceStatus != null) {
+                                mTextVoiceStatus.setText("🎙️ '" + matches.get(0) + "'");
+                            }
+                        }
+
+                        @Override
+                        public void onEvent(int eventType, Bundle params) {}
+                    });
+
+                    Intent recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sl-SI");
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "sl-SI");
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false);
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+                    recognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+
+                    mSpeechRecognizer.startListening(recognizerIntent);
+
+                } catch (Exception e) {
+                    launchSpeechIntentFallback();
+                }
+            }
+        });
+    }
+
+    private void stopInAppSpeechRecognition() {
+        if (mSpeechRecognizer != null) {
+            try { mSpeechRecognizer.stopListening(); } catch (Exception ignored) {}
+            try { mSpeechRecognizer.destroy(); } catch (Exception ignored) {}
+            mSpeechRecognizer = null;
+        }
+        hideVoiceListeningHUD();
+    }
+
+    private void showVoiceListeningHUD() {
+        if (mVoiceListeningOverlay != null) {
+            mVoiceListeningOverlay.setVisibility(View.VISIBLE);
+            mVoiceListeningOverlay.bringToFront();
+            findViewById(R.id.btnCancelVoice).requestFocus();
+        }
+    }
+
+    private void hideVoiceListeningHUD() {
+        if (mVoiceListeningOverlay != null) {
+            mVoiceListeningOverlay.setVisibility(View.GONE);
+        }
+    }
+
+    private void launchSpeechIntentFallback() {
         try {
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt));
             startActivityForResult(intent, REQ_VOICE_SEARCH);
         } catch (Exception e) {
-            Toast.makeText(this, "Glasovno prepoznavanje ni na voljo: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Iskanje z daljincem: Vnesite želeni naslov v iskalnik.", Toast.LENGTH_SHORT).show();
+            mEditUrl.requestFocus();
         }
     }
 
@@ -925,6 +1112,14 @@ public class MainActivity extends Activity {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             int keyCode = event.getKeyCode();
 
+            // Če je Voice HUD odprt, BACK ali Center prekliče
+            if (mVoiceListeningOverlay != null && mVoiceListeningOverlay.getVisibility() == View.VISIBLE) {
+                if (keyCode == KeyEvent.KEYCODE_BACK) {
+                    stopInAppSpeechRecognition();
+                    return true;
+                }
+            }
+
             // 🟡 Rumeni gumb (185) -> Hitri preklop virtualnega kurzorja!
             if (keyCode == KeyEvent.KEYCODE_PROG_YELLOW || keyCode == 185) {
                 toggleCursorMode();
@@ -1017,12 +1212,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        stopInAppSpeechRecognition();
         WebView active = getActiveWebView();
         if (active != null) active.onPause();
     }
 
     @Override
     protected void onDestroy() {
+        stopInAppSpeechRecognition();
         for (TabManager.TabItem item : mTabManager.getTabs()) {
             if (item.webView != null) {
                 item.webView.destroy();
