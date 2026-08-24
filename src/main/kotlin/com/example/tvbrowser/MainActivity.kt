@@ -74,7 +74,6 @@ class MainActivity : android.app.Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         try {
             StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
@@ -409,6 +408,7 @@ class MainActivity : android.app.Activity() {
     }
 
     private fun handleUrlSubmit() {
+        hideSoftKeyboard()
         val target = viewModel.processUrlInput(editUrl.text.toString())
         loadUrl(target)
         getActiveWebView()?.requestFocus()
@@ -465,12 +465,14 @@ class MainActivity : android.app.Activity() {
                 customViewContainer.addView(v)
                 customViewContainer.visibility = View.VISIBLE
                 findViewById<View>(R.id.headerContainer).visibility = View.GONE
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
             onHideCustomViewListener = {
                 customViewContainer.removeAllViews()
                 customView = null
                 customViewContainer.visibility = View.GONE
                 findViewById<View>(R.id.headerContainer).visibility = View.VISIBLE
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 customViewCallback?.onCustomViewHidden()
                 customViewCallback = null
             }

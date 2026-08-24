@@ -91,9 +91,6 @@ class BrowserViewModel(context: Context) {
         val tabs = state.tabs
         if (index in tabs.indices) {
             tabs[index].url = url
-            if (index == state.activeTabIndex) {
-                state = state.copy(currentUrl = url)
-            }
         }
     }
 

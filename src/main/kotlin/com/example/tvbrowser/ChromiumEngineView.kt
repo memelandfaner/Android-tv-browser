@@ -186,6 +186,13 @@ class ChromiumEngineView @JvmOverloads constructor(
                 if (request?.isForMainFrame == true) {
                     val rawUrl = request.url?.toString() ?: ""
                     val failingUrl = android.text.Html.escapeHtml(rawUrl)
+                    val prefs = context.getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+                    val engine = prefs.getString("search_engine", "google") ?: "google"
+                    val homeUrl = when (engine.lowercase()) {
+                        "duckduckgo" -> "https://duckduckgo.com"
+                        "bing" -> "https://www.bing.com"
+                        else -> "https://www.google.com"
+                    }
                     val errorHtml = """
                         <!DOCTYPE html>
                         <html>
@@ -239,7 +246,7 @@ class ChromiumEngineView @JvmOverloads constructor(
                                 <p>Preverite internetno povezavo ali naslov spletne strani:<br><small style="color: #64748b;">$failingUrl</small></p>
                                 <div class="btn-group">
                                     <button onclick="window.location.reload();" autofocus>🔄 Poskusi znova</button>
-                                    <button onclick="window.location.href='https://www.google.com';">🏠 Domov</button>
+                                    <button onclick="window.location.href='$homeUrl';">🏠 Domov</button>
                                 </div>
                             </div>
                         </body>
