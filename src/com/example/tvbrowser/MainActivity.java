@@ -50,6 +50,7 @@ public class MainActivity extends Activity {
     private static final int REQ_VOICE_SEARCH = 101;
     private static final int REQ_PERM_AUDIO = 102;
     private static final String DEFAULT_TV_UA = "Mozilla/5.0 (Linux; Android 11; Philips TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    private static final String URL_HOME_SEARCH = "https://www.google.com";
     private static final String URL_SMARTTUBE = "https://www.youtube.com/results?search_query=";
     private static final String URL_GITHUB = "https://github.com";
     private static final String URL_TMDB = "https://www.themoviedb.org";
@@ -102,12 +103,12 @@ public class MainActivity extends Activity {
         initViews();
         unmuteAudioHardware();
 
-        // Initial default tab
+        // Initial default tab -> Always the best search engine (Google)
         Intent intent = getIntent();
         if (intent != null && intent.getData() != null) {
             createAndSelectTab(intent.getData().toString(), "Začetna stran");
         } else {
-            createAndSelectTab(URL_TMDB, "TMDB Filmi");
+            createAndSelectTab(URL_HOME_SEARCH, "Google Iskanje");
         }
     }
 
@@ -174,7 +175,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnHome).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showBookmarksPanel();
+                loadUrl(URL_HOME_SEARCH);
             }
         });
 
@@ -255,7 +256,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnAddTab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                createAndSelectTab(URL_TMDB, "TMDB");
+                createAndSelectTab(URL_HOME_SEARCH, "Google Iskanje");
                 Toast.makeText(MainActivity.this, "➕ Odprt nov zavihek", Toast.LENGTH_SHORT).show();
             }
         });
@@ -834,7 +835,7 @@ public class MainActivity extends Activity {
                 handleUrlSubmit();
                 break;
             case NEW_TAB:
-                createAndSelectTab(URL_TMDB, "TMDB");
+                createAndSelectTab(URL_HOME_SEARCH, "Google Iskanje");
                 break;
             case CLOSE_TAB:
                 if (mTabManager.getCount() > 1) {
