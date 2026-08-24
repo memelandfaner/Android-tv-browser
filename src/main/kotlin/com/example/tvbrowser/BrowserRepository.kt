@@ -126,6 +126,6 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
 
     companion object {
         private const val DATABASE_NAME = "browser_data.db"
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 4
     }
 }

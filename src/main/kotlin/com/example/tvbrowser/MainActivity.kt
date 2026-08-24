@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -234,15 +235,18 @@ class MainActivity : Activity() {
     }
 
     private fun handleUrlSubmit() {
+        hideSoftKeyboard()
         val target = viewModel.processUrlInput(editUrl.text.toString())
         loadUrl(target)
+        getActiveWebView()?.requestFocus()
     }
 
     fun loadUrl(url: String) {
         hideAllPanels()
         val active = getActiveWebView()
         if (active != null) {
-            editUrl.setText(url)
+            editUrl.setText(formatDisplayUrl(url))
+            updateOmniboxHint(url)
             active.loadUrl(url)
         } else {
             createAndSelectTab(url, "Nalagam...")
@@ -268,7 +272,11 @@ class MainActivity : Activity() {
             }
             onUrlChangedListener = { u ->
                 if (webViewPool.indexOf(this) == viewModel.state.activeTabIndex) {
-                    editUrl.setText(u)
+                    if (!editUrl.hasFocus()) {
+                        val display = formatDisplayUrl(u)
+                        editUrl.setText(display)
+                        updateOmniboxHint(u)
+                    }
                 }
                 viewModel.updateTabUrl(tabIndex, u)
             }
@@ -301,6 +309,33 @@ class MainActivity : Activity() {
         webView.loadUrl(url)
     }
 
+    private fun formatDisplayUrl(rawUrl: String): String {
+        if (rawUrl.isEmpty() || rawUrl == "about:blank") return ""
+        try {
+            val uri = Uri.parse(rawUrl)
+            if (rawUrl.contains("google.com/search") || rawUrl.contains("google.si/search")) {
+                val q = uri.getQueryParameter("q")
+                if (!q.isNullOrEmpty()) return q
+            }
+            if (rawUrl.contains("youtube.com/results")) {
+                val q = uri.getQueryParameter("search_query")
+                if (!q.isNullOrEmpty()) return q
+            }
+            if (rawUrl.startsWith("https://www.google.") || rawUrl.startsWith("http://www.google.")) {
+                return ""
+            }
+        } catch (ignored: Exception) {}
+        return rawUrl
+    }
+
+    private fun updateOmniboxHint(url: String) {
+        if (url.contains("youtube.com")) {
+            editUrl.hint = "🔍 Išči v YouTubu ali vnesite naslov..."
+        } else {
+            editUrl.hint = "🔍 Išči v Googlu ali vnesite naslov..."
+        }
+    }
+
     private fun selectTab(index: Int) {
         if (index !in webViewPool.indices) return
 
@@ -309,7 +344,9 @@ class MainActivity : Activity() {
             if (i == index) {
                 v.visibility = View.VISIBLE
                 v.onResume()
-                editUrl.setText(v.url ?: "")
+                val currentU = v.url ?: ""
+                editUrl.setText(formatDisplayUrl(currentU))
+                updateOmniboxHint(currentU)
             } else {
                 v.visibility = View.GONE
                 v.onPause()
@@ -368,17 +405,23 @@ class MainActivity : Activity() {
             tabLayout.addView(textTitle)
 
             if (tabs.size > 1) {
+                val tabIdx = i
                 val btnClose = TextView(this).apply {
                     text = " ✕"
-                    textSize = 11f
+                    textSize = 12f
                     setTextColor(Color.parseColor("#ef4444"))
-                    setPadding(12, 0, 4, 0)
-                    setOnClickListener { closeTab(i) }
+                    setPadding(16, 0, 4, 0)
+                    isClickable = true
+                    isFocusable = false
+                    setOnClickListener {
+                        closeTab(tabIdx)
+                    }
                 }
                 tabLayout.addView(btnClose)
             }
 
-            tabLayout.setOnClickListener { selectTab(i) }
+            val tabIdx = i
+            tabLayout.setOnClickListener { selectTab(tabIdx) }
             tabsLayout.addView(tabLayout)
         }
     }

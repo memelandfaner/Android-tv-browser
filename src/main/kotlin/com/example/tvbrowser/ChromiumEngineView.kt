@@ -222,6 +222,14 @@ class ChromiumEngineView @JvmOverloads constructor(
                 setTimeout(clickConsent, 400);
                 setTimeout(clickConsent, 1000);
               }
+              if (window.location.href.indexOf('/search') !== -1 || window.location.href.indexOf('results?search_query') !== -1) {
+                setTimeout(function() {
+                  var qInput = document.querySelector('input[name="q"], textarea[name="q"], input[name="search_query"]');
+                  if (qInput && document.activeElement === qInput) {
+                    qInput.blur();
+                  }
+                }, 350);
+              }
               setTimeout(function() {
                 var dialogs = document.querySelectorAll('#consent-bump, ytd-consent-bump-v2-lightbox, .consent-bump-v2');
                 dialogs.forEach(function(d) {
