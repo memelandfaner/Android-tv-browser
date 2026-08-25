@@ -147,7 +147,160 @@ object UserScriptManager {
         })();
     """
 
-    // 🛡️ 1c. Google Search & Interstitial Warning Auto-Bypass
+    // 🎮 1c. Universal D-Pad Spatial Navigation & SVG Controller for TV
+    private const val TV_DPAD_SPATIAL_NAVIGATION_JS = """
+        (function() {
+            if (window.__freenetTvDpadNavInstalled) return;
+            window.__freenetTvDpadNavInstalled = true;
+
+            // Injected CSS for high visibility SVG / button focus ring
+            var style = document.createElement('style');
+            style.textContent = `
+                svg[tabindex="0"]:focus, button:focus, [role="button"]:focus, [data-tv-focus="true"]:focus,
+                [class*="fullscreen"]:focus, [class*="control"]:focus, .jw-icon:focus, .plyr__control:focus, .vjs-control:focus {
+                    outline: 3px solid #00d2ff !important;
+                    outline-offset: 3px !important;
+                    box-shadow: 0 0 16px rgba(0, 210, 255, 0.9) !important;
+                    border-radius: 6px !important;
+                    transform: scale(1.18) !important;
+                    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out !important;
+                    z-index: 99999 !important;
+                }
+            `;
+            (document.head || document.documentElement).appendChild(style);
+
+            function makeInteractiveElementsFocusable() {
+                try {
+                    var selectors = [
+                        'svg', 'path', 'button', 'a', '[role="button"]', '[onclick]',
+                        '.jw-icon', '.plyr__control', '.vjs-control', '[class*="control"]',
+                        '[class*="fullscreen"]', '[aria-label*="fullscreen" i]', '[title*="fullscreen" i]',
+                        'iframe', 'video', 'input', 'select'
+                    ];
+                    var elements = document.querySelectorAll(selectors.join(', '));
+                    for (var i = 0; i < elements.length; i++) {
+                        var el = elements[i];
+                        if (!el.hasAttribute('tabindex')) {
+                            el.setAttribute('tabindex', '0');
+                        }
+                        if (el.tagName && el.tagName.toLowerCase() === 'svg') {
+                            el.setAttribute('focusable', 'true');
+                        }
+                        el.setAttribute('data-tv-focus', 'true');
+
+                        if (!el._tvDpadBound) {
+                            el._tvDpadBound = true;
+                            // Enter / OK key handler
+                            el.addEventListener('keydown', function(e) {
+                                if (e.keyCode === 13 || e.keyCode === 23 || e.keyCode === 66 || e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    var isFullscreen = (this.className && typeof this.className === 'string' && this.className.indexOf('fullscreen') !== -1) ||
+                                                       (this.getAttribute('aria-label') && this.getAttribute('aria-label').toLowerCase().indexOf('fullscreen') !== -1) ||
+                                                       (this.getAttribute('title') && this.getAttribute('title').toLowerCase().indexOf('fullscreen') !== -1) ||
+                                                       (this.id && this.id.indexOf('fullscreen') !== -1);
+                                    if (isFullscreen) {
+                                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.toggleTvFullscreen === 'function') {
+                                            window.AndroidNativeBridge.toggleTvFullscreen();
+                                        }
+                                    }
+                                    this.click();
+                                }
+                            });
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // Directional spatial navigation
+            function findNextSpatialElement(direction) {
+                var active = document.activeElement;
+                if (!active || active === document.body || active === document.documentElement) {
+                    active = document.querySelector('[tabindex="0"], button, svg[tabindex="0"], a');
+                    if (active) { active.focus(); return true; }
+                    return false;
+                }
+
+                var rCurrent = active.getBoundingClientRect();
+                var cX = rCurrent.left + rCurrent.width / 2;
+                var cY = rCurrent.top + rCurrent.height / 2;
+
+                var candidates = document.querySelectorAll('[tabindex="0"], button, a, [role="button"], svg[focusable="true"]');
+                var bestCandidate = null;
+                var minDistance = Infinity;
+
+                for (var i = 0; i < candidates.length; i++) {
+                    var cand = candidates[i];
+                    if (cand === active || cand.disabled || cand.offsetParent === null) continue;
+                    var rCand = cand.getBoundingClientRect();
+                    if (rCand.width === 0 || rCand.height === 0) continue;
+
+                    var candX = rCand.left + rCand.width / 2;
+                    var candY = rCand.top + rCand.height / 2;
+
+                    var dx = candX - cX;
+                    var dy = candY - cY;
+
+                    var isMatch = false;
+                    switch (direction) {
+                        case 'down':  isMatch = (dy > 8); break;
+                        case 'up':    isMatch = (dy < -8); break;
+                        case 'right': isMatch = (dx > 8); break;
+                        case 'left':  isMatch = (dx < -8); break;
+                    }
+
+                    if (isMatch) {
+                        var dist = Math.sqrt(dx * dx + dy * dy);
+                        if (direction === 'down' || direction === 'up') {
+                            dist += Math.abs(dx) * 1.5;
+                        } else {
+                            dist += Math.abs(dy) * 1.5;
+                        }
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            bestCandidate = cand;
+                        }
+                    }
+                }
+
+                if (bestCandidate) {
+                    bestCandidate.focus();
+                    if (bestCandidate.scrollIntoViewIfNeeded) {
+                        bestCandidate.scrollIntoViewIfNeeded();
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            window.addEventListener('keydown', function(e) {
+                var code = e.keyCode || e.which;
+                var key = e.key;
+
+                if (code === 40 || key === 'ArrowDown') {
+                    if (findNextSpatialElement('down')) e.preventDefault();
+                } else if (code === 38 || key === 'ArrowUp') {
+                    if (findNextSpatialElement('up')) e.preventDefault();
+                } else if (code === 37 || key === 'ArrowLeft') {
+                    if (findNextSpatialElement('left')) e.preventDefault();
+                } else if (code === 39 || key === 'ArrowRight') {
+                    if (findNextSpatialElement('right')) e.preventDefault();
+                }
+            }, true);
+
+            // Initial and periodic run
+            makeInteractiveElementsFocusable();
+            setInterval(makeInteractiveElementsFocusable, 1200);
+
+            // MutationObserver for newly added SVG/buttons
+            var dpadObs = new MutationObserver(makeInteractiveElementsFocusable);
+            if (document.documentElement) {
+                dpadObs.observe(document.documentElement, { childList: true, subtree: true });
+            }
+        })();
+    """
+
+    // 🛡️ 1d. Google Search & Interstitial Warning Auto-Bypass
     private const val GOOGLE_INTERSTITIAL_BYPASS_JS = """
         (function() {
             try {
@@ -1164,6 +1317,7 @@ object UserScriptManager {
     fun injectAtDocumentStart(webView: WebView) {
         webView.evaluateJavascript(ANTI_ANTI_ADBLOCK_JS.trimIndent(), null)
         webView.evaluateJavascript(KEY_EVENTS_PATCH_JS.trimIndent(), null)
+        webView.evaluateJavascript(TV_DPAD_SPATIAL_NAVIGATION_JS.trimIndent(), null)
         webView.evaluateJavascript(GOOGLE_INTERSTITIAL_BYPASS_JS.trimIndent(), null)
     }
 
