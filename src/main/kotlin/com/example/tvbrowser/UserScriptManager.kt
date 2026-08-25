@@ -1023,8 +1023,26 @@ object UserScriptManager {
                 });
             }
 
+            function checkAndAutoClickResume() {
+                if (!isWatchPage()) return false;
+                try {
+                    var btns = document.querySelectorAll('button, [role="button"], a, div');
+                    for (var i = 0; i < btns.length; i++) {
+                        var b = btns[i];
+                        var t = (b.innerText || b.textContent || '').trim().toLowerCase();
+                        if (t === 'resume' || t === 'continue' || t === 'continue watching' || t === 'nadaljuj' || t.startsWith('resume from')) {
+                            b.click();
+                            console.log("FreeNet: Auto-clicked Resume prompt successfully");
+                            return true;
+                        }
+                    }
+                } catch(e) {}
+                return false;
+            }
+
             function triggerPlayButtons() {
                 if (!isWatchPage()) return; // Never auto-trigger buttons on homepage
+                checkAndAutoClickResume();
                 var playButtons = document.querySelectorAll(
                     '.video-play-button, .vjs-big-play-button, .plyr__control--overlaid, .play-state-indicator, [data-embed-url], .jw-display-icon-container, [class*="play-button"]'
                 );
@@ -1123,10 +1141,18 @@ object UserScriptManager {
                 setupPlayerFocusAndClicks();
                 setupControlBarButtons();
                 setupServerSwitchListeners();
+                checkAndAutoClickResume();
             });
             if (document.documentElement) {
                 obs.observe(document.documentElement, { childList: true, subtree: true });
             }
+
+            // Periodic watchdog for resume dialogs & video playback
+            setInterval(function() {
+                if (isWatchPage()) {
+                    checkAndAutoClickResume();
+                }
+            }, 800);
         })();
     """
 
