@@ -256,10 +256,6 @@ class MainActivity : android.app.Activity() {
             loadUrl(viewModel.homeUrl())
         }
 
-        findViewById<View>(R.id.btnGo).setOnClickListener {
-            handleUrlSubmit()
-        }
-
         editUrl.setSelectAllOnFocus(true)
         editUrl.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
@@ -559,17 +555,6 @@ class MainActivity : android.app.Activity() {
                         .show()
                 }
             }.start()
-        }
-
-        findViewById<View>(R.id.btnSwitchPiped).setOnClickListener {
-            val curUrl = getActiveWebView()?.url ?: ""
-            if (curUrl.contains("youtube.com/watch") || curUrl.contains("youtu.be/")) {
-                getActiveWebView()?.openInAlternativeFrontend("piped")
-                Toast.makeText(this, "⚡ Odpiram video na Piped (Brez oglasov & telemetrije)...", Toast.LENGTH_SHORT).show()
-            } else {
-                getActiveWebView()?.loadUrl("https://piped.video")
-                Toast.makeText(this, "⚡ Odpiram Piped - Odprtokodni YouTube...", Toast.LENGTH_SHORT).show()
-            }
         }
 
         findViewById<View>(R.id.btnNavBookmarks).setOnClickListener {

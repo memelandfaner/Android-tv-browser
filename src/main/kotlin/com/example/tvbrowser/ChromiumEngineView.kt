@@ -75,9 +75,11 @@ class ChromiumEngineView @JvmOverloads constructor(
         s.allowUniversalAccessFromFileURLs = true
         s.setSupportZoom(false)
         s.builtInZoomControls = false
-        s.displayZoomControls = false
         s.javaScriptCanOpenWindowsAutomatically = false
         s.setSupportMultipleWindows(false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            s.safeBrowsingEnabled = false
+        }
         s.setRenderPriority(WebSettings.RenderPriority.HIGH)
         s.cacheMode = WebSettings.LOAD_DEFAULT
 
@@ -274,9 +276,29 @@ class ChromiumEngineView @JvmOverloads constructor(
                     view?.loadDataWithBaseURL(rawUrl, errorHtml, "text/html", "UTF-8", rawUrl)
                 }
             }
+
+            override fun onSafeBrowsingHit(
+                view: WebView?,
+                request: WebResourceRequest?,
+                threatType: Int,
+                callback: SafeBrowsingResponse?
+            ) {
+                // 🛡️ Disable Google Safe Browsing warning pages & false positives
+                callback?.proceed(true)
+            }
         }
 
         webChromeClient = object : WebChromeClient() {
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: android.os.Message?
+            ): Boolean {
+                // 🚫 100% Permanently block popup windows, redirect tabs and unrequested dialogs (kon-na-andrid-tv-stream-movie logic)
+                return false
+            }
+
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 onProgressChangedListener?.invoke(newProgress)
             }

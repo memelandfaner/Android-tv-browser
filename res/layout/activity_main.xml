@@ -64,31 +64,20 @@
                 android:layout_width="0dp"
                 android:layout_height="38dp"
                 android:layout_weight="1"
-                android:minWidth="140dp"
+                android:minWidth="160dp"
                 android:layout_marginStart="6dp"
-                android:layout_marginEnd="4dp"
+                android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_omnibox"
                 android:hint="@string/url_hint"
                 android:textColorHint="@color/text_secondary"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
-                android:paddingHorizontal="12dp"
+                android:paddingHorizontal="14dp"
                 android:singleLine="true"
                 android:ellipsize="end"
                 android:imeOptions="actionGo"
                 android:inputType="textUri|textWebEditText"
                 android:nextFocusDown="@id/tabsScrollView"
-                android:focusable="true" />
-
-            <Button
-                android:id="@+id/btnGo"
-                android:layout_width="48dp"
-                android:layout_height="38dp"
-                android:layout_marginStart="2dp"
-                android:background="@drawable/bg_nav_button"
-                android:text="Išči"
-                android:textColor="@color/text_primary"
-                android:textSize="13sp"
                 android:focusable="true" />
 
             <Button
@@ -113,18 +102,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/btnSwitchPiped"
-                        android:layout_width="wrap_content"
-                        android:layout_height="38dp"
-                        android:layout_marginStart="4dp"
-                        android:paddingHorizontal="8dp"
-                        android:background="@drawable/bg_nav_button"
-                        android:text="⚡ Piped"
-                        android:textColor="@color/accent_cyan"
-                        android:textSize="12sp"
-                        android:focusable="true" />
 
                     <Button
                         android:id="@+id/btnNavBookmarks"

@@ -41,7 +41,16 @@ object UserScriptManager {
                 window.fuckAdBlock = new DummyDetector();
                 window.blockAdBlock = new DummyDetector();
 
-                // 4. MutationObserver to safely remove anti-adblock modal backdrops and annoyance walls
+                // 4. 🚫 100% Popunder & Unrequested Window Blocker (kon-na-andrid-tv-stream-movie logic)
+                try {
+                    window.open = function(url, target, features) {
+                        console.log("FreeNet: Blocked popup window.open:", url);
+                        return null;
+                    };
+                    window.showModalDialog = function() { return null; };
+                } catch(e) {}
+
+                // 5. MutationObserver to safely remove anti-adblock modal backdrops and annoyance walls
                 const observer = new MutationObserver(() => {
                     window.google_ad_status = 1;
                     window.canRunAds = true;
@@ -78,13 +87,25 @@ object UserScriptManager {
                 style.innerHTML = `
                     #ad, #ads, .ad, .ads, .ad-banner, .advertisement, .ad-container,
                     .adsbygoogle, [id^="google_ads_"], [id^="div-gpt-ad"], [class*="sponsored-post"],
-                    .ytp-ad-module, .ytp-ad-overlay-container, .video-ads,
+                    .ytp-ad-module, .ytp-ad-overlay-container, .video-ads, #player-ads,
                     iframe[src*="doubleclick"], iframe[src*="googleads"], iframe[src*="adservice"],
                     #app-banner, .smartbanner, [class*="open-in-app"], [class*="app-promo"],
                     .banner-open-app, a[href*="market://"], a[href*="play.google.com/store"],
                     .ytp-ce-element, .ytp-ce-covering-overlay,
                     #onetrust-banner-sdk, .fc-consent-root, .didomi-popup-container,
-                    ytd-rich-section-renderer[is-shorts], ytd-reel-shelf-renderer {
+                    ytd-rich-section-renderer[is-shorts], ytd-reel-shelf-renderer,
+                    ytd-promoted-sparkles-web-renderer, ytd-promoted-video-renderer,
+                    ytd-ad-slot-renderer, ytd-in-feed-ad-layout-renderer,
+                    ytd-banner-promo-renderer, ytd-statement-banner-renderer,
+                    ytd-brand-video-singleton-renderer, ytd-merch-shelf-renderer,
+                    ytd-rich-item-renderer:has(ytd-ad-slot-renderer),
+                    ytd-rich-item-renderer:has(ytd-in-feed-ad-layout-renderer),
+                    ytd-rich-section-renderer:has(ytd-ad-slot-renderer),
+                    ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"],
+                    ytm-promoted-sparkles-web-renderer, ytm-promoted-video-renderer,
+                    ytm-ad-slot-renderer, ytm-companion-ad-renderer,
+                    ytm-in-feed-ad-layout-renderer, ytm-statement-banner-renderer,
+                    #masthead-ad, .ytd-search-pyv-renderer {
                         display: none !important;
                         visibility: hidden !important;
                         height: 0 !important;
@@ -227,7 +248,7 @@ object UserScriptManager {
                 if (!vId) return;
                 currentVideoId = vId;
                 segments = [];
-                var url = 'https://sponsor.ajay.app/api/skipSegments?videoID=' + vId + '&categories=["sponsor","selfpromo","interaction","intro","outro","preview"]';
+                var url = 'https://sponsor.ajay.app/api/skipSegments?videoID=' + vId + '&categories=["sponsor","selfpromo","interaction","intro","outro","preview","music_offtopic","filler"]';
                 fetch(url).then(function(res) {
                     if (res.ok) return res.json();
                     return [];
@@ -299,7 +320,7 @@ object UserScriptManager {
                 setTimeout(function(){ if (t) t.style.opacity = '0'; }, 3000);
             }
 
-            // 🛡️ Brave-Style YouTube Video Ad Stopper & Fast-Forward Auto-Skipper
+            // 🛡️ SmartTube-Style YouTube Video Ad Stopper & Sponsored Post Stripper
             function blockYouTubeAds() {
                 var video = document.querySelector('video');
                 var adElement = document.querySelector('.ad-showing, .ad-interrupting, .video-ads, .ytp-ad-player-overlay');
@@ -319,13 +340,20 @@ object UserScriptManager {
                     try { btn.click(); } catch(e) {}
                 });
 
-                // Remove YouTube DOM ad banners and promoted elements
+                // Remove YouTube DOM ad banners, promoted shelves, sponsored cards (SmartTube logic)
                 var adDomSelectors = [
                     '#player-ads', '.ytp-ad-module', '.ytp-ad-overlay-container',
                     'ytd-promoted-sparkles-web-renderer', 'ytd-display-ad-renderer',
                     'ytd-ad-slot-renderer', 'ytd-banner-promo-renderer', 'ytd-in-feed-ad-layout-renderer',
                     'ytd-promoted-video-renderer', 'ytd-action-companion-ad-renderer',
-                    '#masthead-ad', 'ytd-rich-item-renderer:has(ytd-ad-slot-renderer)'
+                    '#masthead-ad', 'ytd-rich-item-renderer:has(ytd-ad-slot-renderer)',
+                    'ytd-rich-item-renderer:has(ytd-in-feed-ad-layout-renderer)',
+                    'ytd-rich-section-renderer:has(ytd-ad-slot-renderer)',
+                    'ytd-statement-banner-renderer', 'ytd-brand-video-singleton-renderer',
+                    'ytd-merch-shelf-renderer', 'ytm-promoted-sparkles-web-renderer',
+                    'ytm-promoted-video-renderer', 'ytm-ad-slot-renderer', 'ytm-companion-ad-renderer',
+                    'ytm-in-feed-ad-layout-renderer', 'ytm-statement-banner-renderer',
+                    'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"]'
                 ];
                 var adElements = document.querySelectorAll(adDomSelectors.join(', '));
                 adElements.forEach(function(el) {
@@ -1054,6 +1082,29 @@ object UserScriptManager {
                 }
                 queueStateBroadcast(true);
             });
+
+            // 11. 🚫 Popunder & Unrequested Window Click Neutralizer (kon-na-andrid-tv-stream-movie logic)
+            document.addEventListener('click', function(e) {
+                var target = e.target;
+                if (!target) return;
+                var link = target.closest('a');
+                if (link) {
+                    var href = (link.getAttribute('href') || '').toLowerCase();
+                    var trg = (link.getAttribute('target') || '').toLowerCase();
+                    if (trg === '_blank' && link.closest('#player, .player-wrapper, .jwplayer, .plyr, .video-js, [class*="player"]')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                    if (href.indexOf('20bet') !== -1 || href.indexOf('1xbet') !== -1 || href.indexOf('monetag') !== -1 ||
+                        href.indexOf('popads') !== -1 || href.indexOf('clickadu') !== -1 || href.indexOf('adsterra') !== -1 ||
+                        href.indexOf('exoclick') !== -1 || href.indexOf('juicyads') !== -1 || href.indexOf('trafficjunky') !== -1) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }
+            }, true);
 
             // Run passes
             suppressHomepageTrailers();
