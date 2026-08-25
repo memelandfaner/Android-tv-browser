@@ -965,6 +965,12 @@ object UserScriptManager {
                         video.addEventListener('volumechange', function() { queueStateBroadcast(true); });
                         video.addEventListener('waiting', function() { queueStateBroadcast(true); });
                         video.addEventListener('playing', function() { queueStateBroadcast(true); });
+                        video.addEventListener('click', function() {
+                            try {
+                                if (video.requestFullscreen) video.requestFullscreen();
+                                else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen();
+                            } catch(e) {}
+                        });
                     }
 
                     if (video.paused && !video._freenetAutoplayAttempted && isWatchPage()) {

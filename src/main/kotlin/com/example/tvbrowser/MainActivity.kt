@@ -686,30 +686,48 @@ class MainActivity : android.app.Activity() {
             }
             onShowCustomViewListener = { v, cb ->
                 try {
-                    if (customView != null) {
-                        try {
-                            customViewCallback?.onCustomViewHidden()
-                        } catch (ignored: Exception) {}
-                        customViewContainer.removeAllViews()
-                        customView = null
-                    }
-                    customView = v
-                    customViewCallback = cb
+                    val active = this
+                    active.evaluateJavascript("(function(){ var v = document.querySelector('video'); return v ? (v.currentSrc || v.src || '') : ''; })()") { rawSrc ->
+                        val src = rawSrc?.replace("\"", "")?.trim() ?: ""
+                        val finalUrl = if (src.isNotEmpty() && !src.startsWith("blob:") && !src.startsWith("data:")) {
+                            src
+                        } else {
+                            active.lastVideoUrl ?: ""
+                        }
+                        if (finalUrl.isNotEmpty() && (finalUrl.startsWith("http://") || finalUrl.startsWith("https://") || finalUrl.startsWith("file://"))) {
+                            val intent = Intent(this@MainActivity, FullscreenVideoActivity::class.java).apply {
+                                putExtra("VIDEO_URL", finalUrl)
+                                putExtra("VIDEO_TITLE", active.title ?: "Predvajalnik Videa")
+                            }
+                            startActivity(intent)
+                            try { cb.onCustomViewHidden() } catch (ignored: Exception) {}
+                        } else {
+                            if (customView != null) {
+                                try {
+                                    customViewCallback?.onCustomViewHidden()
+                                } catch (ignored: Exception) {}
+                                customViewContainer.removeAllViews()
+                                customView = null
+                            }
+                            customView = v
+                            customViewCallback = cb
 
-                    (v.parent as? ViewGroup)?.removeView(v)
-                    customViewContainer.removeAllViews()
-                    customViewContainer.addView(
-                        v,
-                        FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                    )
-                    customViewContainer.visibility = View.VISIBLE
-                    customViewContainer.bringToFront()
-                    findViewById<View>(R.id.headerContainer).visibility = View.GONE
-                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                    hideSystemUI()
+                            (v.parent as? ViewGroup)?.removeView(v)
+                            customViewContainer.removeAllViews()
+                            customViewContainer.addView(
+                                v,
+                                FrameLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                )
+                            )
+                            customViewContainer.visibility = View.VISIBLE
+                            customViewContainer.bringToFront()
+                            findViewById<View>(R.id.headerContainer).visibility = View.GONE
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            hideSystemUI()
+                        }
+                    }
                 } catch (e: Exception) {
                     Log.e("TvChromium", "Error in onShowCustomView: ${e.message}", e)
                 }
@@ -1822,41 +1840,6 @@ class MainActivity : android.app.Activity() {
                     }
                     KeyEvent.KEYCODE_DPAD_DOWN -> {
                         sendPlayerCommand("SHOW_CONTROLS")
-                    }
-                }
-            } else if (!cursorOverlay.isCursorActive()) {
-                val isHeaderFocused = editUrl.hasFocus() || findViewById<View>(R.id.headerContainer).findFocus() != null
-                val isPanelOpen = bookmarksPanel.visibility == View.VISIBLE ||
-                                  downloadsPanel.visibility == View.VISIBLE ||
-                                  historyPanel.visibility == View.VISIBLE ||
-                                  settingsPanel.visibility == View.VISIBLE ||
-                                  voiceListeningOverlay.visibility == View.VISIBLE
-
-                if (!isHeaderFocused && !isPanelOpen) {
-                    val activeWeb = getActiveWebView()
-                    if (activeWeb != null) {
-                        when (event.keyCode) {
-                            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                                activeWeb.evaluateJavascript("if (document.activeElement && typeof document.activeElement.click === 'function') { document.activeElement.click(); } else if (typeof window.clickActiveElement === 'function') { window.clickActiveElement(); }", null)
-                                return true
-                            }
-                            KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                                activeWeb.evaluateJavascript("if (typeof window.focusNextElement === 'function') window.focusNextElement('right');", null)
-                                return true
-                            }
-                            KeyEvent.KEYCODE_DPAD_LEFT -> {
-                                activeWeb.evaluateJavascript("if (typeof window.focusNextElement === 'function') window.focusNextElement('left');", null)
-                                return true
-                            }
-                            KeyEvent.KEYCODE_DPAD_DOWN -> {
-                                activeWeb.evaluateJavascript("if (typeof window.focusNextElement === 'function') window.focusNextElement('down');", null)
-                                return true
-                            }
-                            KeyEvent.KEYCODE_DPAD_UP -> {
-                                activeWeb.evaluateJavascript("if (typeof window.focusNextElement === 'function') window.focusNextElement('up');", null)
-                                return true
-                            }
-                        }
                     }
                 }
             }
