@@ -745,6 +745,56 @@ object UserScriptManager {
                 return videos[0];
             }
 
+            function applyCinemaFullscreen(enable) {
+                var cssId = 'freenet_tv_cinema_fullscreen_css';
+                if (enable) {
+                    if (!document.getElementById(cssId)) {
+                        var s = document.createElement('style');
+                        s.id = cssId;
+                        s.innerHTML = `
+                            html.freenet-tv-fullscreen, body.freenet-tv-fullscreen {
+                                overflow: hidden !important;
+                                background: #000 !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                            }
+                            .freenet-tv-fullscreen #player,
+                            .freenet-tv-fullscreen #iframe-player,
+                            .freenet-tv-fullscreen #player-wrapper,
+                            .freenet-tv-fullscreen .player-wrapper,
+                            .freenet-tv-fullscreen .player-container,
+                            .freenet-tv-fullscreen .video-container,
+                            .freenet-tv-fullscreen iframe,
+                            .freenet-tv-fullscreen .jwplayer,
+                            .freenet-tv-fullscreen .video-js,
+                            .freenet-tv-fullscreen .plyr,
+                            .freenet-tv-fullscreen video {
+                                position: fixed !important;
+                                top: 0 !important;
+                                left: 0 !important;
+                                width: 100vw !important;
+                                height: 100vh !important;
+                                max-width: 100vw !important;
+                                max-height: 100vh !important;
+                                min-width: 100vw !important;
+                                min-height: 100vh !important;
+                                z-index: 2147483647 !important;
+                                background: #000 !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                border: none !important;
+                            }
+                        `;
+                        (document.head || document.documentElement).appendChild(s);
+                    }
+                    document.documentElement.classList.add('freenet-tv-fullscreen');
+                    document.body.classList.add('freenet-tv-fullscreen');
+                } else {
+                    document.documentElement.classList.remove('freenet-tv-fullscreen');
+                    document.body.classList.remove('freenet-tv-fullscreen');
+                }
+            }
+
             // 2. Universal Command Dispatcher (Handles PLAY, PAUSE, TOGGLE_PLAY, SEEK, etc.)
             function handlePlayerCommand(action, value) {
                 var v = getPrimaryVideo();
@@ -802,16 +852,20 @@ object UserScriptManager {
                         }
                         break;
                     case 'FULLSCREEN':
+                        applyCinemaFullscreen(true);
                         if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
                             window.AndroidNativeBridge.requestTvFullscreen();
                         }
                         break;
                     case 'EXIT_FULLSCREEN':
+                        applyCinemaFullscreen(false);
                         if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.exitTvFullscreen === 'function') {
                             window.AndroidNativeBridge.exitTvFullscreen();
                         }
                         break;
                     case 'TOGGLE_FULLSCREEN':
+                        var isFs = document.body.classList.contains('freenet-tv-fullscreen') || document.body.classList.contains('tv-fullscreen-active');
+                        applyCinemaFullscreen(!isFs);
                         if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.toggleTvFullscreen === 'function') {
                             window.AndroidNativeBridge.toggleTvFullscreen();
                         }

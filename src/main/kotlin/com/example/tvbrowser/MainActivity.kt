@@ -2034,18 +2034,48 @@ class MainActivity : android.app.Activity() {
             getActiveWebView()?.evaluateJavascript("""
                 (function() {
                     try {
-                        const v = document.querySelector('video') || document.querySelector('iframe');
-                        if (v) {
-                            if (v.requestFullscreen) { v.requestFullscreen().catch(function(e) {}); }
-                            else if (v.webkitRequestFullscreen) { v.webkitRequestFullscreen(); }
-                        }
                         var cssId = 'tv_fullscreen_css';
-                        if (!document.getElementById(cssId)) {
-                            var s = document.createElement('style');
+                        var s = document.getElementById(cssId);
+                        if (!s) {
+                            s = document.createElement('style');
                             s.id = cssId;
-                            s.innerHTML = '.tv-fullscreen-active #player, .tv-fullscreen-active iframe, .tv-fullscreen-active .player-wrapper { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999 !important; max-width: 100vw !important; max-height: 100vh !important; }';
+                            s.innerHTML = `
+                                html.tv-fullscreen-active, body.tv-fullscreen-active {
+                                    overflow: hidden !important;
+                                    background: #000 !important;
+                                    margin: 0 !important;
+                                    padding: 0 !important;
+                                }
+                                .tv-fullscreen-active #player,
+                                .tv-fullscreen-active #iframe-player,
+                                .tv-fullscreen-active #player-wrapper,
+                                .tv-fullscreen-active .player-wrapper,
+                                .tv-fullscreen-active .player-container,
+                                .tv-fullscreen-active .video-container,
+                                .tv-fullscreen-active iframe,
+                                .tv-fullscreen-active .jwplayer,
+                                .tv-fullscreen-active .video-js,
+                                .tv-fullscreen-active .plyr,
+                                .tv-fullscreen-active video {
+                                    position: fixed !important;
+                                    top: 0 !important;
+                                    left: 0 !important;
+                                    width: 100vw !important;
+                                    height: 100vh !important;
+                                    max-width: 100vw !important;
+                                    max-height: 100vh !important;
+                                    min-width: 100vw !important;
+                                    min-height: 100vh !important;
+                                    z-index: 2147483647 !important;
+                                    background: #000 !important;
+                                    margin: 0 !important;
+                                    padding: 0 !important;
+                                    border: none !important;
+                                }
+                            `;
                             document.head.appendChild(s);
                         }
+                        document.documentElement.classList.add('tv-fullscreen-active');
                         document.body.classList.add('tv-fullscreen-active');
                     } catch(e) {}
                 })();
@@ -2066,6 +2096,7 @@ class MainActivity : android.app.Activity() {
                             if (document.exitFullscreen) document.exitFullscreen();
                             else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                         }
+                        document.documentElement.classList.remove('tv-fullscreen-active');
                         document.body.classList.remove('tv-fullscreen-active');
                     } catch(e) {}
                 })();
