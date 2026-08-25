@@ -758,6 +758,11 @@ class MainActivity : android.app.Activity() {
                 editUrl.requestFocus()
                 editUrl.selectAll()
             }
+            onToggleFullscreenRequestListener = { enable ->
+                runOnUiThread {
+                    toggleFullscreenMode(enable)
+                }
+            }
         }
 
         val prefs = getSharedPreferences("browser_settings", Context.MODE_PRIVATE)

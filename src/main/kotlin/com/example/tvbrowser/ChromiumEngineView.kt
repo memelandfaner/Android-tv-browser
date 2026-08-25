@@ -33,6 +33,7 @@ class ChromiumEngineView @JvmOverloads constructor(
     var onShowCustomViewListener: ((View, WebChromeClient.CustomViewCallback) -> Unit)? = null
     var onHideCustomViewListener: (() -> Unit)? = null
     var onEdgeReachedTopListener: (() -> Unit)? = null
+    var onToggleFullscreenRequestListener: ((Boolean?) -> Unit)? = null
 
     val adBlockEngine = AdBlockEngine(context)
     var currentUaMode: UserAgentMode = UserAgentMode.TV
@@ -430,6 +431,7 @@ class ChromiumEngineView @JvmOverloads constructor(
         fun requestTvFullscreen() {
             post {
                 try {
+                    onToggleFullscreenRequestListener?.invoke(true)
                     (context as? MainActivity)?.runOnUiThread {
                         (context as? MainActivity)?.toggleFullscreenMode(true)
                     }
@@ -441,6 +443,7 @@ class ChromiumEngineView @JvmOverloads constructor(
         fun exitTvFullscreen() {
             post {
                 try {
+                    onToggleFullscreenRequestListener?.invoke(false)
                     (context as? MainActivity)?.runOnUiThread {
                         (context as? MainActivity)?.toggleFullscreenMode(false)
                     }
@@ -452,8 +455,9 @@ class ChromiumEngineView @JvmOverloads constructor(
         fun toggleTvFullscreen() {
             post {
                 try {
+                    onToggleFullscreenRequestListener?.invoke(null)
                     (context as? MainActivity)?.runOnUiThread {
-                        (context as? MainActivity)?.toggleFullscreenMode()
+                        (context as? MainActivity)?.toggleFullscreenMode(null)
                     }
                 } catch (ignored: Exception) {}
             }
