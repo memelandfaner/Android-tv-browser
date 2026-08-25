@@ -909,7 +909,7 @@ object UserScriptManager {
                 });
             }
 
-            // 8. Make Player Control Buttons Accessible
+            // 8. Make Player Control Buttons Accessible & Bind Fullscreen Clicks
             function setupControlBarButtons() {
                 if (!isWatchPage()) return;
                 var controlSelectors = [
@@ -918,25 +918,30 @@ object UserScriptManager {
                     '.vjs-control-bar button', '.vjs-control',
                     '.ytp-chrome-bottom button', '.ytp-button',
                     '[class*="control"] button', '[class*="controls"] button',
+                    '[class*="control"] svg', '[class*="controls"] svg',
                     '[aria-label*="Play" i]', '[aria-label*="Pause" i]',
                     '[aria-label*="Fullscreen" i]', '[aria-label*="Exit Fullscreen" i]',
                     '[aria-label*="Celozaslonski" i]', '[aria-label*="Settings" i]',
                     '[aria-label*="Mute" i]', '[aria-label*="Volume" i]',
                     '[aria-label*="Subtitles" i]', '[aria-label*="Captions" i]',
                     '.fullscreen-btn', '[data-plyr="fullscreen"]', '.jw-icon-fullscreen',
-                    '.vjs-fullscreen-control', '.ytp-fullscreen-button'
+                    '.vjs-fullscreen-control', '.ytp-fullscreen-button', '[class*="fullscreen"]',
+                    'svg[class*="fullscreen"]', 'button[title*="fullscreen" i]', 'button[title*="celozaslonski" i]',
+                    'div[title*="fullscreen" i]', 'span[title*="fullscreen" i]'
                 ];
                 var buttons = document.querySelectorAll(controlSelectors.join(', '));
                 buttons.forEach(function(b) {
                     if (!b.hasAttribute('tabindex')) b.setAttribute('tabindex', '0');
                     if (!b._tvCtrlBound) {
                         b._tvCtrlBound = true;
-                        var isFsBtn = (b.className && b.className.indexOf('fullscreen') !== -1) ||
+                        var isFsBtn = (b.className && typeof b.className === 'string' && b.className.indexOf('fullscreen') !== -1) ||
                                       (b.getAttribute('aria-label') && b.getAttribute('aria-label').toLowerCase().indexOf('fullscreen') !== -1) ||
                                       (b.getAttribute('data-plyr') === 'fullscreen') ||
+                                      (b.getAttribute('title') && b.getAttribute('title').toLowerCase().indexOf('fullscreen') !== -1) ||
                                       (b.id && b.id.indexOf('fullscreen') !== -1);
                         if (isFsBtn) {
-                            b.addEventListener('click', function() {
+                            b.addEventListener('click', function(ev) {
+                                ev.stopPropagation();
                                 handlePlayerCommand('TOGGLE_FULLSCREEN');
                             });
                         }
