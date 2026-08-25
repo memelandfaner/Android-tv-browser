@@ -377,6 +377,24 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
 
         @JavascriptInterface
+        fun launchNativeVideo(url: String, title: String? = null) {
+            post {
+                try {
+                    if (url.isNotEmpty()) {
+                        val intent = Intent(context, FullscreenVideoActivity::class.java).apply {
+                            putExtra("VIDEO_URL", url)
+                            putExtra("VIDEO_TITLE", title ?: "Predvajalnik Videa")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(intent)
+                    }
+                } catch (e: Exception) {
+                    Log.e("TvChromium", "Failed to launch FullscreenVideoActivity: ${e.message}")
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun requestTvFullscreen() {
             post {
                 try {

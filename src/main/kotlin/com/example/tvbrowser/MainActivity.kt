@@ -207,20 +207,6 @@ class MainActivity : android.app.Activity() {
             stopVoiceSearch()
         }
 
-        // Fast Header Links -> StreamNexus HD / YouTube / GitHub / TMDB
-        findViewById<View>(R.id.btnQuickStreamNexus).setOnClickListener {
-            loadUrl("file:///android_asset/stream/index.html")
-        }
-        findViewById<View>(R.id.btnQuickSmartTube).setOnClickListener {
-            loadUrl("https://www.youtube.com")
-        }
-        findViewById<View>(R.id.btnQuickGithub).setOnClickListener {
-            loadUrl("https://github.com")
-        }
-        findViewById<View>(R.id.btnQuickTmdb).setOnClickListener {
-            loadUrl("https://www.themoviedb.org")
-        }
-
         // TV D-Pad Focus Handoff: Pressing DOWN from header immediately focuses webpage
         val focusToWebListener = View.OnKeyListener { _, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
@@ -229,10 +215,6 @@ class MainActivity : android.app.Activity() {
             } else false
         }
         findViewById<View>(R.id.btnAddTab).setOnKeyListener(focusToWebListener)
-        findViewById<View>(R.id.btnQuickStreamNexus).setOnKeyListener(focusToWebListener)
-        findViewById<View>(R.id.btnQuickSmartTube).setOnKeyListener(focusToWebListener)
-        findViewById<View>(R.id.btnQuickGithub).setOnKeyListener(focusToWebListener)
-        findViewById<View>(R.id.btnQuickTmdb).setOnKeyListener(focusToWebListener)
         findViewById<View>(R.id.tabsScrollView).setOnKeyListener(focusToWebListener)
 
         findViewById<View>(R.id.btnBack).setOnClickListener {

@@ -213,63 +213,6 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal" />
             </HorizontalScrollView>
-
-            <!-- Quick Links -->
-            <LinearLayout
-                android:id="@+id/quickLinksBar"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnQuickStreamNexus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="28dp"
-                    android:paddingHorizontal="8dp"
-                    android:background="@drawable/bg_ai_pill"
-                    android:text="🎬 StreamNexus"
-                    android:textColor="@color/accent_cyan"
-                    android:textSize="11sp"
-                    android:layout_marginStart="6dp"
-                    android:focusable="true" />
-
-                <Button
-                    android:id="@+id/btnQuickSmartTube"
-                    android:layout_width="wrap_content"
-                    android:layout_height="28dp"
-                    android:paddingHorizontal="8dp"
-                    android:background="@drawable/bg_ai_pill"
-                    android:text="📺 SmartTube"
-                    android:textColor="@color/text_primary"
-                    android:textSize="11sp"
-                    android:layout_marginStart="6dp"
-                    android:focusable="true" />
-
-                <Button
-                    android:id="@+id/btnQuickGithub"
-                    android:layout_width="wrap_content"
-                    android:layout_height="28dp"
-                    android:paddingHorizontal="8dp"
-                    android:background="@drawable/bg_ai_pill"
-                    android:text="🐙 GitHub"
-                    android:textColor="@color/text_primary"
-                    android:textSize="11sp"
-                    android:layout_marginStart="6dp"
-                    android:focusable="true" />
-
-                <Button
-                    android:id="@+id/btnQuickTmdb"
-                    android:layout_width="wrap_content"
-                    android:layout_height="28dp"
-                    android:paddingHorizontal="8dp"
-                    android:background="@drawable/bg_ai_pill"
-                    android:text="🍿 TMDB"
-                    android:textColor="@color/text_primary"
-                    android:textSize="11sp"
-                    android:layout_marginStart="6dp"
-                    android:focusable="true" />
-            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>

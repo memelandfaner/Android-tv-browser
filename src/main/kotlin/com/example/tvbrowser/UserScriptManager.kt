@@ -875,18 +875,31 @@ object UserScriptManager {
                         var lastClickTime = 0;
                         var singleClickTimer = null;
 
+                        function triggerFullscreenOrNativePlayer() {
+                            var v = getPrimaryVideo();
+                            var vSrc = v ? (v.currentSrc || v.src || '') : '';
+                            var pageTitle = document.title || 'Video Predvajalnik';
+                            if (vSrc && (vSrc.indexOf('.m3u8') !== -1 || vSrc.indexOf('.mp4') !== -1 || vSrc.indexOf('.webm') !== -1)) {
+                                if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.launchNativeVideo === 'function') {
+                                    window.AndroidNativeBridge.launchNativeVideo(vSrc, pageTitle);
+                                    return;
+                                }
+                            }
+                            handlePlayerCommand('TOGGLE_FULLSCREEN');
+                        }
+
                         // Double click event
                         el.addEventListener('dblclick', function(e) {
                             e.preventDefault();
                             e.stopPropagation();
                             clearTimeout(singleClickTimer);
-                            handlePlayerCommand('TOGGLE_FULLSCREEN');
+                            triggerFullscreenOrNativePlayer();
                         });
 
                         // Double tap & single click detector
                         el.addEventListener('click', function(e) {
                             // If clicked directly on control buttons or sliders, let them handle themselves
-                            if (e.target && e.target.closest('button, input, a, .jw-controlbar, .plyr__controls, .vjs-control-bar, .ytp-chrome-bottom, .tv-player-quick-hud')) {
+                            if (e.target && e.target.closest('button, input, a, .jw-controlbar, .plyr__controls, .vjs-control-bar, .ytp-chrome-bottom')) {
                                 return;
                             }
 
@@ -897,7 +910,7 @@ object UserScriptManager {
                                 lastClickTime = 0;
                                 e.preventDefault();
                                 e.stopPropagation();
-                                handlePlayerCommand('TOGGLE_FULLSCREEN');
+                                triggerFullscreenOrNativePlayer();
                             } else {
                                 lastClickTime = now;
                                 singleClickTimer = setTimeout(function() {
@@ -939,106 +952,6 @@ object UserScriptManager {
                 });
             }
 
-            // 10. TV Floating Quick HUD (Lebdeči kinematografski TV upravljalnik za D-Pad)
-            var hudHideTimer = null;
-            function showTvHud() {
-                var hud = document.getElementById('tvPlayerQuickHud');
-                if (!hud && isWatchPage()) {
-                    initTvPlayerQuickHud();
-                    hud = document.getElementById('tvPlayerQuickHud');
-                }
-                if (hud) {
-                    hud.classList.remove('tv-hud-hidden');
-                    document.body.classList.add('tv-controls-active');
-
-                    // Update play button text & icon
-                    var pBtn = document.getElementById('hudBtnPlay');
-                    if (pBtn) {
-                        var v = getPrimaryVideo();
-                        if (v && !v.paused) {
-                            pBtn.innerHTML = '⏸ Pavza';
-                        } else {
-                            pBtn.innerHTML = '▶ Predvajaj';
-                        }
-                    }
-
-                    clearTimeout(hudHideTimer);
-                    var v = getPrimaryVideo();
-                    if (v && !v.paused) {
-                        hudHideTimer = setTimeout(function() {
-                            if (!hud.contains(document.activeElement)) {
-                                hud.classList.add('tv-hud-hidden');
-                                document.body.classList.remove('tv-controls-active');
-                            }
-                        }, 5000);
-                    }
-                }
-            }
-
-            function initTvPlayerQuickHud() {
-                if (!isWatchPage()) return;
-                if (document.getElementById('tvPlayerQuickHud')) return;
-
-                var hud = document.createElement('div');
-                hud.id = 'tvPlayerQuickHud';
-                hud.className = 'tv-player-quick-hud';
-                hud.innerHTML = `
-                    <button id="hudBtnRewind" class="tv-hud-btn" tabindex="0" title="Previj -10s">⏪ -10s</button>
-                    <button id="hudBtnPlay" class="tv-hud-btn tv-hud-btn-primary" tabindex="0" title="Predvajaj / Pavza">⏯ Predvajaj</button>
-                    <button id="hudBtnForward" class="tv-hud-btn" tabindex="0" title="Naprej +10s">⏩ +10s</button>
-                    <button id="hudBtnSubs" class="tv-hud-btn" tabindex="0" title="Podnapisi">💬 Podnapisi</button>
-                    <button id="hudBtnSettings" class="tv-hud-btn" tabindex="0" title="Nastavitve">⚙️ Nastavitve</button>
-                    <button id="hudBtnServer" class="tv-hud-btn" tabindex="0" title="Strežniki">🔄 Strežniki</button>
-                    <button id="hudBtnFullscreen" class="tv-hud-btn" tabindex="0" title="Celozaslonski način">⛶ Celozaslonsko</button>
-                `;
-
-                (document.body || document.documentElement).appendChild(hud);
-
-                document.getElementById('hudBtnRewind').addEventListener('click', function(e) {
-                    e.stopPropagation(); handlePlayerCommand('SEEK_RELATIVE', -10); showTvHud();
-                });
-                document.getElementById('hudBtnPlay').addEventListener('click', function(e) {
-                    e.stopPropagation(); handlePlayerCommand('TOGGLE_PLAY'); showTvHud();
-                });
-                document.getElementById('hudBtnForward').addEventListener('click', function(e) {
-                    e.stopPropagation(); handlePlayerCommand('SEEK_RELATIVE', 10); showTvHud();
-                });
-                document.getElementById('hudBtnSubs').addEventListener('click', function(e) {
-                    e.stopPropagation(); handlePlayerCommand('SUBTITLES'); showTvHud();
-                });
-                document.getElementById('hudBtnSettings').addEventListener('click', function(e) {
-                    e.stopPropagation(); handlePlayerCommand('SETTINGS'); showTvHud();
-                });
-                document.getElementById('hudBtnServer').addEventListener('click', function(e) {
-                    e.stopPropagation(); handlePlayerCommand('SERVERS'); showTvHud();
-                });
-                document.getElementById('hudBtnFullscreen').addEventListener('click', function(e) {
-                    e.stopPropagation(); handlePlayerCommand('TOGGLE_FULLSCREEN'); showTvHud();
-                });
-
-                // Spatial navigation within HUD
-                hud.addEventListener('keydown', function(evt) {
-                    showTvHud();
-                    if (evt.keyCode === 38) { // ArrowUp -> Focus Server Select or Player
-                        var srv = document.querySelector('.server-btn, [class*="server"], [data-server], #server, .server-select');
-                        if (srv) { evt.preventDefault(); srv.focus(); }
-                    }
-                });
-
-                // Auto-show HUD on user activity
-                window.addEventListener('mousemove', showTvHud, { passive: true });
-                window.addEventListener('keydown', function(e) {
-                    showTvHud();
-                    if (e.keyCode === 40) { // ArrowDown on video/server -> jump to play button
-                        var active = document.activeElement;
-                        if (active && (active.classList.contains('server-btn') || (active.className && active.className.indexOf('server') !== -1) || active.tagName === 'BODY' || active.tagName === 'VIDEO')) {
-                            var pb = document.getElementById('hudBtnPlay');
-                            if (pb) { e.preventDefault(); pb.focus(); }
-                        }
-                    }
-                }, { passive: false });
-            }
-
             function setupServerSwitchListeners() {
                 if (!isWatchPage()) return;
                 var serverBtns = document.querySelectorAll('[class*="server"], [data-server], [id*="server"], .server-item, .server-btn');
@@ -1056,14 +969,7 @@ object UserScriptManager {
                                 triggerPlayButtons();
                                 setupPlayerFocusAndClicks();
                                 setupControlBarButtons();
-                                showTvHud();
                             }, 400);
-                        });
-                        sBtn.addEventListener('keydown', function(e) {
-                            if (e.keyCode === 40) { // ArrowDown -> focus play button
-                                var pb = document.getElementById('hudBtnPlay') || document.querySelector('.jw-icon-playback, .plyr__control--play');
-                                if (pb) { e.preventDefault(); pb.focus(); }
-                            }
                         });
                     }
                 });
@@ -1083,7 +989,7 @@ object UserScriptManager {
                 queueStateBroadcast(true);
             });
 
-            // 11. 🚫 Popunder & Unrequested Window Click Neutralizer (kon-na-andrid-tv-stream-movie logic)
+            // 10. 🚫 Popunder & Unrequested Window Click Neutralizer (kon-na-andrid-tv-stream-movie logic)
             document.addEventListener('click', function(e) {
                 var target = e.target;
                 if (!target) return;
@@ -1114,7 +1020,6 @@ object UserScriptManager {
             setupControlBarButtons();
             setupServerSwitchListeners();
             triggerPlayButtons();
-            initTvPlayerQuickHud();
 
             // Observe dynamic changes
             var obs = new MutationObserver(function() {
@@ -1124,7 +1029,6 @@ object UserScriptManager {
                 setupPlayerFocusAndClicks();
                 setupControlBarButtons();
                 setupServerSwitchListeners();
-                initTvPlayerQuickHud();
             });
             if (document.documentElement) {
                 obs.observe(document.documentElement, { childList: true, subtree: true });
