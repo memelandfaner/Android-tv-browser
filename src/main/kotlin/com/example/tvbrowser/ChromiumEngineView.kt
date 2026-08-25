@@ -241,6 +241,17 @@ class ChromiumEngineView @JvmOverloads constructor(
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (url != null) onUrlChangedListener?.invoke(url)
                 runScriptInjections()
+
+                if (url != null && (url.contains("youtube.com/watch") || url.contains("m.youtube.com/watch"))) {
+                    val triggerKey = {
+                        requestFocus()
+                        dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
+                        dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_CENTER))
+                    }
+                    postDelayed({ triggerKey() }, 400)
+                    postDelayed({ triggerKey() }, 1000)
+                    postDelayed({ triggerKey() }, 1800)
+                }
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {

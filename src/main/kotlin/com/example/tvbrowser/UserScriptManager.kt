@@ -892,8 +892,9 @@ object UserScriptManager {
             }
 
             function onVideoTimeUpdate() {
-                if (!boundVideoElement) return;
+                if (!boundVideoElement || boundVideoElement.paused || boundVideoElement.seeking || boundVideoElement.readyState < 3) return;
                 var cur = boundVideoElement.currentTime;
+                if (cur < 1.5) return;
                 for (var i = 0; i < segments.length; i++) {
                     var seg = segments[i].segment;
                     if (cur >= seg[0] && cur < seg[1]) {
@@ -904,14 +905,50 @@ object UserScriptManager {
                 }
             }
 
+            function triggerInstantYouTubePlay(video) {
+                if (!video) return;
+                if (video.muted) video.muted = false;
+                if (video.volume < 1.0) video.volume = 1.0;
+
+                try {
+                    video.play().catch(function(){});
+                } catch(e) {}
+
+                var playSelectors = [
+                    '.player-control-play-pause-icon',
+                    '.player-control-mute-icon',
+                    '.ytp-large-play-button',
+                    '.ytp-play-button',
+                    'button[aria-label*="Play"]',
+                    'button[aria-label*="Predvajaj"]',
+                    'button[aria-label*="zvok"]',
+                    'button[aria-label*="mute"]',
+                    '.html5-video-player',
+                    '.player-container',
+                    '.ytp-cairo-refresh-signature-moments',
+                    '#player-control-overlay'
+                ];
+                var btns = document.querySelectorAll(playSelectors.join(','));
+                btns.forEach(function(b) {
+                    try {
+                        b.click();
+                        var evt = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+                        b.dispatchEvent(evt);
+                    } catch(e) {}
+                });
+            }
+
             function attachPlayer() {
                 var v = document.querySelector('video');
-                if (v && v !== boundVideoElement) {
-                    if (boundVideoElement) {
-                        boundVideoElement.removeEventListener('timeupdate', onVideoTimeUpdate);
+                if (v) {
+                    if (v !== boundVideoElement) {
+                        if (boundVideoElement) {
+                            boundVideoElement.removeEventListener('timeupdate', onVideoTimeUpdate);
+                        }
+                        boundVideoElement = v;
+                        boundVideoElement.addEventListener('timeupdate', onVideoTimeUpdate);
                     }
-                    boundVideoElement = v;
-                    boundVideoElement.addEventListener('timeupdate', onVideoTimeUpdate);
+                    triggerInstantYouTubePlay(v);
                 }
             }
 
@@ -939,9 +976,12 @@ object UserScriptManager {
                     if (isFinite(video.duration) && video.duration > 0) {
                         video.currentTime = video.duration;
                     }
-                } else if (!isAdActive && video && video.playbackRate === 16.0) {
-                    video.playbackRate = 1.0;
-                    video.muted = false;
+                } else if (!isAdActive && video) {
+                    if (video.playbackRate === 16.0) {
+                        video.playbackRate = 1.0;
+                        video.muted = false;
+                    }
+                    triggerInstantYouTubePlay(video);
                 }
 
                 // Instant click on YouTube Skip Ad buttons
@@ -1044,7 +1084,17 @@ object UserScriptManager {
                 });
             }
 
+            var lastTrackedUrl = window.location.href;
             setInterval(function() {
+                var currentHref = window.location.href;
+                if (currentHref !== lastTrackedUrl) {
+                    lastTrackedUrl = currentHref;
+                    var newVId = getVideoId();
+                    if (newVId) {
+                        fetchSponsorSegments(newVId);
+                        fetchDislikes(newVId);
+                    }
+                }
                 var vId = getVideoId();
                 if (vId && vId !== currentVideoId) {
                     fetchSponsorSegments(vId);
@@ -1083,17 +1133,25 @@ object UserScriptManager {
             document.addEventListener('play', ensureUnmute, { once: true, capture: true });
             document.addEventListener('playing', ensureUnmute, { once: true, capture: true });
 
-            // YouTube Auto-Play trigger via JS directly
-            if (window.location.href.indexOf('youtube.com/watch') !== -1) {
-                setTimeout(function() {
-                    var v = document.querySelector('video');
-                    if (v && v.paused) {
-                        v.muted = false;
-                        v.volume = 1.0;
-                        v.play().catch(function(){});
+            // YouTube / Video Auto-Play & Unmute Booster (0ms instant playback trigger)
+            function instantMediaPlay() {
+                var videos = document.querySelectorAll('video');
+                videos.forEach(function(v) {
+                    if (v.muted) v.muted = false;
+                    if (v.volume < 1.0) v.volume = 1.0;
+                    if (v.paused && !v.ended) {
+                        var p = v.play();
+                        if (p !== undefined) {
+                            p.catch(function() {
+                                var btns = document.querySelectorAll('.player-control-play-pause-icon, .ytp-large-play-button, .ytp-play-button, button[aria-label*="Play"], button[aria-label*="Predvajaj"], .player-container');
+                                btns.forEach(function(b) { try { b.click(); } catch(e) {} });
+                            });
+                        }
                     }
-                }, 600);
+                });
             }
+            instantMediaPlay();
+            setInterval(instantMediaPlay, 100);
 
             // Privacy-First CMP: Auto-dismiss Cookie & Consent Walls
             function handleConsentPrivacy() {
