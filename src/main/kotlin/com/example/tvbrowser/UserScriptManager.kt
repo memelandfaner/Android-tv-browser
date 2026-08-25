@@ -1203,6 +1203,12 @@ object UserScriptManager {
                                 lastClickTime = now;
                                 singleClickTimer = setTimeout(function() {
                                     handlePlayerCommand('TOGGLE_PLAY');
+                                    if (isWatchPage()) {
+                                        applyCinemaFullscreen(true);
+                                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                                            window.AndroidNativeBridge.requestTvFullscreen();
+                                        }
+                                    }
                                 }, 300);
                             }
                         });
@@ -1211,6 +1217,12 @@ object UserScriptManager {
                             if (evt.keyCode === 13 || evt.keyCode === 23 || evt.key === 'Enter' || evt.key === ' ') {
                                 evt.preventDefault();
                                 handlePlayerCommand('TOGGLE_PLAY');
+                                if (isWatchPage()) {
+                                    applyCinemaFullscreen(true);
+                                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                                        window.AndroidNativeBridge.requestTvFullscreen();
+                                    }
+                                }
                             }
                         });
                     }
@@ -1226,6 +1238,10 @@ object UserScriptManager {
                         var t = (b.innerText || b.textContent || '').trim().toLowerCase();
                         if (t === 'resume' || t === 'continue' || t === 'continue watching' || t === 'nadaljuj' || t.startsWith('resume from')) {
                             b.click();
+                            applyCinemaFullscreen(true);
+                            if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                                window.AndroidNativeBridge.requestTvFullscreen();
+                            }
                             console.log("FreeNet: Auto-clicked Resume prompt successfully");
                             return true;
                         }
