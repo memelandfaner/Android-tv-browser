@@ -39,14 +39,16 @@ class FullscreenVideoActivity : Activity() {
 
     private val updateProgressRunnable = object : Runnable {
         override fun run() {
-            if (videoView.isPlaying) {
-                val cur = videoView.currentPosition
-                txtCurrentTime.text = formatDuration(cur)
-                if (videoDurationMs > 0) {
-                    val progress = ((cur.toDouble() / videoDurationMs.toDouble()) * 1000).toInt()
-                    videoSeekBar.progress = progress
+            try {
+                if (videoView.isPlaying) {
+                    val cur = videoView.currentPosition
+                    txtCurrentTime.text = formatDuration(cur)
+                    if (videoDurationMs > 0) {
+                        val progress = ((cur.toDouble() / videoDurationMs.toDouble()) * 1000).toInt()
+                        videoSeekBar.progress = progress
+                    }
                 }
-            }
+            } catch (ignored: Exception) {}
             mainHandler.postDelayed(this, 500)
         }
     }
@@ -132,10 +134,21 @@ class FullscreenVideoActivity : Activity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        try {
+            if (videoView.isPlaying) {
+                videoView.pause()
+            }
+        } catch (ignored: Exception) {}
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         mainHandler.removeCallbacksAndMessages(null)
-        videoView.stopPlayback()
+        try {
+            videoView.stopPlayback()
+        } catch (ignored: Exception) {}
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -156,20 +169,20 @@ class FullscreenVideoActivity : Activity() {
                 return true
             }
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                if (!videoView.isPlaying) videoView.start()
-                showFeedback("▶ Predvajaj")
+                try {
+                    if (!videoView.isPlaying) videoView.start()
+                    showFeedback("▶ Predvajaj")
+                } catch (ignored: Exception) {}
                 return true
             }
             KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                if (videoView.isPlaying) videoView.pause()
-                showFeedback("⏸ Pavza")
+                try {
+                    if (videoView.isPlaying) videoView.pause()
+                    showFeedback("⏸ Pavza")
+                } catch (ignored: Exception) {}
                 return true
             }
-            KeyEvent.KEYCODE_MEDIA_STOP -> {
-                finish()
-                return true
-            }
-            KeyEvent.KEYCODE_BACK -> {
+            KeyEvent.KEYCODE_MEDIA_STOP, KeyEvent.KEYCODE_BACK -> {
                 finish()
                 return true
             }
@@ -178,21 +191,25 @@ class FullscreenVideoActivity : Activity() {
     }
 
     private fun togglePlayPause() {
-        if (videoView.isPlaying) {
-            videoView.pause()
-            showFeedback("⏸ Pavza")
-        } else {
-            videoView.start()
-            showFeedback("▶ Predvajaj")
-        }
+        try {
+            if (videoView.isPlaying) {
+                videoView.pause()
+                showFeedback("⏸ Pavza")
+            } else {
+                videoView.start()
+                showFeedback("▶ Predvajaj")
+            }
+        } catch (ignored: Exception) {}
     }
 
     private fun seekRelative(offsetMs: Int) {
-        val cur = videoView.currentPosition
-        val target = (cur + offsetMs).coerceIn(0, videoDurationMs.coerceAtLeast(0))
-        videoView.seekTo(target)
-        val sign = if (offsetMs > 0) "+10s" else "-10s"
-        showFeedback("$sign (${formatDuration(target)})")
+        try {
+            val cur = videoView.currentPosition
+            val target = (cur + offsetMs).coerceIn(0, videoDurationMs.coerceAtLeast(0))
+            videoView.seekTo(target)
+            val sign = if (offsetMs > 0) "+10s" else "-10s"
+            showFeedback("$sign (${formatDuration(target)})")
+        } catch (ignored: Exception) {}
     }
 
     private fun showFeedback(text: String) {
