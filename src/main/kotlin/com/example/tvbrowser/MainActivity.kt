@@ -16,6 +16,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.text.TextUtils
+import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -678,35 +679,52 @@ class MainActivity : android.app.Activity() {
                 }
             }
             onShowCustomViewListener = { v, cb ->
-                if (customView != null) {
-                    onHideCustomViewListener?.invoke()
-                }
-                customView = v
-                customViewCallback = cb
-                customViewContainer.addView(
-                    v,
-                    FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
+                try {
+                    if (customView != null) {
+                        try {
+                            customViewCallback?.onCustomViewHidden()
+                        } catch (ignored: Exception) {}
+                        customViewContainer.removeAllViews()
+                        customView = null
+                    }
+                    customView = v
+                    customViewCallback = cb
+
+                    (v.parent as? ViewGroup)?.removeView(v)
+                    customViewContainer.removeAllViews()
+                    customViewContainer.addView(
+                        v,
+                        FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
                     )
-                )
-                customViewContainer.visibility = View.VISIBLE
-                findViewById<View>(R.id.headerContainer).visibility = View.GONE
-                webViewContainer.visibility = View.GONE
-                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                hideSystemUI()
+                    customViewContainer.visibility = View.VISIBLE
+                    customViewContainer.bringToFront()
+                    findViewById<View>(R.id.headerContainer).visibility = View.GONE
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    hideSystemUI()
+                } catch (e: Exception) {
+                    Log.e("TvChromium", "Error in onShowCustomView: ${e.message}", e)
+                }
             }
             onHideCustomViewListener = {
-                if (customView != null) {
-                    customViewContainer.removeAllViews()
-                    customView = null
-                    customViewContainer.visibility = View.GONE
-                    findViewById<View>(R.id.headerContainer).visibility = View.VISIBLE
-                    webViewContainer.visibility = View.VISIBLE
-                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                    customViewCallback?.onCustomViewHidden()
-                    customViewCallback = null
-                    hideSystemUI()
+                try {
+                    if (customView != null) {
+                        (customView?.parent as? ViewGroup)?.removeView(customView)
+                        customViewContainer.removeAllViews()
+                        customView = null
+                        customViewContainer.visibility = View.GONE
+                        findViewById<View>(R.id.headerContainer).visibility = View.VISIBLE
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        try {
+                            customViewCallback?.onCustomViewHidden()
+                        } catch (ignored: Exception) {}
+                        customViewCallback = null
+                        hideSystemUI()
+                    }
+                } catch (e: Exception) {
+                    Log.e("TvChromium", "Error in onHideCustomView: ${e.message}", e)
                 }
             }
             onEdgeReachedTopListener = {
@@ -1186,6 +1204,11 @@ class MainActivity : android.app.Activity() {
                 }
             }
             .setNegativeButton("Prekliči", null)
+            .setOnDismissListener {
+                if (bookmarksPanel.visibility == View.VISIBLE && bookmarksGrid.childCount > 0) {
+                    bookmarksGrid.getChildAt(0)?.requestFocus()
+                }
+            }
             .show()
     }
 
@@ -1197,8 +1220,20 @@ class MainActivity : android.app.Activity() {
                 viewModel.deleteBookmark(bm.id)
                 renderBookmarksGrid()
                 Toast.makeText(this, "Zaznamek odstranjen.", Toast.LENGTH_SHORT).show()
+                if (bookmarksGrid.childCount > 0) {
+                    bookmarksGrid.getChildAt(0)?.requestFocus()
+                } else {
+                    findViewById<View>(R.id.btnAddCustomBookmark)?.requestFocus()
+                }
             }
-            .setNegativeButton("Prekliči", null)
+            .setNegativeButton("Prekliči") { _, _ ->
+                renderBookmarksGrid()
+            }
+            .setOnDismissListener {
+                if (bookmarksPanel.visibility == View.VISIBLE && bookmarksGrid.childCount > 0) {
+                    bookmarksGrid.getChildAt(0)?.requestFocus()
+                }
+            }
             .show()
     }
 
@@ -1223,15 +1258,25 @@ class MainActivity : android.app.Activity() {
                     "⬅️ Premakni levo (vrstni red)" -> {
                         viewModel.moveBookmark(index, index - 1)
                         renderBookmarksGrid()
+                        val newIdx = (index - 1).coerceAtLeast(0)
+                        if (newIdx < bookmarksGrid.childCount) bookmarksGrid.getChildAt(newIdx)?.requestFocus()
                     }
                     "➡️ Premakni desno (vrstni red)" -> {
                         viewModel.moveBookmark(index, index + 1)
                         renderBookmarksGrid()
+                        val newIdx = (index + 1).coerceAtMost(bookmarksGrid.childCount - 1)
+                        if (newIdx < bookmarksGrid.childCount) bookmarksGrid.getChildAt(newIdx)?.requestFocus()
                     }
                     "🗑️ Odstrani zaznamek" -> showDeleteBookmarkDialog(bm)
                 }
             }
             .setNegativeButton("Zapri", null)
+            .setOnDismissListener {
+                if (bookmarksPanel.visibility == View.VISIBLE && bookmarksGrid.childCount > 0) {
+                    val target = index.coerceAtMost(bookmarksGrid.childCount - 1).coerceAtLeast(0)
+                    bookmarksGrid.getChildAt(target)?.requestFocus()
+                }
+            }
             .show()
     }
 
