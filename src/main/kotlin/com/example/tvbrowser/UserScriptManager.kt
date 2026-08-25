@@ -150,153 +150,87 @@ object UserScriptManager {
     // 🎮 1c. Universal D-Pad Spatial Navigation & SVG Controller for TV
     private const val TV_DPAD_SPATIAL_NAVIGATION_JS = """
         (function() {
-            if (window.__freenetTvDpadNavInstalled) return;
-            window.__freenetTvDpadNavInstalled = true;
-
-            // Injected CSS for high visibility SVG / button focus ring
-            var style = document.createElement('style');
-            style.textContent = `
-                svg[tabindex="0"]:focus, button:focus, [role="button"]:focus, [data-tv-focus="true"]:focus,
-                [class*="fullscreen"]:focus, [class*="control"]:focus, .jw-icon:focus, .plyr__control:focus, .vjs-control:focus {
-                    outline: 3px solid #00d2ff !important;
-                    outline-offset: 3px !important;
-                    box-shadow: 0 0 16px rgba(0, 210, 255, 0.9) !important;
-                    border-radius: 6px !important;
-                    transform: scale(1.18) !important;
-                    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out !important;
-                    z-index: 99999 !important;
-                }
-            `;
-            (document.head || document.documentElement).appendChild(style);
-
-            function makeInteractiveElementsFocusable() {
+            // Naredi vse div-e, a-je, button-e, input-e, svg-je in iframe-e focusable
+            function setupFocusableElements() {
                 try {
-                    var selectors = [
-                        'svg', 'path', 'button', 'a', '[role="button"]', '[onclick]',
-                        '.jw-icon', '.plyr__control', '.vjs-control', '[class*="control"]',
-                        '[class*="fullscreen"]', '[aria-label*="fullscreen" i]', '[title*="fullscreen" i]',
-                        'iframe', 'video', 'input', 'select'
-                    ];
-                    var elements = document.querySelectorAll(selectors.join(', '));
-                    for (var i = 0; i < elements.length; i++) {
-                        var el = elements[i];
-                        if (!el.hasAttribute('tabindex')) {
-                            el.setAttribute('tabindex', '0');
-                        }
-                        if (el.tagName && el.tagName.toLowerCase() === 'svg') {
-                            el.setAttribute('focusable', 'true');
-                        }
-                        el.setAttribute('data-tv-focus', 'true');
-
-                        if (!el._tvDpadBound) {
-                            el._tvDpadBound = true;
-                            // Enter / OK key handler
-                            el.addEventListener('keydown', function(e) {
-                                if (e.keyCode === 13 || e.keyCode === 23 || e.keyCode === 66 || e.key === 'Enter') {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    var isFullscreen = (this.className && typeof this.className === 'string' && this.className.indexOf('fullscreen') !== -1) ||
-                                                       (this.getAttribute('aria-label') && this.getAttribute('aria-label').toLowerCase().indexOf('fullscreen') !== -1) ||
-                                                       (this.getAttribute('title') && this.getAttribute('title').toLowerCase().indexOf('fullscreen') !== -1) ||
-                                                       (this.id && this.id.indexOf('fullscreen') !== -1);
-                                    if (isFullscreen) {
-                                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.toggleTvFullscreen === 'function') {
-                                            window.AndroidNativeBridge.toggleTvFullscreen();
-                                        }
-                                    }
-                                    this.click();
-                                }
-                            });
-                        }
-                    }
+                    document.querySelectorAll('div, a, button, input, iframe, svg, [role="button"], [onclick], .jw-icon, .plyr__control, [class*="control"], [class*="fullscreen"]').forEach(function(el) {
+                        if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+                        if (el.tagName === 'SVG' || el.tagName === 'svg') el.setAttribute('focusable', 'true');
+                    });
                 } catch(e) {}
             }
 
-            // Directional spatial navigation
-            function findNextSpatialElement(direction) {
-                var active = document.activeElement;
-                if (!active || active === document.body || active === document.documentElement) {
-                    active = document.querySelector('[tabindex="0"], button, svg[tabindex="0"], a');
-                    if (active) { active.focus(); return true; }
-                    return false;
-                }
-
-                var rCurrent = active.getBoundingClientRect();
-                var cX = rCurrent.left + rCurrent.width / 2;
-                var cY = rCurrent.top + rCurrent.height / 2;
-
-                var candidates = document.querySelectorAll('[tabindex="0"], button, a, [role="button"], svg[focusable="true"]');
-                var bestCandidate = null;
-                var minDistance = Infinity;
-
-                for (var i = 0; i < candidates.length; i++) {
-                    var cand = candidates[i];
-                    if (cand === active || cand.disabled || cand.offsetParent === null) continue;
-                    var rCand = cand.getBoundingClientRect();
-                    if (rCand.width === 0 || rCand.height === 0) continue;
-
-                    var candX = rCand.left + rCand.width / 2;
-                    var candY = rCand.top + rCand.height / 2;
-
-                    var dx = candX - cX;
-                    var dy = candY - cY;
-
-                    var isMatch = false;
-                    switch (direction) {
-                        case 'down':  isMatch = (dy > 8); break;
-                        case 'up':    isMatch = (dy < -8); break;
-                        case 'right': isMatch = (dx > 8); break;
-                        case 'left':  isMatch = (dx < -8); break;
+            // Injected styling za fokus (rumena obroba / yellow outline)
+            var styleId = 'freenet-dpad-focus-style';
+            if (!document.getElementById(styleId)) {
+                var style = document.createElement('style');
+                style.id = styleId;
+                style.textContent = `
+                    :focus, [tabindex="0"]:focus, [data-tv-focused="true"] {
+                        outline: 3.5px solid #ffd700 !important;
+                        outline-offset: 2px !important;
+                        box-shadow: 0 0 18px rgba(255, 215, 0, 0.95) !important;
+                        border-radius: 6px !important;
+                        z-index: 999999 !important;
                     }
-
-                    if (isMatch) {
-                        var dist = Math.sqrt(dx * dx + dy * dy);
-                        if (direction === 'down' || direction === 'up') {
-                            dist += Math.abs(dx) * 1.5;
-                        } else {
-                            dist += Math.abs(dy) * 1.5;
-                        }
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            bestCandidate = cand;
-                        }
-                    }
-                }
-
-                if (bestCandidate) {
-                    bestCandidate.focus();
-                    if (bestCandidate.scrollIntoViewIfNeeded) {
-                        bestCandidate.scrollIntoViewIfNeeded();
-                    }
-                    return true;
-                }
-                return false;
+                `;
+                (document.head || document.documentElement).appendChild(style);
             }
 
-            window.addEventListener('keydown', function(e) {
-                var code = e.keyCode || e.which;
-                var key = e.key;
-
-                if (code === 40 || key === 'ArrowDown') {
-                    if (findNextSpatialElement('down')) e.preventDefault();
-                } else if (code === 38 || key === 'ArrowUp') {
-                    if (findNextSpatialElement('up')) e.preventDefault();
-                } else if (code === 37 || key === 'ArrowLeft') {
-                    if (findNextSpatialElement('left')) e.preventDefault();
-                } else if (code === 39 || key === 'ArrowRight') {
-                    if (findNextSpatialElement('right')) e.preventDefault();
+            // Funkcija za premik fokusa
+            window.focusNextElement = function(direction) {
+                setupFocusableElements();
+                let current = document.activeElement;
+                let focusable = Array.from(document.querySelectorAll('[tabindex]:not([tabindex="-1"])')).filter(function(el) {
+                    if (el.offsetParent === null && el.offsetWidth === 0 && el.offsetHeight === 0) return false;
+                    return true;
+                });
+                if (focusable.length === 0) return;
+                let index = focusable.indexOf(current);
+                if (direction === 'right' || direction === 'down') index++;
+                if (direction === 'left' || direction === 'up') index--;
+                if (index < 0) index = focusable.length - 1;
+                if (index >= focusable.length) index = 0;
+                let nextEl = focusable[index];
+                if (nextEl) {
+                    nextEl.focus();
+                    if (nextEl.scrollIntoViewIfNeeded) nextEl.scrollIntoViewIfNeeded();
+                    else nextEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                    // Če je fokus na iframe, pojdi noter
+                    if (nextEl.tagName === 'IFRAME') {
+                        try { nextEl.contentWindow.focus(); } catch(e){}
+                    }
                 }
+            };
+
+            window.clickActiveElement = function() {
+                var act = document.activeElement;
+                if (!act) return;
+                var isFs = (act.className && typeof act.className === 'string' && act.className.indexOf('fullscreen') !== -1) ||
+                           (act.getAttribute('aria-label') && act.getAttribute('aria-label').toLowerCase().indexOf('fullscreen') !== -1) ||
+                           (act.getAttribute('title') && act.getAttribute('title').toLowerCase().indexOf('fullscreen') !== -1) ||
+                           (act.id && act.id.indexOf('fullscreen') !== -1);
+                if (isFs && window.AndroidNativeBridge && typeof window.AndroidNativeBridge.toggleTvFullscreen === 'function') {
+                    window.AndroidNativeBridge.toggleTvFullscreen();
+                }
+                try { act.click(); } catch(e) {}
+                try {
+                    act.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                } catch(e) {}
+            };
+
+            // ESC gre ven iz iframe
+            window.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' || e.keyCode === 27) { window.focus(); }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                e.stopPropagation();
             }, true);
 
-            // Initial and periodic run
-            makeInteractiveElementsFocusable();
-            setInterval(makeInteractiveElementsFocusable, 1200);
-
-            // MutationObserver for newly added SVG/buttons
-            var dpadObs = new MutationObserver(makeInteractiveElementsFocusable);
-            if (document.documentElement) {
-                dpadObs.observe(document.documentElement, { childList: true, subtree: true });
-            }
+            setupFocusableElements();
+            // Set prvi fokus
+            document.querySelector('[tabindex]')?.focus();
         })();
     """
 

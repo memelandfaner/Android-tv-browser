@@ -657,6 +657,10 @@ class MainActivity : android.app.Activity() {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
+            settings.javaScriptEnabled = true
+            isFocusable = true
+            isFocusableInTouchMode = true
+            requestFocus(View.FOCUS_DOWN)
             onProgressChangedListener = { p ->
                 if (webViewPool.indexOf(this) == viewModel.state.activeTabIndex) {
                     progressBar.progress = p
@@ -1818,6 +1822,41 @@ class MainActivity : android.app.Activity() {
                     }
                     KeyEvent.KEYCODE_DPAD_DOWN -> {
                         sendPlayerCommand("SHOW_CONTROLS")
+                    }
+                }
+            } else if (!cursorOverlay.isCursorActive()) {
+                val isHeaderFocused = editUrl.hasFocus() || findViewById<View>(R.id.headerContainer).findFocus() != null
+                val isPanelOpen = bookmarksPanel.visibility == View.VISIBLE ||
+                                  downloadsPanel.visibility == View.VISIBLE ||
+                                  historyPanel.visibility == View.VISIBLE ||
+                                  settingsPanel.visibility == View.VISIBLE ||
+                                  voiceListeningOverlay.visibility == View.VISIBLE
+
+                if (!isHeaderFocused && !isPanelOpen) {
+                    val activeWeb = getActiveWebView()
+                    if (activeWeb != null) {
+                        when (event.keyCode) {
+                            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                                activeWeb.evaluateJavascript("if (document.activeElement && typeof document.activeElement.click === 'function') { document.activeElement.click(); } else if (typeof window.clickActiveElement === 'function') { window.clickActiveElement(); }", null)
+                                return true
+                            }
+                            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                                activeWeb.evaluateJavascript("if (typeof window.focusNextElement === 'function') window.focusNextElement('right');", null)
+                                return true
+                            }
+                            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                                activeWeb.evaluateJavascript("if (typeof window.focusNextElement === 'function') window.focusNextElement('left');", null)
+                                return true
+                            }
+                            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                                activeWeb.evaluateJavascript("if (typeof window.focusNextElement === 'function') window.focusNextElement('down');", null)
+                                return true
+                            }
+                            KeyEvent.KEYCODE_DPAD_UP -> {
+                                activeWeb.evaluateJavascript("if (typeof window.focusNextElement === 'function') window.focusNextElement('up');", null)
+                                return true
+                            }
+                        }
                     }
                 }
             }
