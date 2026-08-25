@@ -120,17 +120,21 @@ class MainActivity : android.app.Activity() {
             renderTabsBar()
         }
 
-        // Handle initial intent or default search engine home (Max 1 initial tab)
+        // Vedno čist začetni zagon: odpri domačo stran (Google / Nastavljeni iskalnik)
         val homeUrl = viewModel.homeUrl()
-        val initialUrl = intent?.data?.toString() ?: homeUrl
+        val initialUrl = intent?.data?.toString()?.takeIf { it.isNotBlank() } ?: homeUrl
         createAndSelectTab(initialUrl, "Iskalnik")
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
-        intent?.data?.toString()?.let { url ->
+        val url = intent?.data?.toString()
+        if (!url.isNullOrBlank()) {
             loadUrl(url)
+        } else {
+            // Ob ponovnem zagonu iz TV menija vedno osveži na začetno stran
+            loadUrl(viewModel.homeUrl())
         }
     }
 
@@ -151,6 +155,23 @@ class MainActivity : android.app.Activity() {
         performStrictPrivacyCleanupIfEnabled()
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_MODERATE || level == TRIM_MEMORY_UI_HIDDEN) {
+            webViewPool.forEach { wv ->
+                try {
+                    wv.clearCache(false)
+                } catch (ignored: Exception) {}
+            }
+            System.gc()
+        }
+    }
+
+    override fun finish() {
+        performCacheAndMemoryCleanup()
+        super.finish()
+    }
+
     override fun onDestroy() {
         try {
             speechRecognizer?.destroy()
@@ -161,15 +182,52 @@ class MainActivity : android.app.Activity() {
             try {
                 webViewContainer.removeView(wv)
                 wv.stopLoading()
+                wv.clearCache(true)
                 wv.loadUrl("about:blank")
                 wv.destroy()
             } catch (ignored: Exception) {}
         }
         webViewPool.clear()
 
-        performStrictPrivacyCleanupIfEnabled()
+        performCacheAndMemoryCleanup()
 
         super.onDestroy()
+    }
+
+    /**
+     * 🧹 Sprostitev celotnega predpomnilnika in sistemskega pomnilnika (RAM) za optimalno delovanje TV-ja
+     */
+    private fun performCacheAndMemoryCleanup() {
+        try {
+            // 1. Počisti predpomnilnik vseh Chromium WebViews
+            webViewPool.forEach { wv ->
+                try {
+                    wv.stopLoading()
+                    wv.clearCache(true)
+                    wv.clearFormData()
+                    wv.clearHistory()
+                } catch (ignored: Exception) {}
+            }
+
+            // 2. Pobriši začasne datoteke predpomnilnika (HTTP & GPU cache)
+            try {
+                cacheDir?.deleteRecursively()
+                externalCacheDir?.deleteRecursively()
+                val webViewCache = File(applicationInfo.dataDir, "app_webview/Default/HTTP Cache")
+                if (webViewCache.exists()) webViewCache.deleteRecursively()
+                val gpuCache = File(applicationInfo.dataDir, "app_webview/Default/GPUCache")
+                if (gpuCache.exists()) gpuCache.deleteRecursively()
+                codeCacheDir?.deleteRecursively()
+            } catch (ignored: Exception) {}
+
+            // 3. Strict privacy cleanup (če je vklopljen)
+            performStrictPrivacyCleanupIfEnabled()
+
+            // 4. Takojšnja sprostitev RAM-a preko Java Garbage Collectorja
+            System.gc()
+            Runtime.getRuntime().gc()
+            Log.d("TvBrowser", "🧹 Predpomnilnik in RAM sta bila uspešno sproščena ob zaprtju.")
+        } catch (ignored: Exception) {}
     }
 
     private fun performStrictPrivacyCleanupIfEnabled() {
@@ -1791,8 +1849,8 @@ class MainActivity : android.app.Activity() {
             active.goBack()
             return
         }
-        @Suppress("DEPRECATION")
-        super.onBackPressed()
+        // Izhod iz brskalnika: sprosti predpomnilnik in zaključi aktivnost
+        finish()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

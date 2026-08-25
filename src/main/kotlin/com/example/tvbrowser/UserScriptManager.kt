@@ -147,15 +147,51 @@ object UserScriptManager {
         })();
     """
 
-    // 🎮 1c. Universal D-Pad Spatial Navigation & SVG Controller for TV
+    // 🎮 1c. Universal High-Precision D-Pad Spatial Navigation & Search/Button Priority
     private const val TV_DPAD_SPATIAL_NAVIGATION_JS = """
         (function() {
-            // Naredi vse div-e, a-je, button-e, input-e, svg-je in iframe-e focusable
+            var INTERACTIVE_SELECTORS = [
+                'textarea',
+                'input:not([type="hidden"])',
+                'select',
+                'button',
+                'a[href]',
+                '[role="button"]',
+                '[role="searchbox"]',
+                '[role="textbox"]',
+                '[role="link"]',
+                '[role="tab"]',
+                '[role="menuitem"]',
+                '[contenteditable="true"]',
+                'iframe',
+                '.jw-icon',
+                '.plyr__control',
+                '.vjs-control',
+                '.gLFyf',
+                '#APjFqb',
+                '.topbar-search-button',
+                '.search-btn',
+                'button.search-button',
+                '#search-icon-legacy',
+                'button[aria-label*="Iskanje"]',
+                'button[aria-label*="Search"]',
+                'button[aria-label*="search"]',
+                'a[aria-label*="Iskanje"]',
+                'a[aria-label*="Search"]',
+                'c3-icon[type="search"]',
+                'ytm-searchbox',
+                '.mobile-topbar-header-endpoint'
+            ].join(', ');
+
+            // Naredi izključno interaktivne elemente focusable (NE vseh generic div-ov!)
             function setupFocusableElements() {
                 try {
-                    document.querySelectorAll('div, a, button, input, iframe, svg, [role="button"], [onclick], .jw-icon, .plyr__control, [class*="control"], [class*="fullscreen"]').forEach(function(el) {
+                    // Odstrani napačne tabindex=0 iz navadnih div-ov in svg-jev
+                    var bogus = document.querySelectorAll('div[tabindex="0"]:not([role]):not([onclick]), svg[tabindex="0"]');
+                    bogus.forEach(function(b) { b.removeAttribute('tabindex'); });
+
+                    document.querySelectorAll(INTERACTIVE_SELECTORS).forEach(function(el) {
                         if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
-                        if (el.tagName === 'SVG' || el.tagName === 'svg') el.setAttribute('focusable', 'true');
                     });
                 } catch(e) {}
             }
@@ -177,43 +213,148 @@ object UserScriptManager {
                 (document.head || document.documentElement).appendChild(style);
             }
 
-            // Funkcija za premik fokusa
-            window.focusNextElement = function(direction) {
+            function getFocusableElements() {
                 setupFocusableElements();
-                let current = document.activeElement;
-                let focusable = Array.from(document.querySelectorAll('[tabindex]:not([tabindex="-1"])')).filter(function(el) {
-                    if (el.offsetParent === null && el.offsetWidth === 0 && el.offsetHeight === 0) return false;
+                var all = Array.from(document.querySelectorAll(INTERACTIVE_SELECTORS));
+                var vpWidth = window.innerWidth || document.documentElement.clientWidth;
+                var vpHeight = window.innerHeight || document.documentElement.clientHeight;
+
+                return all.filter(function(el) {
+                    if (!el) return false;
+                    if (el.disabled) return false;
+                    if (el.getAttribute('aria-hidden') === 'true') return false;
+                    var style = window.getComputedStyle(el);
+                    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+                    
+                    var rect = el.getBoundingClientRect();
+                    if (rect.width <= 0 || rect.height <= 0) return false;
+                    
+                    // Izloči elemente, ki so popolnoma zunaj vidnega polja
+                    if (rect.bottom < -100 || rect.top > vpHeight * 2.0 || rect.right < -100 || rect.left > vpWidth * 2.0) {
+                        return false;
+                    }
                     return true;
                 });
-                if (focusable.length === 0) {
+            }
+
+            // 🎯 Samodejno usmerjanje na iskalno polje na Google / iskalnikih
+            function autoFocusSearch() {
+                var isSearch = location.hostname.indexOf('google') !== -1 ||
+                               location.hostname.indexOf('duckduckgo') !== -1 ||
+                               location.hostname.indexOf('bing') !== -1;
+                if (isSearch) {
+                    var searchInput = document.querySelector('textarea[name="q"], input[name="q"], #APjFqb, .gLFyf, input[type="search"], input[type="text"]');
+                    if (searchInput && document.activeElement !== searchInput) {
+                        searchInput.focus();
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // 🧭 2D Geometrijska Navigacija (Spatial Navigation Beam)
+            window.focusNextElement = function(direction) {
+                var focusables = getFocusableElements();
+                if (focusables.length === 0) {
                     if (direction === 'up' && window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
                         window.AndroidNativeBridge.focusToolbar();
                     }
                     return;
                 }
-                let index = focusable.indexOf(current);
 
-                if (direction === 'up') {
-                    if (index <= 0 || (current && current.getBoundingClientRect().top <= 40)) {
-                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
-                            window.AndroidNativeBridge.focusToolbar();
-                            return;
+                var current = document.activeElement;
+                
+                // Če ni nič izbrano, daj prioriteto iskalnemu polju ali prvemu elementu
+                if (!current || current === document.body || current === document.documentElement || focusables.indexOf(current) === -1) {
+                    if (autoFocusSearch()) return;
+                    if (focusables.length > 0) {
+                        focusables[0].focus();
+                        return;
+                    }
+                }
+
+                var curRect = current.getBoundingClientRect();
+                var curCx = curRect.left + curRect.width / 2;
+                var curCy = curRect.top + curRect.height / 2;
+
+                var bestCandidate = null;
+                var bestDistance = Infinity;
+
+                for (var i = 0; i < focusables.length; i++) {
+                    var el = focusables[i];
+                    if (el === current) continue;
+
+                    var r = el.getBoundingClientRect();
+                    var cx = r.left + r.width / 2;
+                    var cy = r.top + r.height / 2;
+
+                    var dx = cx - curCx;
+                    var dy = cy - curCy;
+
+                    var isInDirection = false;
+                    var primaryDist = 0;
+                    var orthogonalDist = 0;
+                    var isSameRow = Math.abs(curCy - cy) <= Math.max(curRect.height, r.height, 45);
+                    var isSameCol = Math.abs(curCx - cx) <= Math.max(curRect.width, r.width, 45);
+                    var rowBonus = 0;
+
+                    if (direction === 'right') {
+                        if (cx > curCx + 4) {
+                            isInDirection = true;
+                            primaryDist = Math.max(0, r.left - curRect.right);
+                            orthogonalDist = Math.abs(dy);
+                            if (isSameRow) rowBonus = -400;
+                        }
+                    } else if (direction === 'left') {
+                        if (cx < curCx - 4) {
+                            isInDirection = true;
+                            primaryDist = Math.max(0, curRect.left - r.right);
+                            orthogonalDist = Math.abs(dy);
+                            if (isSameRow) rowBonus = -400;
+                        }
+                    } else if (direction === 'down') {
+                        if (cy > curCy + 4) {
+                            isInDirection = true;
+                            primaryDist = Math.max(0, r.top - curRect.bottom);
+                            orthogonalDist = Math.abs(dx);
+                            if (isSameCol) rowBonus = -200;
+                        }
+                    } else if (direction === 'up') {
+                        if (cy < curCy - 4) {
+                            isInDirection = true;
+                            primaryDist = Math.max(0, curRect.top - r.bottom);
+                            orthogonalDist = Math.abs(dx);
+                            if (isSameCol) rowBonus = -200;
+                        }
+                    }
+
+                    if (isInDirection) {
+                        var isInput = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+                        var isSearchBtn = el.classList.contains('topbar-search-button') ||
+                                          el.classList.contains('search-btn') ||
+                                          (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().indexOf('iskanje') !== -1) ||
+                                          (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().indexOf('search') !== -1);
+                        var priorityBonus = isInput ? -80 : (isSearchBtn ? -100 : 0);
+                        
+                        var dist = primaryDist * 1.0 + orthogonalDist * 2.2 + rowBonus + priorityBonus;
+                        if (dist < bestDistance) {
+                            bestDistance = dist;
+                            bestCandidate = el;
                         }
                     }
                 }
 
-                if (direction === 'right' || direction === 'down') index++;
-                if (direction === 'left' || direction === 'up') index--;
-                if (index < 0) index = focusable.length - 1;
-                if (index >= focusable.length) index = 0;
-                let nextEl = focusable[index];
-                if (nextEl) {
-                    nextEl.focus();
-                    if (nextEl.scrollIntoViewIfNeeded) nextEl.scrollIntoViewIfNeeded();
-                    else nextEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-                    // Če je fokus na iframe, pojdi noter
-                    if (nextEl.tagName === 'IFRAME') {
-                        try { nextEl.contentWindow.focus(); } catch(e){}
+                if (bestCandidate) {
+                    bestCandidate.focus();
+                    if (bestCandidate.scrollIntoViewIfNeeded) bestCandidate.scrollIntoViewIfNeeded();
+                    else bestCandidate.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                    if (bestCandidate.tagName === 'IFRAME') {
+                        try { bestCandidate.contentWindow.focus(); } catch(e){}
+                    }
+                } else if (direction === 'up') {
+                    // Pojdi v orodno vrstico le, če zgoraj res ni nobenega elementa več
+                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
+                        window.AndroidNativeBridge.focusToolbar();
                     }
                 }
             };
@@ -221,6 +362,20 @@ object UserScriptManager {
             window.clickActiveElement = function() {
                 var act = document.activeElement;
                 if (!act) return;
+
+                var isSearchTrigger = act.classList.contains('topbar-search-button') ||
+                                      act.classList.contains('search-btn') ||
+                                      (act.getAttribute('aria-label') && act.getAttribute('aria-label').toLowerCase().indexOf('iskanje') !== -1) ||
+                                      (act.getAttribute('aria-label') && act.getAttribute('aria-label').toLowerCase().indexOf('search') !== -1);
+
+                if (act.tagName === 'INPUT' || act.tagName === 'TEXTAREA') {
+                    act.focus();
+                    try {
+                        var len = (act.value || '').length;
+                        if (act.setSelectionRange) act.setSelectionRange(len, len);
+                    } catch(e) {}
+                }
+
                 var isFs = (act.className && typeof act.className === 'string' && act.className.indexOf('fullscreen') !== -1) ||
                            (act.getAttribute('aria-label') && act.getAttribute('aria-label').toLowerCase().indexOf('fullscreen') !== -1) ||
                            (act.getAttribute('title') && act.getAttribute('title').toLowerCase().indexOf('fullscreen') !== -1) ||
@@ -228,10 +383,27 @@ object UserScriptManager {
                 if (isFs && window.AndroidNativeBridge && typeof window.AndroidNativeBridge.toggleTvFullscreen === 'function') {
                     window.AndroidNativeBridge.toggleTvFullscreen();
                 }
+
+                try { act.focus(); } catch(e) {}
                 try { act.click(); } catch(e) {}
                 try {
-                    act.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                    act.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, composed: true }));
+                    act.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, composed: true }));
+                    act.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, composed: true }));
+                    act.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, composed: true }));
+                    act.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true }));
                 } catch(e) {}
+
+                // Če kliknemo na lupo na YouTube/straneh, samodejno preusmeri fokus v odprto iskalno polje
+                if (isSearchTrigger) {
+                    setTimeout(function() {
+                        var input = document.querySelector('input[name="search_query"], input#search, input.search-input, input[type="search"], input[type="text"]');
+                        if (input) {
+                            input.focus();
+                            input.click();
+                        }
+                    }, 120);
+                }
             };
 
             // ESC gre ven iz iframe
@@ -239,13 +411,12 @@ object UserScriptManager {
                 if (e.key === 'Escape' || e.keyCode === 27) { window.focus(); }
             });
 
-            document.addEventListener('keydown', function(e) {
-                e.stopPropagation();
-            }, true);
-
-            setupFocusableElements();
-            // Set prvi fokus
-            document.querySelector('[tabindex]')?.focus();
+            // Samodejni fokus ob nalaganju strani
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                setTimeout(autoFocusSearch, 300);
+            } else {
+                document.addEventListener('DOMContentLoaded', function() { setTimeout(autoFocusSearch, 300); });
+            }
         })();
     """
 
@@ -424,12 +595,253 @@ object UserScriptManager {
         })();
     """
 
-    // ⚡ 3. YouTube Freedom: SponsorBlock & Return YouTube Dislike (RYD)
+    // ⚡ 3. YouTube Freedom: SmartTube & Brave-Style JSON AdBlock, SponsorBlock & RYD
     private const val YOUTUBE_FREEDOM_JS = """
         (function initYouTubeFreedom() {
             if (window.location.href.indexOf('youtube.com') === -1) return;
-            if (window._tvYtFreedomDone) return;
-            window._tvYtFreedomDone = true;
+
+            // 🛡️ 1. Inject Instant Anti-Ad, Sponsor Hiding & SmartTube TV Grid CSS
+            function injectSmartTubeStyle() {
+                var style = document.getElementById('tv_yt_smarttube_css');
+                if (!style) {
+                    style = document.createElement('style');
+                    style.id = 'tv_yt_smarttube_css';
+                    style.textContent = `
+                        /* 🛡️ AD & PROMO BLOCKING */
+                        #player-ads, .ytp-ad-module, .ytp-ad-overlay-container, .video-ads,
+                        .ytp-ad-player-overlay, .ytp-ad-player-overlay-flyout-cta, .ytp-ad-button-vm,
+                        ytd-ad-slot-renderer, ytm-ad-slot-renderer,
+                        ytd-in-feed-ad-layout-renderer, ytm-in-feed-ad-layout-renderer,
+                        ytd-promoted-sparkles-web-renderer, ytm-promoted-sparkles-web-renderer,
+                        ytd-promoted-video-renderer, ytm-promoted-video-renderer,
+                        ytd-banner-promo-renderer, ytd-statement-banner-renderer,
+                        #masthead-ad, ytd-rich-item-renderer:has(ytd-ad-slot-renderer),
+                        ytd-rich-item-renderer:has(ytd-in-feed-ad-layout-renderer),
+                        ytd-rich-section-renderer, #shorts-container,
+                        ytd-search-pyv-renderer, #pyv-watched-badge, .ytd-search-pyv-renderer,
+                        ytd-search-sub-menu-renderer, #info-button, #about-this-ad,
+                        ytd-clarification-renderer, #clarify-box, #about-this-result,
+                        ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"],
+                        .badge-style-type-ad, ytd-badge-supported-renderer:has(.badge-style-type-ad),
+                        [aria-label*="Sponzorirano"], [aria-label*="Sponsored"], [aria-label*="Sponzor"],
+                        [aria-label*="O teh rezultatih"], [aria-label*="About these results"],
+                        ytm-promoted-video-renderer, ytd-brand-video-singleton-renderer,
+                        ytm-pivot-bar-renderer, .pivot-bar, ytm-app-upsell, ytm-upsell-dialog-renderer,
+                        .yt-spec-bottom-sheet-layout__bottom-sheet-renderer-container,
+                        [aria-label="Kratki videoposnetki"], [aria-label="Shorts"],
+                        #masthead-container, ytd-masthead, #masthead-container *, ytd-masthead *,
+                        #guide-wrapper, ytd-mini-guide-renderer, ytd-guide-renderer,
+                        #chips-wrapper, #chips-wrapper *, ytd-feed-filter-chip-bar-renderer, ytd-feed-filter-chip-bar-renderer *,
+                        ytd-rich-grid-renderer > #header, ytd-browse > #header,
+                        #header.ytd-rich-grid-renderer, #header.ytd-browse, #header,
+                        ytd-statement-banner-renderer, ytd-banner-promo-renderer,
+                        ytd-brand-video-singleton-renderer, ytd-hero-playlist-thumbnail-renderer,
+                        ytd-primetime-promo-renderer, ytd-rich-section-renderer, #big-yoodle,
+                        ytm-mobile-topbar-renderer, header.mobile-topbar-header, .mobile-topbar-header,
+                        ytm-reel-shelf-renderer, ytm-channel-banner-renderer {
+                            display: none !important;
+                            visibility: hidden !important;
+                            height: 0px !important;
+                            min-height: 0px !important;
+                            max-height: 0px !important;
+                            width: 0px !important;
+                            min-width: 0px !important;
+                            max-width: 0px !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            border: none !important;
+                            background: transparent !important;
+                            box-shadow: none !important;
+                            pointer-events: none !important;
+                            position: fixed !important;
+                            top: -99999px !important;
+                            left: -99999px !important;
+                            z-index: -99999 !important;
+                            opacity: 0 !important;
+                        }
+
+                        /* 📺 CSS Variables Reset */
+                        :root, ytd-app, html, body {
+                            --ytd-masthead-height: 0px !important;
+                            --ytd-toolbar-height: 0px !important;
+                            --ytd-mini-guide-width: 0px !important;
+                            --ytd-guide-width: 0px !important;
+                            --ytd-rich-grid-chips-bar-top: 0px !important;
+                            --ytd-rich-grid-posts-per-row: 4 !important;
+                            --ytd-rich-grid-items-per-row: 4 !important;
+                        }
+
+                        /* 📺 Clean Dark Background */
+                        body, ytm-app, ytd-app, #app, .page-container, ytm-browse, #content, #page-manager, #primary, html {
+                            background: #07090e !important;
+                            color: #f1f5f9 !important;
+                        }
+
+                        /* 📺 Remove all top gaps, headers and margins from TV & mobile YouTube */
+                        html, body, ytd-app, ytm-app, .page-container, ytm-browse,
+                        html body ytd-app #content.ytd-app,
+                        html body ytd-app #page-manager,
+                        html body ytd-app ytd-page-manager,
+                        html body ytd-app #page-manager.ytd-app,
+                        html body ytd-app[masthead-hidden] #page-manager,
+                        html body ytd-app ytd-browse,
+                        html body ytd-app ytd-browse[page-subtype="home"],
+                        html body ytd-app ytd-two-column-browse-results-renderer,
+                        html body ytd-app #primary,
+                        html body ytd-app #primary.ytd-two-column-browse-results-renderer,
+                        html body ytd-app ytd-rich-grid-renderer {
+                            margin: 0 !important;
+                            margin-top: 0px !important;
+                            padding-top: 0px !important;
+                            top: 0px !important;
+                            width: 100% !important;
+                        }
+
+                        html body ytd-app ytd-rich-grid-renderer > #contents,
+                        html body ytd-app #contents.ytd-rich-grid-renderer {
+                            margin: 0 !important;
+                            margin-top: 0px !important;
+                            padding-top: 0px !important;
+                            top: 0px !important;
+                            width: 100% !important;
+                        }
+
+                        ytd-rich-grid-renderer > #header,
+                        ytd-rich-grid-renderer #header,
+                        ytd-browse > #header,
+                        ytd-browse #header,
+                        #header.ytd-rich-grid-renderer,
+                        #header.ytd-browse,
+                        #header,
+                        #chips,
+                        #chips-wrapper,
+                        ytd-feed-filter-chip-bar-renderer {
+                            display: none !important;
+                            visibility: hidden !important;
+                            height: 0px !important;
+                            min-height: 0px !important;
+                            max-height: 0px !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            border: none !important;
+                            opacity: 0 !important;
+                            z-index: -99999 !important;
+                            position: static !important;
+                            pointer-events: none !important;
+                        }
+
+                        /* 📺 SmartTube 4-Column Video Grid & Natural Rows */
+                        ytd-rich-grid-row {
+                            display: block !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            width: 100% !important;
+                        }
+
+                        ytd-rich-grid-row > #contents,
+                        #contents.ytd-rich-grid-row {
+                            display: flex !important;
+                            flex-direction: row !important;
+                            flex-wrap: nowrap !important;
+                            gap: 14px !important;
+                            margin: 0 !important;
+                            padding: 6px 16px !important;
+                            width: 100% !important;
+                            box-sizing: border-box !important;
+                        }
+
+                        ytm-section-list-renderer lazy-list,
+                        ytm-item-section-renderer lazy-list,
+                        ytm-item-section-renderer > .lazy-list,
+                        ytm-rich-grid-renderer #contents,
+                        ytm-section-list-renderer #contents,
+                        .rich-grid-renderer-contents,
+                        #contents.ytm-section-list-renderer,
+                        #contents.ytm-item-section-renderer {
+                            display: grid !important;
+                            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                            gap: 16px 14px !important;
+                            padding: 6px 18px 40px !important;
+                            max-width: 100% !important;
+                            box-sizing: border-box !important;
+                        }
+
+                        /* 📺 SmartTube Video Cards */
+                        ytd-rich-item-renderer {
+                            flex: 1 1 calc(25% - 14px) !important;
+                            width: calc(25% - 14px) !important;
+                            max-width: calc(25% - 14px) !important;
+                            min-width: 220px !important;
+                            margin: 0 !important;
+                            padding: 8px !important;
+                            border-radius: 14px !important;
+                            background: rgba(255, 255, 255, 0.03) !important;
+                            border: 2px solid rgba(255, 255, 255, 0.05) !important;
+                            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
+                            box-sizing: border-box !important;
+                            cursor: pointer !important;
+                        }
+
+                        ytm-media-item,
+                        ytm-video-with-context-renderer,
+                        ytm-rich-item-renderer,
+                        ytm-compact-video-renderer,
+                        ytd-video-renderer {
+                            width: 100% !important;
+                            margin: 0 !important;
+                            padding: 8px !important;
+                            border-radius: 14px !important;
+                            background: rgba(255, 255, 255, 0.03) !important;
+                            border: 2px solid rgba(255, 255, 255, 0.05) !important;
+                            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
+                            box-sizing: border-box !important;
+                            cursor: pointer !important;
+                        }
+
+                        /* 📺 SmartTube D-Pad Focus Glow */
+                        ytd-rich-item-renderer:focus, ytd-rich-item-renderer:focus-within, ytd-rich-item-renderer:hover,
+                        ytm-media-item:focus, ytm-media-item:focus-within,
+                        ytm-video-with-context-renderer:focus, ytm-video-with-context-renderer:focus-within,
+                        ytm-compact-video-renderer:focus, ytm-compact-video-renderer:focus-within {
+                            transform: scale(1.05) !important;
+                            border-color: #00d2ff !important;
+                            background: rgba(0, 210, 255, 0.12) !important;
+                            box-shadow: 0 8px 24px rgba(0, 210, 255, 0.4), 0 0 14px rgba(0, 210, 255, 0.6) !important;
+                            outline: none !important;
+                            z-index: 100 !important;
+                        }
+
+                        /* 📺 16:9 Rounded Thumbnails */
+                        ytd-thumbnail, ytd-thumbnail img, #thumbnail,
+                        .media-item-thumbnail-container, ytm-thumbnail-cover, .cover-container, .thumbnail-container,
+                        .video-thumbnail-container, img.video-thumbnail, ytm-thumbnail-cover img {
+                            border-radius: 10px !important;
+                            overflow: hidden !important;
+                        }
+                    `;
+                    (document.head || document.documentElement).appendChild(style);
+                }
+            }
+            injectSmartTubeStyle();
+
+            // 🛡️ 2. SmartTube JSON Hooking: Strip ad placements directly from YouTube Player API responses
+            function sanitizePlayerJson(obj) {
+                if (!obj || typeof obj !== 'object') return obj;
+                if (obj.adPlacements) delete obj.adPlacements;
+                if (obj.adSlots) delete obj.adSlots;
+                if (obj.playerAds) delete obj.playerAds;
+                if (obj.adBreakHeartbeatParams) delete obj.adBreakHeartbeatParams;
+                if (obj.adBreakService) delete obj.adBreakService;
+                return obj;
+            }
+
+            try {
+                var originalParse = JSON.parse;
+                JSON.parse = function() {
+                    var data = originalParse.apply(this, arguments);
+                    return sanitizePlayerJson(data);
+                };
+            } catch(e) {}
 
             function getVideoId() {
                 var match = window.location.href.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
@@ -516,44 +928,119 @@ object UserScriptManager {
                 setTimeout(function(){ if (t) t.style.opacity = '0'; }, 3000);
             }
 
-            // 🛡️ SmartTube-Style YouTube Video Ad Stopper & Sponsored Post Stripper
+            // 🛡️ 3. SmartTube Video Ad Fast-Forward & Instaskip
             function blockYouTubeAds() {
                 var video = document.querySelector('video');
-                var adElement = document.querySelector('.ad-showing, .ad-interrupting, .video-ads, .ytp-ad-player-overlay');
-                if (adElement && video) {
+                var isAdActive = document.querySelector('.ad-showing, .ad-interrupting, .video-ads, .ytp-ad-player-overlay');
+                
+                if (isAdActive && video) {
                     video.muted = true;
                     video.playbackRate = 16.0;
                     if (isFinite(video.duration) && video.duration > 0) {
                         video.currentTime = video.duration;
                     }
+                } else if (!isAdActive && video && video.playbackRate === 16.0) {
+                    video.playbackRate = 1.0;
+                    video.muted = false;
                 }
 
-                // Auto-click all YouTube Skip Ad buttons
+                // Instant click on YouTube Skip Ad buttons
                 var skipButtons = document.querySelectorAll(
-                    '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-overlay-close-button, button.ytp-ad-skip-button-text, .ytp-ad-skip-button-slot button'
+                    '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-overlay-close-button, button.ytp-ad-skip-button-text, .ytp-ad-skip-button-slot button, .ytp-ad-preview-container'
                 );
                 skipButtons.forEach(function(btn) {
                     try { btn.click(); } catch(e) {}
                 });
 
-                // Remove YouTube DOM ad banners, promoted shelves, sponsored cards (SmartTube logic)
-                var adDomSelectors = [
-                    '#player-ads', '.ytp-ad-module', '.ytp-ad-overlay-container',
-                    'ytd-promoted-sparkles-web-renderer', 'ytd-display-ad-renderer',
-                    'ytd-ad-slot-renderer', 'ytd-banner-promo-renderer', 'ytd-in-feed-ad-layout-renderer',
-                    'ytd-promoted-video-renderer', 'ytd-action-companion-ad-renderer',
-                    '#masthead-ad', 'ytd-rich-item-renderer:has(ytd-ad-slot-renderer)',
-                    'ytd-rich-item-renderer:has(ytd-in-feed-ad-layout-renderer)',
-                    'ytd-rich-section-renderer:has(ytd-ad-slot-renderer)',
-                    'ytd-statement-banner-renderer', 'ytd-brand-video-singleton-renderer',
-                    'ytd-merch-shelf-renderer', 'ytm-promoted-sparkles-web-renderer',
-                    'ytm-promoted-video-renderer', 'ytm-ad-slot-renderer', 'ytm-companion-ad-renderer',
-                    'ytm-in-feed-ad-layout-renderer', 'ytm-statement-banner-renderer',
-                    'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"]'
+                // Remove sponsored rich items, clarification boxes and promo banners
+                var badSelectors = [
+                    '.badge-style-type-ad',
+                    'ytd-ad-slot-renderer',
+                    'ytm-ad-slot-renderer',
+                    'ytd-in-feed-ad-layout-renderer',
+                    'ytd-promoted-sparkles-web-renderer',
+                    'ytd-promoted-video-renderer',
+                    'ytd-search-pyv-renderer',
+                    'ytd-clarification-renderer',
+                    '#about-this-ad',
+                    '#clarify-box',
+                    '#about-this-result'
                 ];
-                var adElements = document.querySelectorAll(adDomSelectors.join(', '));
-                adElements.forEach(function(el) {
+                document.querySelectorAll(badSelectors.join(',')).forEach(function(el) {
+                    var container = el.closest('ytd-rich-item-renderer, ytm-rich-item-renderer, ytd-video-renderer, ytd-rich-section-renderer, ytd-search-pyv-renderer, ytd-clarification-renderer, ytd-item-section-renderer');
+                    if (container) {
+                        try { container.remove(); } catch(e) {}
+                    } else {
+                        try { el.remove(); } catch(e) {}
+                    }
+                });
+
+                // Deep scan for text containing "Sponzorirano" or "Sponsored"
+                var allSpans = document.querySelectorAll('span, div, p');
+                allSpans.forEach(function(el) {
+                    if (el.children.length === 0) {
+                        var txt = (el.textContent || '').trim().toLowerCase();
+                        if (txt === 'sponzorirano' || txt === 'sponsored' || txt === 'sponzor' || txt === 'ad') {
+                            var item = el.closest('ytd-rich-item-renderer, ytm-rich-item-renderer, ytd-video-renderer, ytd-item-section-renderer, ytd-rich-section-renderer');
+                            if (item) {
+                                try { item.remove(); } catch(e) {}
+                            }
+                        }
+                    }
+                });
+                // Force zero top margins and remove masthead headers injected by Polymer JS
+                var appEl = document.querySelector('ytd-app');
+                if (appEl && !appEl.hasAttribute('masthead-hidden')) {
+                    appEl.setAttribute('masthead-hidden', '');
+                }
+                var badTops = document.querySelectorAll('#masthead-container, ytd-masthead, #chips-wrapper, ytd-feed-filter-chip-bar-renderer, ytd-rich-grid-renderer > #header, ytd-browse > #header, #header.ytd-browse, #header.ytd-rich-grid-renderer, #header, ytd-statement-banner-renderer, ytd-banner-promo-renderer, ytd-brand-video-singleton-renderer, ytd-hero-playlist-thumbnail-renderer');
+                badTops.forEach(function(el) {
                     try { el.remove(); } catch(e) {}
+                });
+                var grid = document.querySelector('ytd-rich-grid-renderer');
+                if (grid) {
+                    grid.style.setProperty('padding-top', '0px', 'important');
+                    grid.style.setProperty('margin-top', '0px', 'important');
+                }
+                var pm = document.querySelector('#page-manager, ytd-page-manager');
+                if (pm) {
+                    pm.style.setProperty('margin-top', '0px', 'important');
+                    pm.style.setProperty('padding-top', '0px', 'important');
+                }
+                var content = document.querySelector('#content.ytd-app');
+                if (content) {
+                    content.style.setProperty('margin-top', '0px', 'important');
+                    content.style.setProperty('padding-top', '0px', 'important');
+                }
+                var pm = document.querySelector('#page-manager, ytd-page-manager');
+                if (pm && (pm.style.marginTop !== '0px' || pm.style.paddingTop !== '0px')) {
+                    pm.style.marginTop = '0px';
+                    pm.style.paddingTop = '0px';
+                }
+                var primaryEl = document.querySelector('#primary, #primary.ytd-two-column-browse-results-renderer');
+                if (primaryEl && (primaryEl.style.paddingTop !== '0px' || primaryEl.style.marginTop !== '0px')) {
+                    primaryEl.style.paddingTop = '0px';
+                    primaryEl.style.marginTop = '0px';
+                }
+                var gridEl = document.querySelector('ytd-rich-grid-renderer');
+                if (gridEl && (gridEl.style.paddingTop !== '0px' || gridEl.style.marginTop !== '0px')) {
+                    gridEl.style.paddingTop = '0px';
+                    gridEl.style.marginTop = '0px';
+                }
+
+                // 🎮 SmartTube D-Pad Traversal: Make video items seamlessly focusable
+                var items = document.querySelectorAll('ytm-media-item, ytm-rich-item-renderer, ytm-compact-video-renderer, ytm-video-with-context-renderer, ytd-rich-item-renderer, ytd-video-renderer');
+                items.forEach(function(el) {
+                    if (!el.hasAttribute('tabindex')) {
+                        el.setAttribute('tabindex', '0');
+                        el.addEventListener('keydown', function(e) {
+                            if (e.key === 'Enter' || e.keyCode === 13) {
+                                var a = el.querySelector('a');
+                                if (a) a.click();
+                                else el.click();
+                            }
+                        });
+                    }
                 });
             }
 
@@ -565,7 +1052,7 @@ object UserScriptManager {
                 }
                 attachPlayer();
                 blockYouTubeAds();
-            }, 100);
+            }, 60);
         })();
     """
 

@@ -65,6 +65,20 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
     }
 
+    override fun loadUrl(url: String) {
+        val prefs = context.getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+        val uaOrdinal = prefs.getInt("user_agent_mode", UserAgentMode.TV.ordinal)
+        setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
+        super.loadUrl(url)
+    }
+
+    override fun loadUrl(url: String, additionalHttpHeaders: Map<String, String>) {
+        val prefs = context.getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
+        val uaOrdinal = prefs.getInt("user_agent_mode", UserAgentMode.TV.ordinal)
+        setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
+        super.loadUrl(url, additionalHttpHeaders)
+    }
+
     private fun configureUngoogledChromiumSettings() {
         val s = settings
         s.javaScriptEnabled = true
@@ -189,7 +203,12 @@ class ChromiumEngineView @JvmOverloads constructor(
                     Log.d("TvChromium", "Captured video stream URL: $url")
                 }
 
-                // 🚫 3. Ad & Popunder Domain Blocking
+                // 🛡️ 3. YouTube Ad & Telemetry Stream Blocking
+                if (adBlockEngine.isYouTubeAd(url)) {
+                    return AdBlockEngine.createEmptyResponse("text/plain")
+                }
+
+                // 🚫 4. Ad & Popunder Domain Blocking
                 if (adBlockEngine.isBlocked(url)) {
                     return AdBlockEngine.createEmptyResponse("text/plain")
                 }

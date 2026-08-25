@@ -238,14 +238,16 @@ class AdBlockEngine(context: Context? = null) {
     }
 
     /**
-     * 🛡️ Brave-Style YouTube Video Ad Detection:
-     * Intercepts pre-rolls, mid-rolls, companion ads and telemetry tracking.
+     * 🛡️ Brave & SmartTube-Style YouTube Video Ad & Telemetry Detection:
+     * Intercepts pre-rolls, mid-rolls, companion ads, sponsored feeds and telemetry tracking.
      */
     fun isYouTubeAd(url: String?): Boolean {
         if (url == null || url.isEmpty()) return false
         val lower = url.lowercase()
         return lower.contains("googleads.g.doubleclick.net") ||
+               lower.contains("static.doubleclick.net") ||
                lower.contains("pagead2.googlesyndication.com") ||
+               lower.contains("adservice.google.com") ||
                lower.contains("ad.youtube.com") ||
                lower.contains("ads.youtube.com") ||
                lower.contains("/api/stats/ads") ||
@@ -254,7 +256,8 @@ class AdBlockEngine(context: Context? = null) {
                lower.contains("/get_midroll_info") ||
                lower.contains("/api/stats/atr") ||
                lower.contains("youtube.com/api/stats/qoe?adformat=") ||
-               (lower.contains("googlevideo.com") && (lower.contains("&adformat=") || lower.contains("&ctier=l") || lower.contains("cver=html5-ads")))
+               lower.contains("youtube.com/youtubei/v1/log_event") ||
+               (lower.contains("googlevideo.com") && (lower.contains("&adformat=") || lower.contains("&ctier=l") || lower.contains("cver=html5-ads") || lower.contains("&alr=")))
     }
 
     fun isAntiAdblockScript(url: String?): Boolean {
