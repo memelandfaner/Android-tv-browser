@@ -966,6 +966,10 @@ object UserScriptManager {
                     if (event.data.state && event.data.state.isPlaying) {
                         playerState = event.data.state;
                         queueStateBroadcast(false);
+                        applyCinemaFullscreen(true);
+                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                            window.AndroidNativeBridge.requestTvFullscreen();
+                        }
                     }
                 }
             });
@@ -998,33 +1002,15 @@ object UserScriptManager {
             function isWatchPage() {
                 var p = (window.location.pathname || '').toLowerCase();
                 var h = (window.location.href || '').toLowerCase();
-                // Check if on homepage / catalog index
-                var isHome = p === '/' || p === '' || p === '/index.html' || p === '/home' || p.indexOf('/#') !== -1;
-                if (isHome && !window.location.search && !window.location.hash) return false;
-
-                // Explicit watch indicators in URL
                 var isWatchUrl = p.indexOf('/watch') !== -1 ||
                                  p.indexOf('/movie/') !== -1 ||
                                  p.indexOf('/series/') !== -1 ||
                                  p.indexOf('/tv/') !== -1 ||
                                  p.indexOf('/episode/') !== -1 ||
-                                 p.indexOf('/stream/') !== -1 ||
-                                 p.indexOf('/play/') !== -1 ||
-                                 p.indexOf('/embed/') !== -1 ||
-                                 p.indexOf('watchseries') !== -1 ||
-                                 p.indexOf('/v/') !== -1 ||
-                                 h.indexOf('youtube.com/watch') !== -1 ||
-                                 h.indexOf('piped.video/watch') !== -1;
-
-                if (isWatchUrl) return true;
-                if (isHome) return false;
-
-                // Only consider watch page if explicit player container exists and is NOT a trailer modal
-                var playerEl = document.querySelector('#player, #iframe-player, .player-wrapper, iframe[src*="embed"], iframe[src*="vid"], iframe[src*="player"]');
-                if (playerEl && !playerEl.closest('#trailer, .trailer, [class*="trailer"], [id*="trailer"]')) {
-                    return true;
-                }
-                return false;
+                                 h.indexOf('watch') !== -1 ||
+                                 h.indexOf('embed') !== -1 ||
+                                 h.indexOf('movie') !== -1;
+                return isWatchUrl;
             }
 
             // Suppress and close annoying homepage trailer modals
@@ -1041,26 +1027,16 @@ object UserScriptManager {
 
             // 6. Video Element Listeners & Setup
             function setupVideoElement(video) {
-                if (!video) return;
                 try {
-                    // Check if this video is a trailer
-                    var isTrailer = (video.src && video.src.toLowerCase().indexOf('trailer') !== -1) ||
-                                    video.closest('#trailer, .trailer, [class*="trailer"], [id*="trailer"], .trailer-modal') !== null;
-                    if (isTrailer || !isWatchPage()) {
-                        return; // DO NOT auto-play or unmute trailers or homepage videos!
-                    }
-
-                    video.muted = false;
-                    video.volume = 1.0;
-                    if (!video.hasAttribute('tabindex')) video.setAttribute('tabindex', '0');
-
-                    if (!video._freenetListenersAttached) {
-                        video._freenetListenersAttached = true;
+                    if (!video._freenetBridgeAttached) {
+                        video._freenetBridgeAttached = true;
+                        applyCinemaFullscreen(true);
 
                         video.addEventListener('play', function() {
                             video.muted = false;
                             video.volume = 1.0;
                             setupMediaSession(video);
+                            applyCinemaFullscreen(true);
                             if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
                                 window.AndroidNativeBridge.requestTvFullscreen();
                             }
@@ -1077,8 +1053,10 @@ object UserScriptManager {
                         video.addEventListener('playing', function() { queueStateBroadcast(true); });
                         video.addEventListener('click', function() {
                             try {
-                                if (video.requestFullscreen) video.requestFullscreen();
-                                else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen();
+                                applyCinemaFullscreen(true);
+                                if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                                    window.AndroidNativeBridge.requestTvFullscreen();
+                                }
                             } catch(e) {}
                         });
                     }
@@ -1108,6 +1086,14 @@ object UserScriptManager {
                         ifr.setAttribute('mozallowfullscreen', 'true');
                         ifr.setAttribute('allow', 'fullscreen; autoplay; encrypted-media; picture-in-picture');
                         if (!ifr.hasAttribute('tabindex')) ifr.setAttribute('tabindex', '0');
+                        if (!ifr._freenetBound) {
+                            ifr._freenetBound = true;
+                            ifr.addEventListener('load', function() {
+                                if (isWatchPage()) {
+                                    applyCinemaFullscreen(true);
+                                }
+                            });
+                        }
                     } catch(e) {}
                 });
             }
