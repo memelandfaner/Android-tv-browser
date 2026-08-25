@@ -130,6 +130,18 @@ class ChromiumEngineView @JvmOverloads constructor(
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val rawUrl = request?.url?.toString() ?: return false
 
+                // 🛡️ 0. Google Warning / Interstitial Direct Destination Bypass
+                if (rawUrl.contains("google.") && (rawUrl.contains("/interstitial") || rawUrl.contains("/url?") || rawUrl.contains("url="))) {
+                    try {
+                        val parsed = Uri.parse(rawUrl)
+                        val target = parsed.getQueryParameter("url") ?: parsed.getQueryParameter("q")
+                        if (!target.isNullOrEmpty() && (target.startsWith("http://") || target.startsWith("https://"))) {
+                            view?.loadUrl(target)
+                            return true
+                        }
+                    } catch (ignored: Exception) {}
+                }
+
                 // ⚡ 1. Anti-AMP & Tracking Stripper (Only for main-frame navigations)
                 val cleanUrl = adBlockEngine.sanitizeUrl(rawUrl)
                 if (request != null && request.isForMainFrame && cleanUrl != rawUrl) {

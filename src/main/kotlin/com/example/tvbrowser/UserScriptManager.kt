@@ -147,6 +147,30 @@ object UserScriptManager {
         })();
     """
 
+    // 🛡️ 1c. Google Search & Interstitial Warning Auto-Bypass
+    private const val GOOGLE_INTERSTITIAL_BYPASS_JS = """
+        (function() {
+            try {
+                var h = (window.location.hostname || '').toLowerCase();
+                var p = (window.location.pathname || '').toLowerCase();
+                var href = (window.location.href || '').toLowerCase();
+                var isGoogle = h.indexOf('google.') !== -1;
+                var isWarning = p.indexOf('interstitial') !== -1 || href.indexOf('url?') !== -1 || document.title.indexOf('Opozorilo') !== -1 || document.title.indexOf('Warning') !== -1 || (document.body && document.body.innerText.indexOf('škodi vašemu') !== -1);
+                if (isGoogle && isWarning) {
+                    var links = document.querySelectorAll('a');
+                    for (var i = 0; i < links.length; i++) {
+                        var target = links[i].href;
+                        if (target && target.indexOf('google.') === -1 && (target.startsWith('http://') || target.startsWith('https://'))) {
+                            console.log("FreeNet: Auto-bypassing Google warning to:", target);
+                            window.location.replace(target);
+                            return;
+                        }
+                    }
+                }
+            } catch(e) {}
+        })();
+    """
+
     // 🎨 2. Cosmetic Filtering & CMP Annoyances CSS (Cookie walls, App banners, Shorts, Endscreens)
     private const val COSMETIC_FILTER_CSS = """
         (function() {
@@ -1109,6 +1133,7 @@ object UserScriptManager {
     fun injectAtDocumentStart(webView: WebView) {
         webView.evaluateJavascript(ANTI_ANTI_ADBLOCK_JS.trimIndent(), null)
         webView.evaluateJavascript(KEY_EVENTS_PATCH_JS.trimIndent(), null)
+        webView.evaluateJavascript(GOOGLE_INTERSTITIAL_BYPASS_JS.trimIndent(), null)
     }
 
     fun injectCosmeticFiltering(webView: WebView) {
