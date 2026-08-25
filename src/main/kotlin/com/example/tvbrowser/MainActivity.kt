@@ -1694,6 +1694,33 @@ class MainActivity : android.app.Activity() {
     // =========================================================================
     // 🎮 D-PAD & VIRTUAL CURSOR DISPATCH
     // =========================================================================
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        if (customView != null) {
+            getActiveWebView()?.onHideCustomViewListener?.invoke()
+            return
+        }
+        if (isTvFullscreenMode) {
+            toggleFullscreenMode(false)
+            return
+        }
+        if (bookmarksPanel.visibility == View.VISIBLE ||
+            downloadsPanel.visibility == View.VISIBLE ||
+            historyPanel.visibility == View.VISIBLE ||
+            settingsPanel.visibility == View.VISIBLE ||
+            voiceListeningOverlay.visibility == View.VISIBLE) {
+            hideAllPanels()
+            return
+        }
+        val active = getActiveWebView()
+        if (active != null && active.canGoBack()) {
+            active.goBack()
+            return
+        }
+        @Suppress("DEPRECATION")
+        super.onBackPressed()
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // Color shortcuts (🟢 Green, 🟡 Yellow, 🔴 Red, 🔵 Blue)
         if (focusManager.handleTvKey(event.keyCode, event)) {
