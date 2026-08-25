@@ -51,15 +51,15 @@ object UserScriptManager {
                 } catch(e) {}
 
                 // 5. MutationObserver to safely remove anti-adblock modal backdrops and annoyance walls
-                const observer = new MutationObserver(() => {
+                var observer = new MutationObserver(function() {
                     window.google_ad_status = 1;
                     window.canRunAds = true;
                     window.adblock = false;
 
-                    const badOverlays = document.querySelectorAll(
+                    var badOverlays = document.querySelectorAll(
                         '.fc-ab-root, .adblock-overlay, [class*="adblock-modal"], [class*="open-in-app"], .smartbanner, #app-banner, .app-download-banner, .download-app-banner'
                     );
-                    badOverlays.forEach(el => {
+                    badOverlays.forEach(function(el) {
                         try { el.remove(); } catch(e) {}
                     });
                 });
@@ -67,13 +67,83 @@ object UserScriptManager {
                 if (document.documentElement) {
                     observer.observe(document.documentElement, { childList: true, subtree: true });
                 } else {
-                    document.addEventListener('DOMContentLoaded', () => {
+                    document.addEventListener('DOMContentLoaded', function() {
                         if (document.documentElement) {
                             observer.observe(document.documentElement, { childList: true, subtree: true });
                         }
                     });
                 }
             } catch(err) {}
+        })();
+    """
+
+    // 🎮 1b. Android TV Keyboard & D-Pad Event Normalizer
+    private const val KEY_EVENTS_PATCH_JS = """
+        (function() {
+            if (window.__androidKeyboardCodePatchInstalled) return;
+            window.__androidKeyboardCodePatchInstalled = true;
+
+            function codeFromKeyInfo(e) {
+                if (e.code) return e.code;
+                switch (e.key) {
+                    case " ": case "Spacebar": return "Space";
+                    case "ArrowUp": return "ArrowUp";
+                    case "ArrowDown": return "ArrowDown";
+                    case "ArrowLeft": return "ArrowLeft";
+                    case "ArrowRight": return "ArrowRight";
+                    case "Enter": return "Enter";
+                    case "Escape": return "Escape";
+                    case "Tab": return "Tab";
+                    case "Backspace": return "Backspace";
+                    case "f": case "F": return "KeyF";
+                }
+                switch (e.keyCode || e.which) {
+                    case 32: return "Space";
+                    case 13: return "Enter";
+                    case 27: return "Escape";
+                    case 9:  return "Tab";
+                    case 8:  return "Backspace";
+                    case 37: return "ArrowLeft";
+                    case 38: return "ArrowUp";
+                    case 39: return "ArrowRight";
+                    case 40: return "ArrowDown";
+                    case 70: return "KeyF";
+                    default: return "";
+                }
+            }
+
+            function keyFromCode(code, currentKey) {
+                if (currentKey && currentKey !== "Unidentified") return currentKey;
+                switch (code) {
+                    case "Space": return " ";
+                    case "Enter": return "Enter";
+                    case "Escape": return "Escape";
+                    case "Tab": return "Tab";
+                    case "Backspace": return "Backspace";
+                    case "ArrowLeft": return "ArrowLeft";
+                    case "ArrowUp": return "ArrowUp";
+                    case "ArrowRight": return "ArrowRight";
+                    case "ArrowDown": return "ArrowDown";
+                    case "KeyF": return "f";
+                    default: return currentKey || "";
+                }
+            }
+
+            function patchKeyboardEvent(e) {
+                if (!(e instanceof KeyboardEvent)) return;
+                var code = codeFromKeyInfo(e);
+                if (code && !e.code) {
+                    try { Object.defineProperty(e, "code", { configurable: true, get: function() { return code; } }); } catch (_) {}
+                }
+                var key = keyFromCode(code, e.key);
+                if (key && (!e.key || e.key === "Unidentified")) {
+                    try { Object.defineProperty(e, "key", { configurable: true, get: function() { return key; } }); } catch (_) {}
+                }
+            }
+
+            window.addEventListener("keydown", patchKeyboardEvent, true);
+            window.addEventListener("keyup", patchKeyboardEvent, true);
+            window.addEventListener("keypress", patchKeyboardEvent, true);
         })();
     """
 
@@ -1038,6 +1108,7 @@ object UserScriptManager {
 
     fun injectAtDocumentStart(webView: WebView) {
         webView.evaluateJavascript(ANTI_ANTI_ADBLOCK_JS.trimIndent(), null)
+        webView.evaluateJavascript(KEY_EVENTS_PATCH_JS.trimIndent(), null)
     }
 
     fun injectCosmeticFiltering(webView: WebView) {

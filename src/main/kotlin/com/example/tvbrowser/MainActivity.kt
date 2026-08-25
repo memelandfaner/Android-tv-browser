@@ -694,6 +694,7 @@ class MainActivity : android.app.Activity() {
                 findViewById<View>(R.id.headerContainer).visibility = View.GONE
                 webViewContainer.visibility = View.GONE
                 window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                hideSystemUI()
             }
             onHideCustomViewListener = {
                 if (customView != null) {
@@ -705,6 +706,7 @@ class MainActivity : android.app.Activity() {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     customViewCallback?.onCustomViewHidden()
                     customViewCallback = null
+                    hideSystemUI()
                 }
             }
             onEdgeReachedTopListener = {
@@ -1897,6 +1899,18 @@ class MainActivity : android.app.Activity() {
         up.recycle()
     }
 
+    @Suppress("DEPRECATION")
+    private fun hideSystemUI() {
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        )
+    }
+
     fun toggleFullscreenMode(forceEnable: Boolean? = null) {
         val target = forceEnable ?: !isTvFullscreenMode
         isTvFullscreenMode = target
@@ -1909,14 +1923,7 @@ class MainActivity : android.app.Activity() {
             hideAllPanels()
             header.visibility = View.GONE
             tabs.visibility = View.GONE
-            window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            )
+            hideSystemUI()
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
             if (pill != null) {
