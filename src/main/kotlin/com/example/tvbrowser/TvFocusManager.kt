@@ -1,15 +1,17 @@
 package com.example.tvbrowser
 
 import android.view.KeyEvent
-import android.view.View
 import android.widget.EditText
 
 class TvFocusManager(
     private val editUrl: EditText,
+    private val isFullscreenActive: () -> Boolean,
     private val onToggleCursor: () -> Unit,
     private val onStartVoice: () -> Unit,
     private val onToggleBookmarks: () -> Unit,
-    private val onToggleFullscreen: () -> Unit
+    private val onToggleFullscreen: () -> Unit,
+    private val onSubtitlesKey: () -> Unit,
+    private val onServersKey: () -> Unit
 ) {
 
     fun handleTvKey(keyCode: Int, event: KeyEvent?): Boolean {
@@ -18,8 +20,12 @@ class TvFocusManager(
         when (keyCode) {
             // 🟢 Green Button / Menu (Keycode 82 or PROG_GREEN 184)
             KeyEvent.KEYCODE_MENU, 184, KeyEvent.KEYCODE_PROG_GREEN -> {
-                editUrl.requestFocus()
-                editUrl.selectAll()
+                if (isFullscreenActive()) {
+                    onSubtitlesKey()
+                } else {
+                    editUrl.requestFocus()
+                    editUrl.selectAll()
+                }
                 return true
             }
 
@@ -29,9 +35,13 @@ class TvFocusManager(
                 return true
             }
 
-            // 🔴 Red Button (Keycode 183 or PROG_RED) -> Launch Voice Search
+            // 🔴 Red Button (Keycode 183 or PROG_RED) -> Servers in player or Voice Search on page
             183, KeyEvent.KEYCODE_PROG_RED -> {
-                onStartVoice()
+                if (isFullscreenActive()) {
+                    onServersKey()
+                } else {
+                    onStartVoice()
+                }
                 return true
             }
 
@@ -44,3 +54,4 @@ class TvFocusManager(
         return false
     }
 }
+

@@ -94,6 +94,7 @@ class MainActivity : android.app.Activity() {
 
         focusManager = TvFocusManager(
             editUrl = editUrl,
+            isFullscreenActive = { isTvFullscreenMode || customView != null },
             onToggleCursor = { toggleCursorMode() },
             onStartVoice = { startVoiceSearch() },
             onToggleBookmarks = {
@@ -102,6 +103,14 @@ class MainActivity : android.app.Activity() {
             },
             onToggleFullscreen = {
                 toggleFullscreenMode()
+            },
+            onSubtitlesKey = {
+                sendPlayerCommand("SUBTITLES")
+                Toast.makeText(this, "💬 Odpiram podnapise", Toast.LENGTH_SHORT).show()
+            },
+            onServersKey = {
+                sendPlayerCommand("SERVERS")
+                Toast.makeText(this, "🔄 Izbira strežnika", Toast.LENGTH_SHORT).show()
             }
         )
 
@@ -1754,6 +1763,22 @@ class MainActivity : android.app.Activity() {
                 KeyEvent.KEYCODE_MEDIA_STOP -> {
                     sendPlayerCommand("PAUSE")
                     return true
+                }
+            }
+
+            if (isTvFullscreenMode && !cursorOverlay.isCursorActive()) {
+                when (event.keyCode) {
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        sendPlayerCommand("SEEK_RELATIVE", -10)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        sendPlayerCommand("SEEK_RELATIVE", 10)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        sendPlayerCommand("SHOW_CONTROLS")
+                    }
                 }
             }
         }

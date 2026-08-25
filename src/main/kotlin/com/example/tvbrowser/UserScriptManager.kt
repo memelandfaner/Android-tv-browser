@@ -95,11 +95,103 @@ object UserScriptManager {
 
                     /* 🎯 TV Spatial Focus Ring & Neon Halo for Philips TV Remote Navigation */
                     :focus, :focus-visible, a:focus, button:focus, input:focus, select:focus, textarea:focus, [tabindex]:focus, [role="button"]:focus {
-                        outline: 3px solid #38bdf8 !important;
+                        outline: 3px solid #00e5ff !important;
                         outline-offset: 2px !important;
-                        box-shadow: 0 0 16px rgba(56, 189, 248, 0.9) !important;
-                        border-radius: 4px !important;
-                        transition: outline 0.12s ease-out, box-shadow 0.12s ease-out !important;
+                        box-shadow: 0 0 18px rgba(0, 229, 255, 0.95), 0 0 35px rgba(0, 229, 255, 0.5) !important;
+                        border-radius: 6px !important;
+                        transition: outline 0.12s ease-out, box-shadow 0.12s ease-out, transform 0.12s ease-out !important;
+                    }
+
+                    /* 🎬 TV Video Player Control Bar & Focus Accessibility Enhancement */
+                    .jw-controlbar, .plyr__controls, .vjs-control-bar, .ytp-chrome-bottom, [class*="controls-bar"] {
+                        transition: opacity 0.25s ease, visibility 0.25s ease !important;
+                    }
+                    .tv-controls-active .jw-controlbar,
+                    .tv-controls-active .plyr__controls,
+                    .tv-controls-active .vjs-control-bar,
+                    .tv-controls-active .ytp-chrome-bottom,
+                    .jwplayer:focus-within .jw-controlbar,
+                    .jw-controlbar:focus-within,
+                    .plyr:focus-within .plyr__controls,
+                    .vjs-control-bar:focus-within {
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                        pointer-events: auto !important;
+                        display: flex !important;
+                        z-index: 100000 !important;
+                    }
+                    .jw-icon, .jw-button-color, .plyr__controls button, .vjs-control, .ytp-button,
+                    .jw-slider-horizontal, .plyr__progress, .vjs-progress-control {
+                        min-width: 44px !important;
+                        min-height: 44px !important;
+                        margin: 0 4px !important;
+                        cursor: pointer !important;
+                    }
+                    .jw-icon:focus, .jw-button-color:focus, .plyr__controls button:focus, .vjs-control:focus, .ytp-button:focus,
+                    .jw-slider-horizontal:focus, [class*="server"]:focus, .server-btn:focus, .tv-hud-btn:focus {
+                        outline: 3px solid #00e5ff !important;
+                        outline-offset: 3px !important;
+                        box-shadow: 0 0 20px rgba(0, 229, 255, 0.95), 0 0 40px rgba(0, 229, 255, 0.5) !important;
+                        background: rgba(0, 229, 255, 0.28) !important;
+                        transform: scale(1.18) !important;
+                        border-radius: 8px !important;
+                        z-index: 100001 !important;
+                    }
+
+                    /* 🎛️ TV Quick Player Floating HUD */
+                    .tv-player-quick-hud {
+                        position: fixed !important;
+                        bottom: 24px !important;
+                        left: 50% !important;
+                        transform: translateX(-50%) !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        gap: 8px !important;
+                        background: rgba(15, 23, 42, 0.92) !important;
+                        backdrop-filter: blur(16px) !important;
+                        -webkit-backdrop-filter: blur(16px) !important;
+                        border: 1.5px solid rgba(56, 189, 248, 0.45) !important;
+                        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), 0 0 24px rgba(56, 189, 248, 0.25) !important;
+                        border-radius: 50px !important;
+                        padding: 8px 16px !important;
+                        z-index: 1000000 !important;
+                        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s !important;
+                        opacity: 1;
+                        pointer-events: auto;
+                    }
+                    .tv-player-quick-hud.tv-hud-hidden {
+                        opacity: 0 !important;
+                        visibility: hidden !important;
+                        pointer-events: none !important;
+                        transform: translateX(-50%) translateY(16px) !important;
+                    }
+                    .tv-hud-btn {
+                        display: inline-flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        background: rgba(30, 41, 59, 0.85) !important;
+                        color: #f8fafc !important;
+                        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                        border-radius: 30px !important;
+                        padding: 8px 16px !important;
+                        font-size: 14px !important;
+                        font-weight: 600 !important;
+                        cursor: pointer !important;
+                        white-space: nowrap !important;
+                        transition: all 0.15s ease !important;
+                    }
+                    .tv-hud-btn-primary {
+                        background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
+                        border-color: #38bdf8 !important;
+                        color: #ffffff !important;
+                    }
+                    .tv-hud-btn:focus, .tv-hud-btn:hover {
+                        outline: 3px solid #00e5ff !important;
+                        outline-offset: 2px !important;
+                        background: #0284c7 !important;
+                        color: #ffffff !important;
+                        box-shadow: 0 0 18px rgba(0, 229, 255, 0.9) !important;
+                        transform: scale(1.12) !important;
                     }
 
                     html, body {
@@ -465,6 +557,31 @@ object UserScriptManager {
                             window.AndroidNativeBridge.toggleTvFullscreen();
                         }
                         break;
+                    case 'SUBTITLES':
+                        var ccBtn = document.querySelector('.jw-icon-cc, .jw-icon-subtitles, [aria-label*="Captions" i], [aria-label*="Subtitles" i], [data-plyr="captions"], .vjs-subs-caps-button, .ytp-subtitles-button, button[title*="Subtitles" i], button[title*="Captions" i]');
+                        if (ccBtn) {
+                            try { ccBtn.click(); ccBtn.focus(); } catch(e) {}
+                        }
+                        showTvHud();
+                        break;
+                    case 'SETTINGS':
+                        var setBtn = document.querySelector('.jw-icon-settings, [aria-label*="Settings" i], [data-plyr="settings"], .vjs-settings-sub-menu, .ytp-settings-button, button[title*="Settings" i]');
+                        if (setBtn) {
+                            try { setBtn.click(); setBtn.focus(); } catch(e) {}
+                        }
+                        showTvHud();
+                        break;
+                    case 'SERVERS':
+                        var srvBtn = document.querySelector('.server-btn, [class*="server"], [data-server], #server, .server-select, [class*="server-selector"]');
+                        if (srvBtn) {
+                            try { srvBtn.focus(); srvBtn.click(); } catch(e) {}
+                        }
+                        break;
+                    case 'SHOW_CONTROLS':
+                        showTvHud();
+                        var pb = document.getElementById('hudBtnPlay') || document.querySelector('.jw-icon-playback, .plyr__control--play, button[aria-label*="Play" i]');
+                        if (pb) { try { pb.focus(); } catch(e) {} }
+                        break;
                 }
                 queueStateBroadcast(true);
             }
@@ -730,10 +847,111 @@ object UserScriptManager {
                 });
             }
 
+            // 10. TV Floating Quick HUD (Lebdeči kinematografski TV upravljalnik za D-Pad)
+            var hudHideTimer = null;
+            function showTvHud() {
+                var hud = document.getElementById('tvPlayerQuickHud');
+                if (!hud && isWatchPage()) {
+                    initTvPlayerQuickHud();
+                    hud = document.getElementById('tvPlayerQuickHud');
+                }
+                if (hud) {
+                    hud.classList.remove('tv-hud-hidden');
+                    document.body.classList.add('tv-controls-active');
+
+                    // Update play button text & icon
+                    var pBtn = document.getElementById('hudBtnPlay');
+                    if (pBtn) {
+                        var v = getPrimaryVideo();
+                        if (v && !v.paused) {
+                            pBtn.innerHTML = '⏸ Pavza';
+                        } else {
+                            pBtn.innerHTML = '▶ Predvajaj';
+                        }
+                    }
+
+                    clearTimeout(hudHideTimer);
+                    var v = getPrimaryVideo();
+                    if (v && !v.paused) {
+                        hudHideTimer = setTimeout(function() {
+                            if (!hud.contains(document.activeElement)) {
+                                hud.classList.add('tv-hud-hidden');
+                                document.body.classList.remove('tv-controls-active');
+                            }
+                        }, 5000);
+                    }
+                }
+            }
+
+            function initTvPlayerQuickHud() {
+                if (!isWatchPage()) return;
+                if (document.getElementById('tvPlayerQuickHud')) return;
+
+                var hud = document.createElement('div');
+                hud.id = 'tvPlayerQuickHud';
+                hud.className = 'tv-player-quick-hud';
+                hud.innerHTML = `
+                    <button id="hudBtnRewind" class="tv-hud-btn" tabindex="0" title="Previj -10s">⏪ -10s</button>
+                    <button id="hudBtnPlay" class="tv-hud-btn tv-hud-btn-primary" tabindex="0" title="Predvajaj / Pavza">⏯ Predvajaj</button>
+                    <button id="hudBtnForward" class="tv-hud-btn" tabindex="0" title="Naprej +10s">⏩ +10s</button>
+                    <button id="hudBtnSubs" class="tv-hud-btn" tabindex="0" title="Podnapisi">💬 Podnapisi</button>
+                    <button id="hudBtnSettings" class="tv-hud-btn" tabindex="0" title="Nastavitve">⚙️ Nastavitve</button>
+                    <button id="hudBtnServer" class="tv-hud-btn" tabindex="0" title="Strežniki">🔄 Strežniki</button>
+                    <button id="hudBtnFullscreen" class="tv-hud-btn" tabindex="0" title="Celozaslonski način">⛶ Celozaslonsko</button>
+                `;
+
+                (document.body || document.documentElement).appendChild(hud);
+
+                document.getElementById('hudBtnRewind').addEventListener('click', function(e) {
+                    e.stopPropagation(); handlePlayerCommand('SEEK_RELATIVE', -10); showTvHud();
+                });
+                document.getElementById('hudBtnPlay').addEventListener('click', function(e) {
+                    e.stopPropagation(); handlePlayerCommand('TOGGLE_PLAY'); showTvHud();
+                });
+                document.getElementById('hudBtnForward').addEventListener('click', function(e) {
+                    e.stopPropagation(); handlePlayerCommand('SEEK_RELATIVE', 10); showTvHud();
+                });
+                document.getElementById('hudBtnSubs').addEventListener('click', function(e) {
+                    e.stopPropagation(); handlePlayerCommand('SUBTITLES'); showTvHud();
+                });
+                document.getElementById('hudBtnSettings').addEventListener('click', function(e) {
+                    e.stopPropagation(); handlePlayerCommand('SETTINGS'); showTvHud();
+                });
+                document.getElementById('hudBtnServer').addEventListener('click', function(e) {
+                    e.stopPropagation(); handlePlayerCommand('SERVERS'); showTvHud();
+                });
+                document.getElementById('hudBtnFullscreen').addEventListener('click', function(e) {
+                    e.stopPropagation(); handlePlayerCommand('TOGGLE_FULLSCREEN'); showTvHud();
+                });
+
+                // Spatial navigation within HUD
+                hud.addEventListener('keydown', function(evt) {
+                    showTvHud();
+                    if (evt.keyCode === 38) { // ArrowUp -> Focus Server Select or Player
+                        var srv = document.querySelector('.server-btn, [class*="server"], [data-server], #server, .server-select');
+                        if (srv) { evt.preventDefault(); srv.focus(); }
+                    }
+                });
+
+                // Auto-show HUD on user activity
+                window.addEventListener('mousemove', showTvHud, { passive: true });
+                window.addEventListener('keydown', function(e) {
+                    showTvHud();
+                    if (e.keyCode === 40) { // ArrowDown on video/server -> jump to play button
+                        var active = document.activeElement;
+                        if (active && (active.classList.contains('server-btn') || (active.className && active.className.indexOf('server') !== -1) || active.tagName === 'BODY' || active.tagName === 'VIDEO')) {
+                            var pb = document.getElementById('hudBtnPlay');
+                            if (pb) { e.preventDefault(); pb.focus(); }
+                        }
+                    }
+                }, { passive: false });
+            }
+
             function setupServerSwitchListeners() {
                 if (!isWatchPage()) return;
                 var serverBtns = document.querySelectorAll('[class*="server"], [data-server], [id*="server"], .server-item, .server-btn');
                 serverBtns.forEach(function(sBtn) {
+                    if (!sBtn.hasAttribute('tabindex')) sBtn.setAttribute('tabindex', '0');
                     if (!sBtn._tvServerBound) {
                         sBtn._tvServerBound = true;
                         sBtn.addEventListener('click', function() {
@@ -746,7 +964,14 @@ object UserScriptManager {
                                 triggerPlayButtons();
                                 setupPlayerFocusAndClicks();
                                 setupControlBarButtons();
+                                showTvHud();
                             }, 400);
+                        });
+                        sBtn.addEventListener('keydown', function(e) {
+                            if (e.keyCode === 40) { // ArrowDown -> focus play button
+                                var pb = document.getElementById('hudBtnPlay') || document.querySelector('.jw-icon-playback, .plyr__control--play');
+                                if (pb) { e.preventDefault(); pb.focus(); }
+                            }
                         });
                     }
                 });
@@ -774,6 +999,7 @@ object UserScriptManager {
             setupControlBarButtons();
             setupServerSwitchListeners();
             triggerPlayButtons();
+            initTvPlayerQuickHud();
 
             // Observe dynamic changes
             var obs = new MutationObserver(function() {
@@ -783,6 +1009,7 @@ object UserScriptManager {
                 setupPlayerFocusAndClicks();
                 setupControlBarButtons();
                 setupServerSwitchListeners();
+                initTvPlayerQuickHud();
             });
             if (document.documentElement) {
                 obs.observe(document.documentElement, { childList: true, subtree: true });
