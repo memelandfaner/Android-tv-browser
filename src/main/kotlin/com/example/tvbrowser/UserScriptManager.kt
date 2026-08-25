@@ -758,6 +758,23 @@ object UserScriptManager {
                                 margin: 0 !important;
                                 padding: 0 !important;
                             }
+                            .freenet-tv-fullscreen .col-md-3,
+                            .freenet-tv-fullscreen [class*="similar"],
+                            .freenet-tv-fullscreen [class*="sidebar"],
+                            .freenet-tv-fullscreen [class*="related"],
+                            .freenet-tv-fullscreen header,
+                            .freenet-tv-fullscreen nav,
+                            .freenet-tv-fullscreen footer,
+                            .freenet-tv-fullscreen .navbar,
+                            .freenet-tv-fullscreen .header,
+                            .freenet-tv-fullscreen .info-section,
+                            .freenet-tv-fullscreen .movie-details {
+                                display: none !important;
+                            }
+                            .freenet-tv-fullscreen .col-md-9,
+                            .freenet-tv-fullscreen .col-lg-9,
+                            .freenet-tv-fullscreen .col-12,
+                            .freenet-tv-fullscreen .main-content,
                             .freenet-tv-fullscreen #player,
                             .freenet-tv-fullscreen #iframe-player,
                             .freenet-tv-fullscreen #player-wrapper,
@@ -789,9 +806,33 @@ object UserScriptManager {
                     }
                     document.documentElement.classList.add('freenet-tv-fullscreen');
                     document.body.classList.add('freenet-tv-fullscreen');
+
+                    try {
+                        var pEl = document.querySelector('#iframe-player, #player, iframe[src*="embed"], iframe[src*="vid"], iframe[src*="stream"], iframe[src*="hydra"], iframe[src*="player"], video');
+                        if (pEl) {
+                            pEl.style.setProperty('position', 'fixed', 'important');
+                            pEl.style.setProperty('top', '0', 'important');
+                            pEl.style.setProperty('left', '0', 'important');
+                            pEl.style.setProperty('width', '100vw', 'important');
+                            pEl.style.setProperty('height', '100vh', 'important');
+                            pEl.style.setProperty('z-index', '2147483647', 'important');
+                            pEl.style.setProperty('background', '#000', 'important');
+                        }
+                    } catch(e) {}
                 } else {
                     document.documentElement.classList.remove('freenet-tv-fullscreen');
                     document.body.classList.remove('freenet-tv-fullscreen');
+                    try {
+                        var pEl2 = document.querySelector('#iframe-player, #player, iframe, video');
+                        if (pEl2) {
+                            pEl2.style.removeProperty('position');
+                            pEl2.style.removeProperty('top');
+                            pEl2.style.removeProperty('left');
+                            pEl2.style.removeProperty('width');
+                            pEl2.style.removeProperty('height');
+                            pEl2.style.removeProperty('z-index');
+                        }
+                    } catch(e) {}
                 }
             }
 
