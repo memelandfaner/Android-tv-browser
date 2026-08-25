@@ -104,6 +104,7 @@ class MainActivity : android.app.Activity() {
             },
             onToggleFullscreen = {
                 toggleFullscreenMode()
+                sendPlayerCommand("TOGGLE_FULLSCREEN")
             },
             onSubtitlesKey = {
                 sendPlayerCommand("SUBTITLES")
@@ -562,6 +563,7 @@ class MainActivity : android.app.Activity() {
 
         findViewById<View>(R.id.btnNavFullscreen).setOnClickListener {
             toggleFullscreenMode()
+            sendPlayerCommand("TOGGLE_FULLSCREEN")
         }
 
         findViewById<View>(R.id.fullscreenExitPill)?.setOnClickListener {
