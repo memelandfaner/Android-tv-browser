@@ -4,14 +4,19 @@ Najboljši, najnaprednejši in posebej za **Android TV** (Philips 50PUS8507/12 U
 
 ---
 
-## ⚡ Hitra 1-Klik Namestitev (Quick Install)
+## ⚡ Hitra 1-Klik Namestitev & Kratke Povezave (Quick Install)
 
-### 📲 1. Neposredna namestitev prek ADB (Linux / Mac / Windows):
+### 🚀 1. Kratka povezava za vpis v brskalnik ali Downloader aplikacijo:
+V poljuben brskalnik ali aplikacijo **Downloader** na TV vpišite:
+👉 `tinyurl.com/freenet-apk` (ali `https://tinyurl.com/freenet-apk`)  
+👉 Rezerva: `da.gd/LPEM3` (ali `https://da.gd/LPEM3`)
+
+### 📲 2. Neposredna namestitev prek ADB (Linux / Mac / Windows):
 ```bash
 curl -sL https://raw.githubusercontent.com/memelandfaner/freenet-browser/main/install_freenet.sh | bash
 ```
 
-### 📥 2. Neposredna povezava za prenos APK:
+### 📥 3. Neposredna povezava za prenos APK:
 - **Prenos Release APK**: [tv-browser-release.apk](https://raw.githubusercontent.com/memelandfaner/freenet-browser/main/Release/Artifacts/tv-browser-release.apk)
 - **Neposredna datoteka**: [freenet-browser.apk](https://raw.githubusercontent.com/memelandfaner/freenet-browser/main/freenet-browser.apk)
 
