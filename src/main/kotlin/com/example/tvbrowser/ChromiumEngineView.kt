@@ -36,6 +36,7 @@ class ChromiumEngineView @JvmOverloads constructor(
 
     val adBlockEngine = AdBlockEngine(context)
     var currentUaMode: UserAgentMode = UserAgentMode.TV
+    var lastVideoUrl: String? = null
 
     init {
         configureUngoogledChromiumSettings()
@@ -178,6 +179,13 @@ class ChromiumEngineView @JvmOverloads constructor(
                 // 🛡️ 2. DevTool Crash Protection
                 if (adBlockEngine.isDevToolBlocker(url)) {
                     return adBlockEngine.createEmptyJsResponse()
+                }
+
+                // 🎬 Video Stream Sniffer for HLS / DASH / MP4 native FullscreenVideo playback
+                val lowerUrl = url.lowercase()
+                if (lowerUrl.contains(".m3u8") || lowerUrl.contains(".mpd") || lowerUrl.contains("manifest") || (lowerUrl.contains(".mp4") && !lowerUrl.contains("favicon"))) {
+                    lastVideoUrl = url
+                    Log.d("TvChromium", "Captured video stream URL: $url")
                 }
 
                 // 🚫 3. Ad & Popunder Domain Blocking
@@ -389,12 +397,17 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
 
         @JavascriptInterface
-        fun launchNativeVideo(url: String, title: String? = null) {
+        fun launchNativeVideo(url: String?, title: String? = null) {
             post {
                 try {
-                    if (url.isNotEmpty()) {
+                    val finalUrl = if (!url.isNullOrEmpty() && !url.startsWith("blob:") && !url.startsWith("data:")) {
+                        url
+                    } else {
+                        lastVideoUrl ?: ""
+                    }
+                    if (finalUrl.isNotEmpty() && (finalUrl.startsWith("http://") || finalUrl.startsWith("https://") || finalUrl.startsWith("file://"))) {
                         val intent = Intent(context, FullscreenVideoActivity::class.java).apply {
-                            putExtra("VIDEO_URL", url)
+                            putExtra("VIDEO_URL", finalUrl)
                             putExtra("VIDEO_TITLE", title ?: "Predvajalnik Videa")
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
