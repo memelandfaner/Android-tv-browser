@@ -1091,12 +1091,37 @@ object UserScriptManager {
                             ifr.addEventListener('load', function() {
                                 if (isWatchPage()) {
                                     applyCinemaFullscreen(true);
+                                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                                        window.AndroidNativeBridge.requestTvFullscreen();
+                                    }
                                 }
                             });
                         }
                     } catch(e) {}
                 });
             }
+
+            // Detect when user clicks into iframe / player area or when iframe receives focus
+            window.addEventListener('blur', function() {
+                if (isWatchPage()) {
+                    applyCinemaFullscreen(true);
+                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                        window.AndroidNativeBridge.requestTvFullscreen();
+                    }
+                }
+            });
+
+            document.addEventListener('click', function(e) {
+                if (isWatchPage()) {
+                    var isPlayerClick = e.target && e.target.closest('#player, #iframe-player, .player-wrapper, iframe, .video-player, video, .jwplayer, .plyr, .vjs-control-bar, .ytp-chrome-bottom, [class*="player"]');
+                    if (isPlayerClick) {
+                        applyCinemaFullscreen(true);
+                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                            window.AndroidNativeBridge.requestTvFullscreen();
+                        }
+                    }
+                }
+            }, true);
 
             // 8. Make Player Control Buttons Accessible & Bind Fullscreen Clicks
             function setupControlBarButtons() {
