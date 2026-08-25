@@ -299,6 +299,40 @@ object UserScriptManager {
                 setTimeout(function(){ if (t) t.style.opacity = '0'; }, 3000);
             }
 
+            // 🛡️ Brave-Style YouTube Video Ad Stopper & Fast-Forward Auto-Skipper
+            function blockYouTubeAds() {
+                var video = document.querySelector('video');
+                var adElement = document.querySelector('.ad-showing, .ad-interrupting, .video-ads, .ytp-ad-player-overlay');
+                if (adElement && video) {
+                    video.muted = true;
+                    video.playbackRate = 16.0;
+                    if (isFinite(video.duration) && video.duration > 0) {
+                        video.currentTime = video.duration;
+                    }
+                }
+
+                // Auto-click all YouTube Skip Ad buttons
+                var skipButtons = document.querySelectorAll(
+                    '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-overlay-close-button, button.ytp-ad-skip-button-text, .ytp-ad-skip-button-slot button'
+                );
+                skipButtons.forEach(function(btn) {
+                    try { btn.click(); } catch(e) {}
+                });
+
+                // Remove YouTube DOM ad banners and promoted elements
+                var adDomSelectors = [
+                    '#player-ads', '.ytp-ad-module', '.ytp-ad-overlay-container',
+                    'ytd-promoted-sparkles-web-renderer', 'ytd-display-ad-renderer',
+                    'ytd-ad-slot-renderer', 'ytd-banner-promo-renderer', 'ytd-in-feed-ad-layout-renderer',
+                    'ytd-promoted-video-renderer', 'ytd-action-companion-ad-renderer',
+                    '#masthead-ad', 'ytd-rich-item-renderer:has(ytd-ad-slot-renderer)'
+                ];
+                var adElements = document.querySelectorAll(adDomSelectors.join(', '));
+                adElements.forEach(function(el) {
+                    try { el.remove(); } catch(e) {}
+                });
+            }
+
             setInterval(function() {
                 var vId = getVideoId();
                 if (vId && vId !== currentVideoId) {
@@ -306,7 +340,8 @@ object UserScriptManager {
                     fetchDislikes(vId);
                 }
                 attachPlayer();
-            }, 1200);
+                blockYouTubeAds();
+            }, 100);
         })();
     """
 
@@ -795,29 +830,58 @@ object UserScriptManager {
                 });
             }
 
-            // 9. Player Containers Focus & 1-Click Playable via D-Pad
+            // 9. Player Containers Focus & 1-Click Play / 2-Click (Double-Click) Fullscreen Toggle
             function setupPlayerFocusAndClicks() {
                 if (!isWatchPage()) return;
                 var playerSelectors = [
-                    '#player', '#iframe-player', '.player-wrapper', '.video-player',
+                    'video', 'iframe', '#player', '#iframe-player', '.player-wrapper', '.video-player',
                     '.jwplayer', '.plyr', '.video-js', '[class*="player-container"]',
-                    '[id*="player"]', 'iframe[src*="vid"]', 'iframe[src*="embed"]', 'iframe[src*="stream"]'
+                    '[id*="player"]', '.html5-video-player', 'iframe[src*="vid"]', 'iframe[src*="embed"]', 'iframe[src*="stream"]'
                 ];
                 var containers = document.querySelectorAll(playerSelectors.join(', '));
                 containers.forEach(function(el) {
                     if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
                     if (!el._tvClickBound) {
                         el._tvClickBound = true;
-                        function triggerPlay(e) {
-                            try {
-                                handlePlayerCommand('TOGGLE_PLAY');
-                            } catch(err) {}
-                        }
-                        el.addEventListener('click', triggerPlay);
+
+                        var lastClickTime = 0;
+                        var singleClickTimer = null;
+
+                        // Double click event
+                        el.addEventListener('dblclick', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            clearTimeout(singleClickTimer);
+                            handlePlayerCommand('TOGGLE_FULLSCREEN');
+                        });
+
+                        // Double tap & single click detector
+                        el.addEventListener('click', function(e) {
+                            // If clicked directly on control buttons or sliders, let them handle themselves
+                            if (e.target && e.target.closest('button, input, a, .jw-controlbar, .plyr__controls, .vjs-control-bar, .ytp-chrome-bottom, .tv-player-quick-hud')) {
+                                return;
+                            }
+
+                            var now = Date.now();
+                            if (now - lastClickTime < 340) {
+                                // Double click detected!
+                                clearTimeout(singleClickTimer);
+                                lastClickTime = 0;
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handlePlayerCommand('TOGGLE_FULLSCREEN');
+                            } else {
+                                lastClickTime = now;
+                                singleClickTimer = setTimeout(function() {
+                                    handlePlayerCommand('TOGGLE_PLAY');
+                                }, 300);
+                            }
+                        });
+
                         el.addEventListener('keydown', function(evt) {
                             if (evt.keyCode === 13 || evt.keyCode === 23 || evt.key === 'Enter' || evt.key === ' ') {
                                 evt.preventDefault();
-                                triggerPlay(evt);
+                                handlePlayerCommand('TOGGLE_PLAY');
                             }
                         });
                     }

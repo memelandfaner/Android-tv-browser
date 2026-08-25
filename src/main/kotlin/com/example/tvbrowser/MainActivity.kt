@@ -787,10 +787,7 @@ class MainActivity : android.app.Activity() {
                 val q = uri.getQueryParameter("search_query")
                 if (!q.isNullOrEmpty()) return q
             }
-            if (rawUrl.startsWith("https://www.google.") || rawUrl.startsWith("http://www.google.") ||
-                rawUrl.startsWith("https://duckduckgo.com") || rawUrl.startsWith("https://www.bing.com")) {
-                return ""
-            }
+            return rawUrl
         } catch (ignored: Exception) {}
         return rawUrl
     }

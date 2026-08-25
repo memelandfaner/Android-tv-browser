@@ -193,12 +193,20 @@ class AdBlockEngine(context: Context? = null) {
     fun isBlocked(url: String?): Boolean {
         if (!isEnabled || url == null || url.isEmpty()) return false
 
-        // 🎬 Video Media Guard: Never block HLS playlists, video segments, or embedded video engines
+        // 🛡️ YouTube Video Ad Interceptor (Brave-Grade AdBlock)
+        if (isYouTubeAd(url)) {
+            return true
+        }
+
+        // 🎬 Video Media Guard: Never block genuine HLS playlists, video segments, or embedded video engines
         val lowerUrl = url.lowercase()
         if (lowerUrl.contains(".m3u8") || lowerUrl.contains(".ts") || lowerUrl.contains("/hls/") || 
-            lowerUrl.contains("/embed/") || lowerUrl.contains("googlevideo.com") || lowerUrl.contains("stream") ||
-            lowerUrl.contains("vidlink") || lowerUrl.contains("vidsrc") || lowerUrl.contains("autoembed") ||
-            lowerUrl.contains("multiembed") || lowerUrl.contains("hydrahd")) {
+            lowerUrl.contains("/embed/") || lowerUrl.contains("vidlink") || lowerUrl.contains("vidsrc") ||
+            lowerUrl.contains("autoembed") || lowerUrl.contains("multiembed") || lowerUrl.contains("hydrahd")) {
+            return false
+        }
+
+        if (lowerUrl.contains("googlevideo.com") && !lowerUrl.contains("adformat") && !lowerUrl.contains("ctier=l")) {
             return false
         }
 
@@ -227,6 +235,26 @@ class AdBlockEngine(context: Context? = null) {
         } catch (ignored: Exception) {}
 
         return false
+    }
+
+    /**
+     * 🛡️ Brave-Style YouTube Video Ad Detection:
+     * Intercepts pre-rolls, mid-rolls, companion ads and telemetry tracking.
+     */
+    fun isYouTubeAd(url: String?): Boolean {
+        if (url == null || url.isEmpty()) return false
+        val lower = url.lowercase()
+        return lower.contains("googleads.g.doubleclick.net") ||
+               lower.contains("pagead2.googlesyndication.com") ||
+               lower.contains("ad.youtube.com") ||
+               lower.contains("ads.youtube.com") ||
+               lower.contains("/api/stats/ads") ||
+               lower.contains("/pagead/") ||
+               lower.contains("/ptracking") ||
+               lower.contains("/get_midroll_info") ||
+               lower.contains("/api/stats/atr") ||
+               lower.contains("youtube.com/api/stats/qoe?adformat=") ||
+               (lower.contains("googlevideo.com") && (lower.contains("&adformat=") || lower.contains("&ctier=l") || lower.contains("cver=html5-ads")))
     }
 
     fun isAntiAdblockScript(url: String?): Boolean {
