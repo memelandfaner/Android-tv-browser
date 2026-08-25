@@ -843,12 +843,13 @@ object UserScriptManager {
                     case 'PLAY':
                         if (v) {
                             v.muted = false;
-                            v.play().catch(function() {
-                                v.muted = true;
-                                v.play().then(function() { setTimeout(function(){ v.muted = false; }, 300); }).catch(function(){});
-                            });
+                            v.volume = 1.0;
+                            v.play().catch(function(){});
                         }
                         triggerPlayButtons();
+                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.forceUnmuteAudio === 'function') {
+                            window.AndroidNativeBridge.forceUnmuteAudio();
+                        }
                         break;
                     case 'PAUSE':
                         if (v) v.pause();
@@ -881,10 +882,18 @@ object UserScriptManager {
                         if (v) v.muted = true;
                         break;
                     case 'UNMUTE':
-                        if (v) { v.muted = false; v.volume = Math.max(v.volume, 0.5); }
+                        if (v) { v.muted = false; v.volume = 1.0; }
+                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.forceUnmuteAudio === 'function') {
+                            window.AndroidNativeBridge.forceUnmuteAudio();
+                        }
                         break;
                     case 'TOGGLE_MUTE':
-                        if (v) v.muted = !v.muted;
+                        if (v) {
+                            v.muted = !v.muted;
+                            if (!v.muted && window.AndroidNativeBridge && typeof window.AndroidNativeBridge.forceUnmuteAudio === 'function') {
+                                window.AndroidNativeBridge.forceUnmuteAudio();
+                            }
+                        }
                         break;
                     case 'SET_VOLUME':
                         if (v && typeof value === 'number') {
@@ -1040,6 +1049,9 @@ object UserScriptManager {
                             if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
                                 window.AndroidNativeBridge.requestTvFullscreen();
                             }
+                            if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.forceUnmuteAudio === 'function') {
+                                window.AndroidNativeBridge.forceUnmuteAudio();
+                            }
                             queueStateBroadcast(true);
                         });
 
@@ -1057,20 +1069,20 @@ object UserScriptManager {
                                 if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
                                     window.AndroidNativeBridge.requestTvFullscreen();
                                 }
+                                if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.forceUnmuteAudio === 'function') {
+                                    window.AndroidNativeBridge.forceUnmuteAudio();
+                                }
                             } catch(e) {}
                         });
                     }
 
                     if (video.paused && !video._freenetAutoplayAttempted && isWatchPage()) {
                         video._freenetAutoplayAttempted = true;
+                        video.muted = false;
+                        video.volume = 1.0;
                         var p = video.play();
                         if (p !== undefined) {
-                            p.catch(function() {
-                                video.muted = true;
-                                video.play().then(function() {
-                                    setTimeout(function() { video.muted = false; }, 400);
-                                }).catch(function(){});
-                            });
+                            p.catch(function(){});
                         }
                     }
                 } catch(e) {}

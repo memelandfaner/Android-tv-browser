@@ -383,6 +383,7 @@ class ChromiumEngineView @JvmOverloads constructor(
                             am.setStreamVolume(AudioManager.STREAM_MUSIC, (max * 0.85).toInt(), 0)
                         }
                     }
+                    JblSoundManager.unlockAndUnmute(context)
                 } catch (ignored: Exception) {}
             }
         }

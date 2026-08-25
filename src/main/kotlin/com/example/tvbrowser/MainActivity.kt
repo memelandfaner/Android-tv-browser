@@ -614,6 +614,7 @@ class MainActivity : android.app.Activity() {
             val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             am.setStreamMute(AudioManager.STREAM_MUSIC, false)
             am.setMode(AudioManager.MODE_NORMAL)
+            JblSoundManager.unlockAndUnmute(this)
         } catch (ignored: Exception) {}
     }
 
