@@ -64,7 +64,7 @@ class AdBlockEngine(context: Context? = null) {
         "optinmonster.com", "sumo.com", "privy.com", "sleeknote.com"
     ))}
 
-    // 🔒 Essential Whitelist (Critical for Search, Account Login, Banking & Core Web Backbone)
+    // 🔒 Essential Whitelist (Critical for Search, Account Login, Banking & Video Streaming Backbone)
     private val whitelistDomains = hashSetOf(
         "google.com", "www.google.com", "google.si", "www.google.si", "gstatic.com", "googleapis.com", "googleusercontent.com",
         "duckduckgo.com", "bing.com", "www.bing.com", "yahoo.com", "wikipedia.org", "wikimedia.org",
@@ -73,8 +73,11 @@ class AdBlockEngine(context: Context? = null) {
         "nlb.si", "nkbm.si", "skb.si", "dh.si", "intesa.si", "intesasanpaolobank.si",
         "sparkasse.si", "revolut.com", "n26.com", "delavska-hranilnica.si",
         "bks-bank.si", "unicreditbank.si", "lon.si", "gorenjska-banka.si",
-        "rtvslo.si", "24ur.com", "siol.net", "github.com", "themoviedb.org", "tmdb.org",
-        "cloudflare.com", "quad9.net", "jsdelivr.net", "cdnjs.cloudflare.com", "unpkg.com"
+        "rtvslo.si", "24ur.com", "siol.net", "github.com", "themoviedb.org", "tmdb.org", "image.tmdb.org", "api.themoviedb.org",
+        "vidlink.pro", "vidsrc.me", "vidsrc.in", "vidsrc.pm", "vidsrc.net", "vidsrc.to", "vidsrc.xyz",
+        "autoembed.co", "autoembed.cc", "multiembed.mov", "2embed.cc", "111movies.com", "hydrahd.ws",
+        "megacloud.tv", "rabbitstream.net", "dokicloud.one", "vizcloud.online", "filemoon.sx", "streamtape.com",
+        "cloudflare.com", "quad9.net", "jsdelivr.net", "cdnjs.cloudflare.com", "unpkg.com", "fastly.net", "akamaihd.net", "cloudfront.net"
     )
 
     init {
@@ -189,6 +192,15 @@ class AdBlockEngine(context: Context? = null) {
      */
     fun isBlocked(url: String?): Boolean {
         if (!isEnabled || url == null || url.isEmpty()) return false
+
+        // 🎬 Video Media Guard: Never block HLS playlists, video segments, or embedded video engines
+        val lowerUrl = url.lowercase()
+        if (lowerUrl.contains(".m3u8") || lowerUrl.contains(".ts") || lowerUrl.contains("/hls/") || 
+            lowerUrl.contains("/embed/") || lowerUrl.contains("googlevideo.com") || lowerUrl.contains("stream") ||
+            lowerUrl.contains("vidlink") || lowerUrl.contains("vidsrc") || lowerUrl.contains("autoembed") ||
+            lowerUrl.contains("multiembed") || lowerUrl.contains("hydrahd")) {
+            return false
+        }
 
         try {
             val uri = Uri.parse(url)

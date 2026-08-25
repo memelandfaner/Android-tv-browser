@@ -4,13 +4,16 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.SystemClock
 import android.util.AttributeSet
+import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.webkit.*
 
 enum class UserAgentMode {
@@ -68,13 +71,19 @@ class ChromiumEngineView @JvmOverloads constructor(
         s.mediaPlaybackRequiresUserGesture = false
         s.allowFileAccess = true
         s.allowContentAccess = true
+        s.allowFileAccessFromFileURLs = true
+        s.allowUniversalAccessFromFileURLs = true
         s.setSupportZoom(false)
         s.builtInZoomControls = false
         s.displayZoomControls = false
+        s.javaScriptCanOpenWindowsAutomatically = false
+        s.setSupportMultipleWindows(false)
+        s.setRenderPriority(WebSettings.RenderPriority.HIGH)
+        s.cacheMode = WebSettings.LOAD_DEFAULT
 
         // Default: TV / Optimized Pixel 5 User-Agent
         setUserAgentMode(UserAgentMode.TV)
-        s.textZoom = 100
+        s.textZoom = 75
         s.defaultFontSize = 15
         s.defaultFixedFontSize = 13
         s.setNeedInitialFocus(true)
@@ -95,11 +104,11 @@ class ChromiumEngineView @JvmOverloads constructor(
         s.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
-        // 🍪 Cookie Privacy Policy (Default: STANDARD -> No 3rd-party cross-site trackers)
+        // 🍪 Cookie Policy: Allow 3rd-party cookies for HLS media streams & auth tokens
         val cm = CookieManager.getInstance()
         cm.setAcceptCookie(true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            cm.setAcceptThirdPartyCookies(this, false)
+            cm.setAcceptThirdPartyCookies(this, true)
         }
         try {
             cm.setCookie(".youtube.com", "SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAnNsIAEaBgiA_LyaBg; path=/; domain=.youtube.com; SameSite=Lax")
@@ -108,6 +117,8 @@ class ChromiumEngineView @JvmOverloads constructor(
             cm.setCookie(".google.com", "CONSENT=YES+cb.20230531-04-p0.sl+FX+999; path=/; domain=.google.com")
             cm.flush()
         } catch (ignored: Exception) {}
+
+        addJavascriptInterface(AndroidNativeBridge(), "AndroidNativeBridge")
 
         setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
             DownloadHandler.enqueueDownload(context, url, userAgent, contentDisposition, mimeType)
@@ -283,6 +294,132 @@ class ChromiumEngineView @JvmOverloads constructor(
             override fun onHideCustomView() {
                 onHideCustomViewListener?.invoke()
             }
+
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                request?.grant(request.resources)
+            }
+
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                if (consoleMessage != null) {
+                    Log.d("TvChromium", "[${consoleMessage.messageLevel()}] ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})")
+                }
+                return true
+            }
+        }
+    }
+
+    inner class AndroidNativeBridge {
+        @JavascriptInterface
+        fun triggerCenterTap() {
+            post {
+                try {
+                    val cx = if (width > 0) (width / 2).toFloat() else 960f
+                    val cy = if (height > 0) (height / 2).toFloat() else 540f
+                    val downTime = SystemClock.uptimeMillis()
+                    val down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, cx, cy, 0)
+                    val up = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, cx, cy, 0)
+                    dispatchTouchEvent(down)
+                    dispatchTouchEvent(up)
+                    down.recycle()
+                    up.recycle()
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun forceUnmuteAudio() {
+            post {
+                try {
+                    val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                    if (am != null) {
+                        am.setStreamMute(AudioManager.STREAM_MUSIC, false)
+                        am.setMode(AudioManager.MODE_NORMAL)
+                        val cur = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                        if (cur == 0) {
+                            val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                            am.setStreamVolume(AudioManager.STREAM_MUSIC, (max * 0.85).toInt(), 0)
+                        }
+                    }
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun hideKeyboard() {
+            post {
+                try {
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(windowToken, 0)
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun requestTvFullscreen() {
+            post {
+                try {
+                    (context as? MainActivity)?.runOnUiThread {
+                        (context as? MainActivity)?.toggleFullscreenMode(true)
+                    }
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun exitTvFullscreen() {
+            post {
+                try {
+                    (context as? MainActivity)?.runOnUiThread {
+                        (context as? MainActivity)?.toggleFullscreenMode(false)
+                    }
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun toggleTvFullscreen() {
+            post {
+                try {
+                    (context as? MainActivity)?.runOnUiThread {
+                        (context as? MainActivity)?.toggleFullscreenMode()
+                    }
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun onPlayerStateChanged(stateJson: String) {
+            post {
+                try {
+                    (context as? MainActivity)?.onWebPlayerStateReceived(stateJson)
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun launchVlcOrExternal(streamUrl: String, title: String) {
+            post {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(Uri.parse(streamUrl), "video/*")
+                        putExtra("title", title)
+                        putExtra("from_start", true)
+                        setPackage("org.videolan.vlc")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    try {
+                        val chooser = Intent.createChooser(Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(Uri.parse(streamUrl), "video/*")
+                            putExtra("title", title)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }, "Predvajaj z")
+                        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(chooser)
+                    } catch (ignored: Exception) {}
+                }
+            }
         }
     }
 
@@ -292,6 +429,15 @@ class ChromiumEngineView @JvmOverloads constructor(
             return true
         }
         return super.onKeyDown(keyCode, event)
+    }
+
+    fun setPageZoom(percent: Int) {
+        val clamped = percent.coerceIn(50, 300)
+        settings.textZoom = clamped
+    }
+
+    fun getPageZoom(): Int {
+        return settings.textZoom
     }
 
     fun setCookiePrivacyMode(mode: CookiePrivacyMode) {

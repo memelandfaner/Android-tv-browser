@@ -58,6 +58,7 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         c.close()
         if (count > 0) return
 
+        insertBookmarkDirect(db, "🎬 StreamNexus HD (Filmi & Serije)", "file:///android_asset/stream/index.html", "🎬")
         insertBookmarkDirect(db, "📺 YouTube", "https://www.youtube.com", "📺")
         insertBookmarkDirect(db, "🐙 GitHub", "https://github.com", "🐙")
         insertBookmarkDirect(db, "🍿 TMDB", "https://www.themoviedb.org", "🍿")
@@ -105,6 +106,39 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
             put("created_at", System.currentTimeMillis())
         }
         db.insert("bookmarks", null, cv)
+    }
+
+    @Synchronized
+    fun updateBookmark(id: Int, title: String, url: String, icon: String = "⭐") {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put("title", title)
+            put("url", url)
+            put("icon", icon)
+        }
+        db.update("bookmarks", cv, "id = ?", arrayOf(id.toString()))
+    }
+
+    @Synchronized
+    fun reorderBookmarks(bookmarks: List<BookmarkItem>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete("bookmarks", null, null)
+            for ((idx, bm) in bookmarks.withIndex()) {
+                val cv = ContentValues().apply {
+                    put("title", bm.title)
+                    put("url", bm.url)
+                    put("icon", bm.icon)
+                    put("created_at", System.currentTimeMillis() + idx)
+                }
+                db.insert("bookmarks", null, cv)
+            }
+            db.setTransactionSuccessful()
+        } catch (ignored: Exception) {
+        } finally {
+            db.endTransaction()
+        }
     }
 
     @Synchronized

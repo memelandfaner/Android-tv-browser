@@ -91,6 +91,7 @@ class BrowserViewModel(context: Context) {
         val tabs = state.tabs
         if (index in tabs.indices) {
             tabs[index].url = url
+            state = state.copy(tabs = tabs.toList(), currentUrl = if (index == state.activeTabIndex) url else state.currentUrl)
         }
     }
 
@@ -133,6 +134,21 @@ class BrowserViewModel(context: Context) {
     fun addBookmark(title: String, url: String, icon: String = "⭐") {
         repository.addBookmark(title, url, icon)
         state = state.copy(bookmarks = repository.getBookmarks())
+    }
+
+    fun updateBookmark(id: Int, title: String, url: String, icon: String = "⭐") {
+        repository.updateBookmark(id, title, url, icon)
+        state = state.copy(bookmarks = repository.getBookmarks())
+    }
+
+    fun moveBookmark(fromIndex: Int, toIndex: Int) {
+        val current = state.bookmarks.toMutableList()
+        if (fromIndex in current.indices && toIndex in current.indices && fromIndex != toIndex) {
+            val item = current.removeAt(fromIndex)
+            current.add(toIndex, item)
+            repository.reorderBookmarks(current)
+            state = state.copy(bookmarks = repository.getBookmarks())
+        }
     }
 
     fun deleteBookmark(id: Int) {

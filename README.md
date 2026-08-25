@@ -1,14 +1,19 @@
-# 🌐 Android TV Browser (Profesionalni TV Brskalnik za Philips 4K & JBL 300)
+# 🌐 FreeNet TV Browser (Profesionalni TV Brskalnik za Philips 4K & JBL 300)
 
-Najboljši, najnaprednejši in posebej za **Android TV** (Philips 50PUS8507/12 UHD MediaTek, Android TV 11) prilagojeni spletni brskalnik, optimiziran za upravljanje z daljinskim upravljalnikom (D-Pad), igralnimi krmilniki, z integriranim Google & YouTube iskalnikom, več zavihki ter podporo za vrhunski kinematografski zvok **JBL 300**.
+Najboljši, najnaprednejši in posebej za **Android TV** (Philips 50PUS8507/12 UHD MediaTek, Android TV 11) prilagojeni spletni brskalnik, optimiziran za upravljanje z daljinskim upravljalnikom (D-Pad), igralnimi krmilniki, z integriranim Google & YouTube iskalnikom, dvosmernim komunikacijskim mostom za predvajalnike (Freenet JS Bridge), več zavihki ter podporo za vrhunski kinematografski zvok **JBL 300**.
 
 ---
 
-## 📸 Predogled Delovanja na Televizorju v Živo
+## ⚡ Hitra 1-Klik Namestitev (Quick Install)
 
-| 🌟 Čist Vitki Vmesnik & Google Iskalnik | 🔍 Optimizirano YouTube Iskanje |
-| :---: | :---: |
-| ![Clean Home](https://raw.githubusercontent.com/memelandfaner/Android-tv-browser/main/res/drawable/app_banner.png) | ![YouTube](https://raw.githubusercontent.com/memelandfaner/Android-tv-browser/main/res/drawable/app_icon.png) |
+### 📲 1. Neposredna namestitev prek ADB (Linux / Mac / Windows):
+```bash
+curl -sL https://raw.githubusercontent.com/memelandfaner/freenet-browser/main/install_freenet.sh | bash
+```
+
+### 📥 2. Neposredna povezava za prenos APK:
+- **Prenos Release APK**: [tv-browser-release.apk](https://raw.githubusercontent.com/memelandfaner/freenet-browser/main/Release/Artifacts/tv-browser-release.apk)
+- **Neposredna datoteka**: [freenet-browser.apk](https://raw.githubusercontent.com/memelandfaner/freenet-browser/main/freenet-browser.apk)
 
 ---
 

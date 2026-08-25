@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>StreamNexus - HD Filmi in Serije</title>
+    <meta name="description" content="Sodoben hibridni predvajalnik za HD filme in serije z Debrid in brezplačnimi viri.">
+    
+    <!-- High-Speed CDN & Video DNS Pre-fetching for Zero-Buffer Streaming -->
+    <link rel="dns-prefetch" href="https://vidsrc.to">
+    <link rel="dns-prefetch" href="https://vidlink.pro">
+    <link rel="dns-prefetch" href="https://vidsrc.me">
+    <link rel="dns-prefetch" href="https://vidsrc.in">
+    <link rel="dns-prefetch" href="https://vidsrc.pm">
+    <link rel="dns-prefetch" href="https://autoembed.co">
+    <link rel="dns-prefetch" href="https://multiembed.mov">
+    <link rel="dns-prefetch" href="https://111movies.com">
+    <link rel="dns-prefetch" href="https://www.2embed.cc">
+    <link rel="dns-prefetch" href="https://image.tmdb.org">
+    <link rel="dns-prefetch" href="https://api.themoviedb.org">
+    <link rel="preconnect" href="https://image.tmdb.org" crossorigin>
+    <link rel="preconnect" href="https://vidsrc.to" crossorigin>
+    <link rel="preconnect" href="https://vidlink.pro" crossorigin>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- CSS Stylesheet (Cache-Busted) -->
+    <link rel="stylesheet" href="./static/style.css?v=30.0">
+</head>
+<body>
+    <!-- Background Ambient Glow -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand" id="brandLogo" onclick="app.navigateHome()">
+                <div class="brand-icon">🎬</div>
+                <div class="brand-text">
+                    <span class="brand-name">Stream<span class="brand-highlight">Nexus</span></span>
+                    <span class="brand-badge">PRO HD</span>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="nav-links">
+                <button class="nav-btn active" data-tab="trending" onclick="app.setTab('trending')">🔥 Vroče</button>
+                <button class="nav-btn" data-tab="movies" onclick="app.setTab('movies')">🎬 Filmi</button>
+                <button class="nav-btn" data-tab="tv" onclick="app.setTab('tv')">📺 Serije</button>
+                <button class="nav-btn" data-tab="search" id="navSearchBtn" onclick="app.openSearch()">🔍 Iskanje</button>
+                <button class="nav-btn" data-tab="top_rated" onclick="app.setTab('top_rated')">⭐ Top Ocenjeno</button>
+                <button class="nav-btn" data-tab="watchlist" onclick="app.setTab('watchlist')">❤️ Moja Lista</button>
+            </nav>
+
+            <div class="nav-actions">
+                <button class="nav-search-trigger-btn" id="searchBox" onclick="app.openSearch()" title="Odpri Iskalnik (/)">
+                    <span class="search-icon">🔍</span>
+                    <span class="search-label">Iskanje</span>
+                    <span class="search-kbd">/</span>
+                </button>
+
+                <button class="btn-icon" id="settingsBtn" title="Nastavitve (Debrid, MPV, Podnapisi)" onclick="app.openSettings()">
+                    ⚙️
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content" id="mainContent">
+        <!-- Dedicated TV Search Section (Full TV Search Experience) -->
+        <section class="content-section search-section-tv" id="searchSection" style="display: none;">
+            <div class="tv-search-header">
+                <div class="tv-search-input-box">
+                    <span class="tv-search-icon" id="tvSearchIcon">🔍</span>
+                    <input type="text" id="tvSearchInput" placeholder="Vnesite naslov filma ali serije (ali izberite predlog spodaj)..." autocomplete="off">
+                    <span class="tv-search-counter-badge" id="tvSearchCounterBadge" style="display: none;">0 zadetkov</span>
+                    <button class="btn btn-secondary btn-sm tv-search-clear-btn" id="tvSearchClearBtn" onclick="app.clearSearch()" title="Počisti vnos">✖ Počisti</button>
+                    <button class="btn btn-secondary btn-sm tv-search-close-btn" id="tvSearchCloseBtn" onclick="app.closeSearch()" title="Zapri iskalnik">⬅ Zapri</button>
+                </div>
+            </div>
+
+            <!-- Smart Live Auto-Complete Pills (Appears dynamically when typing) -->
+            <div class="tv-live-matches-container" id="tvLiveMatchesContainer" style="display: none;">
+                <span class="tv-live-label">⚡ Hitri skok:</span>
+                <div class="tv-live-matches-bar" id="tvLiveMatchesBar"></div>
+            </div>
+
+            <!-- Quick Suggestions & Trending Topic Chips -->
+            <div class="tv-search-suggestions" id="tvSearchSuggestions">
+                <div class="tv-search-chips-bar" id="tvSearchChipsBar">
+                    <button class="tv-search-chip active" data-topic="trending" onclick="app.searchByTopic('trending', '🔥 Vroče v kinu')">🔥 Vroče v kinu</button>
+                    <button class="tv-search-chip" data-query="Marvel" onclick="app.searchByQuery('Marvel', '🦸 Marvel Universe')">🦸 Marvel</button>
+                    <button class="tv-search-chip" data-genre="28" onclick="app.searchByGenre(28, '💥 Akcija')">💥 Akcija</button>
+                    <button class="tv-search-chip" data-genre="878" onclick="app.searchByGenre(878, '🛸 Sci-Fi & Vesolje')">🛸 Sci-Fi</button>
+                    <button class="tv-search-chip" data-genre="35" onclick="app.searchByGenre(35, '😂 Komedije')">😂 Komedije</button>
+                    <button class="tv-search-chip" data-genre="27" onclick="app.searchByGenre(27, '😱 Grozljivke')">😱 Grozljivke</button>
+                    <button class="tv-search-chip" data-genre="18" onclick="app.searchByGenre(18, '🎭 Drame')">🎭 Drame</button>
+                    <button class="tv-search-chip" data-genre="16" onclick="app.searchByGenre(16, '🎨 Animirani filmi')">🎨 Animirani</button>
+                    <button class="tv-search-chip" data-genre="53" onclick="app.searchByGenre(53, '🕵️ Trilerji')">🕵️ Triler</button>
+                    <button class="tv-search-chip" data-topic="top_rated" onclick="app.searchByTopic('top_rated', '⭐ Najbolje Ocenjeno')">⭐ Top IMDb</button>
+                </div>
+            </div>
+
+            <div class="section-header search-results-header-compact">
+                <h2 class="section-title" id="searchResultsTitle">🔥 Priporočeno za ogled</h2>
+                <span class="badge badge-quality" id="searchResultsBadge">HD 1080p</span>
+            </div>
+
+            <!-- TV Search Grid -->
+            <div class="media-grid" id="searchResultsGrid">
+                <!-- Search Result Cards -->
+            </div>
+        </section>
+
+        <!-- Continue Watching (Compact & Slim Version) -->
+        <section class="content-section continue-section-compact" id="continueSection" style="display: none;">
+            <div class="section-header continue-header-slim">
+                <h2 class="section-title-slim">⏱️ Nadaljuj z ogledom</h2>
+                <button class="btn btn-secondary btn-sm" onclick="app.clearAllContinueWatching()" title="Počisti celoten seznam Nadaljuj z ogledom" style="font-size: 0.78rem; padding: 3px 10px; border-radius: var(--radius-full);">
+                    🗑️ Počisti vse
+                </button>
+            </div>
+            <div class="continue-carousel-compact" id="continueGrid"></div>
+        </section>
+
+        <!-- Dynamic Grid Sections -->
+        <section class="content-section" id="feedSection">
+            <div class="section-header">
+                <h2 class="section-title" id="feedTitle">🔥 Priljubljeno ta teden</h2>
+                
+                <!-- Quick Filter Pills -->
+                <div class="genre-filter-bar" id="genreFilters">
+                    <button class="genre-chip active" data-genre="all" onclick="app.filterByGenre('all')">Vse</button>
+                    <button class="genre-chip" data-genre="28" onclick="app.filterByGenre('28')">Akcija</button>
+                    <button class="genre-chip" data-genre="878" onclick="app.filterByGenre('878')">Sci-Fi</button>
+                    <button class="genre-chip" data-genre="18" onclick="app.filterByGenre('18')">Drama</button>
+                    <button class="genre-chip" data-genre="35" onclick="app.filterByGenre('35')">Komedija</button>
+                    <button class="genre-chip" data-genre="53" onclick="app.filterByGenre('53')">Triler</button>
+                    <button class="genre-chip" data-genre="27" onclick="app.filterByGenre('27')">Grozljivke</button>
+                    <button class="genre-chip" data-genre="16" onclick="app.filterByGenre('16')">Animirani</button>
+                </div>
+            </div>
+
+            <!-- Media Cards Grid -->
+            <div class="media-grid" id="mediaGrid">
+                <!-- Dynamic Posters -->
+            </div>
+
+            <!-- Multi-Page Pagination Bar -->
+            <div class="pagination-container" id="paginationContainer">
+                <!-- Dynamic Page Buttons: [1] [2] [3] [4] [5] [6] [7] [Next »] -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Movie / TV Details Cinema View -->
+    <div class="modal details-cinema-view" id="detailsModal">
+        <div class="modal-dialog details-dialog">
+            <!-- Sticky Topbar (Back, Title, Close) -->
+            <div class="details-topbar">
+                <button class="btn btn-secondary btn-sm" onclick="app.closeModal('detailsModal')" title="Nazaj">
+                    ⬅ Nazaj
+                </button>
+                <div class="details-topbar-title" id="topbarMediaTitle">Podrobnosti</div>
+                <button class="modal-close-btn" onclick="app.closeModal('detailsModal')" title="Zapri">&times;</button>
+            </div>
+
+            <!-- Scrollable Content Body -->
+            <div class="details-scrollable-content">
+                <!-- Hero Header Banner with Backdrop -->
+                <div class="details-hero-banner" id="modalBanner">
+                    <img id="modalBackdropImg" src="" alt="Backdrop" class="details-hero-bg">
+                    <div class="details-hero-overlay"></div>
+                    <div class="details-hero-content">
+                        <div class="modal-badges">
+                            <span class="badge badge-type" id="modalTypeBadge">SERIJA</span>
+                            <span class="badge badge-quality" id="modalQualityBadge">HD 1080p</span>
+                            <span class="badge badge-rating" id="modalRating">⭐ 8.5</span>
+                            <span class="badge badge-year" id="modalYear">2026</span>
+                            <span class="badge badge-runtime" id="modalRuntime">2h 15m</span>
+                        </div>
+                        <h1 class="modal-title" id="modalTitle">Naslov</h1>
+                        <div class="modal-genres" id="modalGenres"></div>
+                        <p id="modalOverview" class="modal-overview-text"></p>
+                        
+                        <div class="modal-banner-actions" id="moviePlayActions" style="display: none;">
+                            <button class="btn btn-vidbox-play" id="modalMainPlayBtn" onclick="app.playActiveSelection()">
+                                <span class="btn-icon-play">▶</span> Predvajaj Film
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TV Seasons & Episodes Section -->
+                <div class="tv-episodes-container" id="tvEpisodesSection" style="display: none;">
+                    <div class="season-tabs-header" id="fixedSeasonsHeader">
+                        <span class="season-label">Sezone:</span>
+                        <div class="season-pills-bar" id="seasonPillsBar">
+                            <!-- Dynamic Season Buttons -->
+                        </div>
+                    </div>
+
+                    <div class="episodes-header-bar">
+                        <span class="episodes-section-title" id="currentSeasonTitle">Epizode (Sezona 1)</span>
+                        <span class="episodes-instruction">Izberite epizodo za predvajanje</span>
+                    </div>
+
+                    <div class="episodes-list" id="episodesList">
+                        <!-- Full-Width Wide Episode Rows -->
+                    </div>
+                </div>
+
+                <!-- Cast Section -->
+                <div class="cast-section" id="castSection" style="padding: 1rem 2rem 2rem;">
+                    <h3>🎭 Igralska zasedba</h3>
+                    <div class="cast-row" id="modalCast"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Integrated Premier VLC Web Cinema Video Player Overlay -->
+    <div class="player-overlay" id="playerOverlay" style="display: none;">
+        <div class="player-header vlc-cinema-header">
+            <div class="player-title-info">
+                <button class="btn-player-back" onclick="app.closePlayer()" title="Nazaj (Esc)">
+                    ⬅ Nazaj
+                </button>
+                <h3 class="player-movie-title" id="playerMovieTitle">Predvajanje</h3>
+                <span class="badge badge-quality" id="playerSourceBadge">1080P FULL HD</span>
+                <span class="player-active-tag" id="playerActiveServerTag">🟢 VidSrc ME</span>
+            </div>
+            <div class="player-controls-right">
+                <button class="btn btn-secondary btn-sm" id="btnVlcLaunch" onclick="app.launchCurrentInVlc()" title="Predvajaj v sistemskem VLC predvajalniku">
+                    🟠 VLC
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btnAspectToggle" onclick="app.toggleAspectRatio()" title="Spremeni razmerje stranic (16:9 / 21:9 Cinemascope / Raztegni)">
+                    📐 <span id="aspectLabel">16:9</span>
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btnToggleServers" onclick="app.toggleServerPills()" title="Zamenjaj strežnik (1-10)">
+                    🔄 Strežniki
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btnFullscreenToggle" onclick="app.toggleFullscreen()" title="Celozaslonski način (F)">
+                    ⛶ Celozaslonsko
+                </button>
+                <button class="player-close-btn" onclick="app.closePlayer()" title="Zapri predvajalnik (Esc)">&times;</button>
+            </div>
+        </div>
+
+        <!-- Collapsible Server Pills Bar -->
+        <div class="player-server-pills" id="playerServerPills" style="display: none;">
+            <!-- Dynamic Server Pills -->
+        </div>
+
+        <div class="player-video-container" id="playerVideoContainer" tabindex="0">
+            <!-- Dynamic Video Iframe -->
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-backdrop" onclick="app.closeModal('settingsModal')"></div>
+        <div class="modal-dialog settings-dialog">
+            <div class="modal-header">
+                <h2>⚙️ Nastavitve StreamNexus</h2>
+                <button class="modal-close-btn" onclick="app.closeModal('settingsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <label class="setting-label">
+                        <span>🎬 Predvajalni Motor</span>
+                    </label>
+                    <select id="settingDefaultPlayer" class="setting-select">
+                        <option value="in_app" selected>🌐 Vgrajeni VLC Cinema Predvajalnik (Brez oglasov, 1440p izostritev)</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <label class="setting-label">
+                        <span>✨ NexusAI Strojna Optimizacija Videa (GPU)</span>
+                    </label>
+                    <div class="toggle-option">
+                        <input type="checkbox" id="settingAiEnhance" checked>
+                        <label for="settingAiEnhance">Vedno omogoči <strong>AI 1440p izostritev & HDR barve</strong> za TV zaslon</label>
+                    </div>
+                    <small class="setting-desc">Uporablja strojno pospeševanje grafične kartice za odpravo zamegljenosti in izboljšanje ostrine.</small>
+                </div>
+
+                <div class="settings-group">
+                    <label class="setting-label">
+                        <span>🤖 Samodejni Watchdog za Brezhiben Prenos</span>
+                    </label>
+                    <div class="toggle-option">
+                        <input type="checkbox" id="settingAiAutoRecover" checked>
+                        <label for="settingAiAutoRecover">Samodejno preklopi na rezervni strežnik, če zazna počasno nalaganje ali napako</label>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <label class="setting-label">
+                        <span>⚡ Real-Debrid API Ključ (Opcijsko)</span>
+                        <a href="https://real-debrid.com/apitoken" target="_blank" class="setting-link">Pridobi ključ ↗</a>
+                    </label>
+                    <input type="password" id="settingRdKey" class="setting-input" placeholder="Prilepite vaš Real-Debrid API token">
+                    <small class="setting-desc">Omogoča takojšnje predvajanje 4K HDR torrent virov brez nalaganja.</small>
+                </div>
+
+                <div class="settings-group">
+                    <label class="setting-label">
+                        <span>📝 Podnapisi & Jezik</span>
+                    </label>
+                    <div class="toggle-option" style="margin-bottom: 0.8rem;">
+                        <input type="checkbox" id="settingSubEnabled">
+                        <label for="settingSubEnabled">Podnapisi samodejno vklopljeni ob začetku (privzeto <strong>izklopljeno</strong>)</label>
+                    </div>
+                    <label class="setting-label" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">
+                        <span>Primarni jezik podnapisov (če so na voljo):</span>
+                    </label>
+                    <select id="settingSubLang" class="setting-select">
+                        <option value="sl" selected>🇸🇮 Slovenščina (Slovenian - Primarno)</option>
+                        <option value="en">🇬🇧 Angleščina (English)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="app.closeModal('settingsModal')">Prekliči</button>
+                <button class="btn btn-primary" onclick="app.saveSettings()">Shrani Nastavitve</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Premier HLS.js and Artplayer.js Media Engines -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/artplayer@5.1.7/dist/artplayer.min.js"></script>
+
+    <!-- JavaScript App Logic (Cache-Busted) -->
+    <script src="./static/app.js?v=30.0"></script>
+</body>
+</html>

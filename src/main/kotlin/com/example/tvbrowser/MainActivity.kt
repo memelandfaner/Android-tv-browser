@@ -51,6 +51,8 @@ class MainActivity : android.app.Activity() {
     private lateinit var customViewContainer: FrameLayout
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
+    private var isTvFullscreenMode = false
+    private var lastBackPressTime: Long = 0
 
     private lateinit var cursorOverlay: CursorOverlay
     private var cursorSpeed = 24f
@@ -97,6 +99,9 @@ class MainActivity : android.app.Activity() {
             onToggleBookmarks = {
                 if (bookmarksPanel.visibility == View.VISIBLE) hideAllPanels()
                 else showBookmarksPanel()
+            },
+            onToggleFullscreen = {
+                toggleFullscreenMode()
             }
         )
 
@@ -193,7 +198,10 @@ class MainActivity : android.app.Activity() {
             stopVoiceSearch()
         }
 
-        // Fast Header Links -> YouTube / GitHub / TMDB
+        // Fast Header Links -> StreamNexus HD / YouTube / GitHub / TMDB
+        findViewById<View>(R.id.btnQuickStreamNexus).setOnClickListener {
+            loadUrl("file:///android_asset/stream/index.html")
+        }
         findViewById<View>(R.id.btnQuickSmartTube).setOnClickListener {
             loadUrl("https://www.youtube.com")
         }
@@ -212,6 +220,7 @@ class MainActivity : android.app.Activity() {
             } else false
         }
         findViewById<View>(R.id.btnAddTab).setOnKeyListener(focusToWebListener)
+        findViewById<View>(R.id.btnQuickStreamNexus).setOnKeyListener(focusToWebListener)
         findViewById<View>(R.id.btnQuickSmartTube).setOnKeyListener(focusToWebListener)
         findViewById<View>(R.id.btnQuickGithub).setOnKeyListener(focusToWebListener)
         findViewById<View>(R.id.btnQuickTmdb).setOnKeyListener(focusToWebListener)
@@ -425,6 +434,94 @@ class MainActivity : android.app.Activity() {
             }
         }
 
+        // 🔎 Page Zoom & Magnification Controls (User Customizable)
+        val btnNavZoom = findViewById<Button>(R.id.btnNavZoom)
+        val textCurrentZoomLevel = findViewById<TextView>(R.id.textCurrentZoomLevel)
+        val badgeZoomPercent = findViewById<TextView>(R.id.badgeZoomPercent)
+        val btnZoomOut = findViewById<Button>(R.id.btnZoomOut)
+        val btnZoomIn = findViewById<Button>(R.id.btnZoomIn)
+        val btnZoomPreset75 = findViewById<Button>(R.id.btnZoomPreset75)
+        val btnZoomPreset100 = findViewById<Button>(R.id.btnZoomPreset100)
+        val btnZoomPreset125 = findViewById<Button>(R.id.btnZoomPreset125)
+        val btnZoomPreset150 = findViewById<Button>(R.id.btnZoomPreset150)
+        val btnZoomPreset175 = findViewById<Button>(R.id.btnZoomPreset175)
+        val btnZoomPreset200 = findViewById<Button>(R.id.btnZoomPreset200)
+
+        val presetButtons = mapOf(
+            75 to btnZoomPreset75,
+            100 to btnZoomPreset100,
+            125 to btnZoomPreset125,
+            150 to btnZoomPreset150,
+            175 to btnZoomPreset175,
+            200 to btnZoomPreset200
+        )
+
+        var currentZoomLevel = prefs.getInt("page_zoom", 75)
+
+        fun updateZoomUi(zoom: Int) {
+            btnNavZoom.text = "🔍 ${zoom}%"
+            badgeZoomPercent.text = "${zoom}%"
+            val desc = when {
+                zoom <= 75 -> "Osnovna TV nastavitev (75%)"
+                zoom == 100 -> "Standardno (100%)"
+                zoom <= 130 -> "Udobno povečano"
+                else -> "Velika kinematografska povečava"
+            }
+            textCurrentZoomLevel.text = "Trenutna povečava: ${zoom}% ($desc)"
+
+            presetButtons.forEach { (level, btn) ->
+                if (btn != null) {
+                    if (level == zoom) {
+                        btn.setTextColor(Color.parseColor("#38bdf8"))
+                        btn.setTypeface(null, android.graphics.Typeface.BOLD)
+                    } else {
+                        btn.setTextColor(Color.parseColor("#94a3b8"))
+                        btn.setTypeface(null, android.graphics.Typeface.NORMAL)
+                    }
+                }
+            }
+        }
+
+        fun applyZoom(zoom: Int, showToast: Boolean = false) {
+            val clamped = zoom.coerceIn(50, 300)
+            currentZoomLevel = clamped
+            prefs.edit().putInt("page_zoom", clamped).apply()
+            updateZoomUi(clamped)
+            webViewPool.forEach { it.setPageZoom(clamped) }
+            if (showToast) {
+                Toast.makeText(this, "🔎 Povečava: ${clamped}%", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        updateZoomUi(currentZoomLevel)
+
+        btnNavZoom.setOnClickListener {
+            // Quick cycle through common presets: 75% -> 100% -> 125% -> 150% -> 175% -> 75%
+            val nextZoom = when (currentZoomLevel) {
+                75 -> 100
+                100 -> 125
+                125 -> 150
+                150 -> 175
+                175 -> 75
+                else -> 75
+            }
+            applyZoom(nextZoom, true)
+        }
+
+        btnZoomIn.setOnClickListener {
+            applyZoom(currentZoomLevel + 10, true)
+        }
+
+        btnZoomOut.setOnClickListener {
+            applyZoom(currentZoomLevel - 10, true)
+        }
+
+        presetButtons.forEach { (level, btn) ->
+            btn.setOnClickListener {
+                applyZoom(level, true)
+            }
+        }
+
         findViewById<View>(R.id.btnTestDnsCensorship).setOnClickListener {
             Toast.makeText(this, "Preverjam dostopnost necenzuriranih povezav...", Toast.LENGTH_SHORT).show()
             Thread {
@@ -484,6 +581,14 @@ class MainActivity : android.app.Activity() {
         findViewById<View>(R.id.btnNavSettings).setOnClickListener {
             if (settingsPanel.visibility == View.VISIBLE) hideAllPanels()
             else showSettingsPanel()
+        }
+
+        findViewById<View>(R.id.btnNavFullscreen).setOnClickListener {
+            toggleFullscreenMode()
+        }
+
+        findViewById<View>(R.id.fullscreenExitPill)?.setOnClickListener {
+            toggleFullscreenMode(false)
         }
 
         findViewById<View>(R.id.btnClearHistory).setOnClickListener {
@@ -583,6 +688,7 @@ class MainActivity : android.app.Activity() {
                 val idx = webViewPool.indexOf(this)
                 if (idx >= 0) {
                     viewModel.updateTabTitle(idx, t)
+                    runOnUiThread { renderTabsBar() }
                 }
             }
             onUrlChangedListener = { u ->
@@ -596,23 +702,39 @@ class MainActivity : android.app.Activity() {
                 }
             }
             onShowCustomViewListener = { v, cb ->
+                if (customView != null) {
+                    onHideCustomViewListener?.invoke()
+                }
                 customView = v
                 customViewCallback = cb
-                customViewContainer.addView(v)
+                customViewContainer.addView(
+                    v,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
                 customViewContainer.visibility = View.VISIBLE
                 findViewById<View>(R.id.headerContainer).visibility = View.GONE
+                webViewContainer.visibility = View.GONE
                 window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
             onHideCustomViewListener = {
-                customViewContainer.removeAllViews()
-                customView = null
-                customViewContainer.visibility = View.GONE
-                findViewById<View>(R.id.headerContainer).visibility = View.VISIBLE
-                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                customViewCallback?.onCustomViewHidden()
-                customViewCallback = null
+                if (customView != null) {
+                    customViewContainer.removeAllViews()
+                    customView = null
+                    customViewContainer.visibility = View.GONE
+                    findViewById<View>(R.id.headerContainer).visibility = View.VISIBLE
+                    webViewContainer.visibility = View.VISIBLE
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    customViewCallback?.onCustomViewHidden()
+                    customViewCallback = null
+                }
             }
             onEdgeReachedTopListener = {
+                if (isTvFullscreenMode) {
+                    toggleFullscreenMode(false)
+                }
                 editUrl.requestFocus()
                 editUrl.selectAll()
             }
@@ -624,6 +746,8 @@ class MainActivity : android.app.Activity() {
         webView.adBlockEngine.isCosmeticFilteringEnabled = prefs.getBoolean("cosmetic_filtering", true)
         val uaOrdinal = prefs.getInt("ua_mode", UserAgentMode.TV.ordinal)
         webView.setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
+        val currentZoom = prefs.getInt("page_zoom", 75)
+        webView.setPageZoom(currentZoom)
 
         webViewPool.add(webView)
         webViewContainer.addView(webView)
@@ -631,6 +755,7 @@ class MainActivity : android.app.Activity() {
         viewModel.addNewTab(url, title)
         selectTab(webViewPool.lastIndex)
         webView.loadUrl(url)
+        renderTabsBar()
     }
 
     private fun formatDisplayUrl(rawUrl: String): String {
@@ -694,6 +819,7 @@ class MainActivity : android.app.Activity() {
         }
 
         viewModel.selectTab(index)
+        renderTabsBar()
     }
 
     private fun closeTab(index: Int) {
@@ -708,6 +834,7 @@ class MainActivity : android.app.Activity() {
         viewModel.closeTab(index)
         val newIndex = viewModel.state.activeTabIndex
         selectTab(newIndex)
+        renderTabsBar()
     }
 
     private fun getActiveWebView(): ChromiumEngineView? {
@@ -719,46 +846,52 @@ class MainActivity : android.app.Activity() {
         tabsLayout.removeAllViews()
         val tabs = viewModel.state.tabs
         val activeIndex = viewModel.state.activeTabIndex
+        val d = resources.displayMetrics.density
 
         for (i in tabs.indices) {
             val tab = tabs[i]
+            val isActive = (i == activeIndex)
+
             val tabLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(20, 6, 20, 6)
+                setPadding((12 * d).toInt(), (2 * d).toInt(), (8 * d).toInt(), (2 * d).toInt())
                 isFocusable = true
-                setBackgroundResource(if (i == activeIndex) R.drawable.bg_nav_button else R.drawable.bg_card)
+                isFocusableInTouchMode = true
+                setBackgroundResource(if (isActive) R.drawable.bg_tab_active else R.drawable.bg_tab_inactive)
                 val lp = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.MATCH_PARENT
+                    (30 * d).toInt()
                 ).apply {
-                    marginEnd = 12
+                    marginEnd = (8 * d).toInt()
                 }
                 layoutParams = lp
             }
 
             val textTitle = TextView(this).apply {
-                text = tab.title
+                val displayTitle = if (tab.title.isNullOrBlank() || tab.title == "about:blank") "Zavihek ${i + 1}" else tab.title
+                text = "🌐 $displayTitle"
                 textSize = 12f
-                setTextColor(if (i == activeIndex) Color.parseColor("#38bdf8") else Color.parseColor("#94a3b8"))
-                typeface = if (i == activeIndex) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                setTextColor(if (isActive) Color.parseColor("#38bdf8") else Color.parseColor("#94a3b8"))
+                typeface = if (isActive) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
-                maxWidth = 260
+                maxWidth = (180 * d).toInt()
             }
             tabLayout.addView(textTitle)
 
             if (tabs.size > 1) {
                 val tabIdx = i
                 val btnClose = TextView(this).apply {
-                    text = " ✕"
-                    textSize = 12f
-                    setTextColor(Color.parseColor("#ef4444"))
-                    setPadding(16, 0, 4, 0)
+                    text = "  ✕"
+                    textSize = 13f
+                    setTextColor(if (isActive) Color.parseColor("#f87171") else Color.parseColor("#ef4444"))
+                    setPadding((6 * d).toInt(), 0, (4 * d).toInt(), 0)
                     isClickable = true
                     isFocusable = true
                     setOnClickListener {
                         closeTab(tabIdx)
+                        Toast.makeText(this@MainActivity, "Zavihek odstranjen", Toast.LENGTH_SHORT).show()
                     }
                 }
                 tabLayout.addView(btnClose)
@@ -774,11 +907,26 @@ class MainActivity : android.app.Activity() {
                 true
             }
 
+            // Down key from tab moves to webview
+            tabLayout.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    getActiveWebView()?.requestFocus()
+                    true
+                } else false
+            }
+
             tabsLayout.addView(tabLayout)
         }
     }
 
+    private fun hideKeyboard() {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        val view = currentFocus ?: window.decorView
+        imm?.hideSoftInputFromWindow(view.windowToken, 0)
+    }
+
     private fun hideAllPanels() {
+        hideKeyboard()
         bookmarksPanel.visibility = View.GONE
         downloadsPanel.visibility = View.GONE
         historyPanel.visibility = View.GONE
@@ -792,6 +940,9 @@ class MainActivity : android.app.Activity() {
         bookmarksPanel.visibility = View.VISIBLE
         renderBookmarksGrid()
         viewModel.showPanel(ActivePanel.BOOKMARKS)
+        bookmarksPanel.post {
+            findViewById<View>(R.id.btnAddCustomBookmark)?.requestFocus()
+        }
     }
 
     private fun showDownloadsPanel() {
@@ -817,60 +968,296 @@ class MainActivity : android.app.Activity() {
     private fun renderBookmarksGrid() {
         bookmarksGrid.removeAllViews()
         val bookmarks = viewModel.state.bookmarks
+        val d = resources.displayMetrics.density
 
-        for (bm in bookmarks) {
+        if (bookmarks.isEmpty()) {
+            val emptyText = TextView(this).apply {
+                text = "Trenutno nimate shranjenih zaznamkov.\nKliknite '+ Dodaj zaznamek' zgoraj desno za dodajanje priljubljenih strani."
+                textSize = 15f
+                setTextColor(Color.parseColor("#94a3b8"))
+                setPadding((24 * d).toInt(), (40 * d).toInt(), (24 * d).toInt(), (40 * d).toInt())
+                gravity = Gravity.CENTER
+            }
+            bookmarksGrid.addView(emptyText)
+            return
+        }
+
+        for (i in bookmarks.indices) {
+            val bm = bookmarks[i]
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                setPadding(24, 20, 24, 20)
+                gravity = Gravity.TOP
+                setPadding((16 * d).toInt(), (14 * d).toInt(), (16 * d).toInt(), (14 * d).toInt())
                 isFocusable = true
+                isFocusableInTouchMode = true
                 setBackgroundResource(R.drawable.bg_card)
                 val lp = GridLayout.LayoutParams().apply {
-                    width = 220
-                    height = 140
-                    setMargins(14, 14, 14, 14)
+                    width = (280 * d).toInt()
+                    height = (170 * d).toInt()
+                    setMargins((10 * d).toInt(), (10 * d).toInt(), (10 * d).toInt(), (10 * d).toInt())
                 }
                 layoutParams = lp
             }
 
-            val iconText = TextView(this).apply {
-                text = bm.icon
-                textSize = 28f
-                gravity = Gravity.CENTER
+            // Top Header: Icon + Action Buttons (⬅️ ➡️ ✏️ 🗑️)
+            val headerRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
             }
-            card.addView(iconText)
 
+            // Icon Badge
+            val iconBadge = TextView(this).apply {
+                text = bm.icon.ifBlank { "⭐" }
+                textSize = 26f
+                gravity = Gravity.CENTER
+                setPadding(0, 0, (8 * d).toInt(), 0)
+            }
+            headerRow.addView(iconBadge)
+
+            // Flexible Spacer
+            val spacer = View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(0, 1, 1.0f)
+            }
+            headerRow.addView(spacer)
+
+            // Quick Move Left Button (⬅️)
+            if (i > 0) {
+                val btnLeft = Button(this).apply {
+                    text = "⬅️"
+                    textSize = 11f
+                    setTextColor(Color.WHITE)
+                    setBackgroundResource(R.drawable.bg_nav_button)
+                    val lpBtn = LinearLayout.LayoutParams((32 * d).toInt(), (30 * d).toInt()).apply {
+                        marginEnd = (4 * d).toInt()
+                    }
+                    layoutParams = lpBtn
+                    isFocusable = true
+                    setOnClickListener {
+                        viewModel.moveBookmark(i, i - 1)
+                        renderBookmarksGrid()
+                    }
+                }
+                headerRow.addView(btnLeft)
+            }
+
+            // Quick Move Right Button (➡️)
+            if (i < bookmarks.lastIndex) {
+                val btnRight = Button(this).apply {
+                    text = "➡️"
+                    textSize = 11f
+                    setTextColor(Color.WHITE)
+                    setBackgroundResource(R.drawable.bg_nav_button)
+                    val lpBtn = LinearLayout.LayoutParams((32 * d).toInt(), (30 * d).toInt()).apply {
+                        marginEnd = (4 * d).toInt()
+                    }
+                    layoutParams = lpBtn
+                    isFocusable = true
+                    setOnClickListener {
+                        viewModel.moveBookmark(i, i + 1)
+                        renderBookmarksGrid()
+                    }
+                }
+                headerRow.addView(btnRight)
+            }
+
+            // Edit Button (✏️)
+            val btnEdit = Button(this).apply {
+                text = "✏️"
+                textSize = 11f
+                setTextColor(Color.WHITE)
+                setBackgroundResource(R.drawable.bg_nav_button)
+                val lpBtn = LinearLayout.LayoutParams((32 * d).toInt(), (30 * d).toInt()).apply {
+                    marginEnd = (4 * d).toInt()
+                }
+                layoutParams = lpBtn
+                isFocusable = true
+                setOnClickListener {
+                    showEditBookmarkDialog(bm)
+                }
+            }
+            headerRow.addView(btnEdit)
+
+            // Delete Button (🗑️)
+            val btnDel = Button(this).apply {
+                text = "🗑️"
+                textSize = 11f
+                setTextColor(Color.parseColor("#ef4444"))
+                setBackgroundResource(R.drawable.bg_nav_button)
+                val lpBtn = LinearLayout.LayoutParams((32 * d).toInt(), (30 * d).toInt())
+                layoutParams = lpBtn
+                isFocusable = true
+                setOnClickListener {
+                    showDeleteBookmarkDialog(bm)
+                }
+            }
+            headerRow.addView(btnDel)
+
+            card.addView(headerRow)
+
+            // Bookmark Title: 15sp, bold, clean high contrast white text
             val titleText = TextView(this).apply {
                 text = bm.title
-                textSize = 13f
+                textSize = 15f
                 setTextColor(Color.WHITE)
-                gravity = Gravity.CENTER
-                maxLines = 1
+                typeface = Typeface.DEFAULT_BOLD
+                maxLines = 2
                 ellipsize = TextUtils.TruncateAt.END
-                setPadding(0, 8, 0, 0)
+                setPadding(0, (8 * d).toInt(), 0, (2 * d).toInt())
             }
             card.addView(titleText)
 
+            // Bookmark URL / Domain Host
+            val hostText = TextView(this).apply {
+                val displayHost = try {
+                    if (bm.url.startsWith("file:///")) "StreamNexus HD"
+                    else Uri.parse(bm.url).host ?: bm.url
+                } catch (e: Exception) {
+                    bm.url
+                }
+                text = "🔗 $displayHost"
+                textSize = 12f
+                setTextColor(Color.parseColor("#38bdf8"))
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            }
+            card.addView(hostText)
+
             card.setOnClickListener {
+                hideAllPanels()
                 loadUrl(bm.url)
             }
 
             card.setOnLongClickListener {
-                android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                    .setTitle("🗑️ Odstrani Zaznamek")
-                    .setMessage("Ali res želite odstraniti zaznamek \"${bm.title}\"?")
-                    .setPositiveButton("Odstrani") { _, _ ->
-                        viewModel.deleteBookmark(bm.id)
-                        Toast.makeText(this, "Zaznamek odstranjen.", Toast.LENGTH_SHORT).show()
-                        renderBookmarksGrid()
-                    }
-                    .setNegativeButton("Prekliči", null)
-                    .show()
+                showBookmarkActionsDialog(bm, i)
                 true
             }
 
             bookmarksGrid.addView(card)
         }
+    }
+
+    private fun showEditBookmarkDialog(bm: BookmarkItem) {
+        val d = resources.displayMetrics.density
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((24 * d).toInt(), (16 * d).toInt(), (24 * d).toInt(), (16 * d).toInt())
+        }
+
+        val textLabelTitle = TextView(this).apply {
+            text = "Ime zaznamka:"
+            setTextColor(Color.parseColor("#94a3b8"))
+            textSize = 13f
+        }
+        container.addView(textLabelTitle)
+
+        val inputTitle = EditText(this).apply {
+            setText(bm.title)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.parseColor("#64748b"))
+            setBackgroundResource(R.drawable.bg_omnibox)
+            setPadding((12 * d).toInt(), (10 * d).toInt(), (12 * d).toInt(), (10 * d).toInt())
+        }
+        container.addView(inputTitle)
+
+        val textLabelUrl = TextView(this).apply {
+            text = "Spletni naslov (URL):"
+            setTextColor(Color.parseColor("#94a3b8"))
+            textSize = 13f
+            setPadding(0, (12 * d).toInt(), 0, 0)
+        }
+        container.addView(textLabelUrl)
+
+        val inputUrl = EditText(this).apply {
+            setText(bm.url)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.parseColor("#64748b"))
+            setBackgroundResource(R.drawable.bg_omnibox)
+            setPadding((12 * d).toInt(), (10 * d).toInt(), (12 * d).toInt(), (10 * d).toInt())
+        }
+        container.addView(inputUrl)
+
+        val textLabelIcon = TextView(this).apply {
+            text = "Ikona / Emoji (npr. ⭐, 🎬, 📺, 🐙, 🍿, 🌐):"
+            setTextColor(Color.parseColor("#94a3b8"))
+            textSize = 13f
+            setPadding(0, (12 * d).toInt(), 0, 0)
+        }
+        container.addView(textLabelIcon)
+
+        val inputIcon = EditText(this).apply {
+            setText(bm.icon)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.parseColor("#64748b"))
+            setBackgroundResource(R.drawable.bg_omnibox)
+            setPadding((12 * d).toInt(), (10 * d).toInt(), (12 * d).toInt(), (10 * d).toInt())
+        }
+        container.addView(inputIcon)
+
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("✏️ Uredi Zaznamek")
+            .setView(container)
+            .setPositiveButton("Shrani") { _, _ ->
+                val newTitle = inputTitle.text.toString().trim()
+                val newUrl = inputUrl.text.toString().trim()
+                val newIcon = inputIcon.text.toString().trim().ifBlank { "⭐" }
+                if (newTitle.isNotEmpty() && newUrl.isNotEmpty()) {
+                    viewModel.updateBookmark(bm.id, newTitle, newUrl, newIcon)
+                    renderBookmarksGrid()
+                    Toast.makeText(this, "Zaznamek posodobljen!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Prekliči", null)
+            .show()
+    }
+
+    private fun showDeleteBookmarkDialog(bm: BookmarkItem) {
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("🗑️ Odstrani Zaznamek")
+            .setMessage("Ali res želite odstraniti zaznamek \"${bm.title}\"?")
+            .setPositiveButton("Odstrani") { _, _ ->
+                viewModel.deleteBookmark(bm.id)
+                renderBookmarksGrid()
+                Toast.makeText(this, "Zaznamek odstranjen.", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Prekliči", null)
+            .show()
+    }
+
+    private fun showBookmarkActionsDialog(bm: BookmarkItem, index: Int) {
+        val total = viewModel.state.bookmarks.size
+        val options = mutableListOf<String>()
+        options.add("🚀 Odpri spletno stran")
+        options.add("✏️ Uredi ime in naslov")
+        if (index > 0) options.add("⬅️ Premakni levo (vrstni red)")
+        if (index < total - 1) options.add("➡️ Premakni desno (vrstni red)")
+        options.add("🗑️ Odstrani zaznamek")
+
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("⭐ ${bm.title}")
+            .setItems(options.toTypedArray()) { _, which ->
+                when (options[which]) {
+                    "🚀 Odpri spletno stran" -> {
+                        hideAllPanels()
+                        loadUrl(bm.url)
+                    }
+                    "✏️ Uredi ime in naslov" -> showEditBookmarkDialog(bm)
+                    "⬅️ Premakni levo (vrstni red)" -> {
+                        viewModel.moveBookmark(index, index - 1)
+                        renderBookmarksGrid()
+                    }
+                    "➡️ Premakni desno (vrstni red)" -> {
+                        viewModel.moveBookmark(index, index + 1)
+                        renderBookmarksGrid()
+                    }
+                    "🗑️ Odstrani zaznamek" -> showDeleteBookmarkDialog(bm)
+                }
+            }
+            .setNegativeButton("Zapri", null)
+            .show()
     }
 
     private fun renderDownloadsList() {
@@ -1055,27 +1442,71 @@ class MainActivity : android.app.Activity() {
         val active = getActiveWebView()
         val currentUrl = active?.url ?: ""
         val currentTitle = active?.title ?: ""
+        val d = resources.displayMetrics.density
 
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(40, 20, 40, 20)
+            setPadding((24 * d).toInt(), (16 * d).toInt(), (24 * d).toInt(), (16 * d).toInt())
         }
 
+        val textLabelTitle = TextView(this).apply {
+            text = "Ime portala:"
+            setTextColor(Color.parseColor("#94a3b8"))
+            textSize = 13f
+        }
+        container.addView(textLabelTitle)
+
         val inputTitle = EditText(this).apply {
-            hint = "Ime portala (npr. TMDB Filmi)"
+            hint = "npr. TMDB Filmi"
             setText(currentTitle)
             setTextColor(Color.WHITE)
             setHintTextColor(Color.parseColor("#64748b"))
+            setBackgroundResource(R.drawable.bg_omnibox)
+            setPadding((12 * d).toInt(), (10 * d).toInt(), (12 * d).toInt(), (10 * d).toInt())
         }
         container.addView(inputTitle)
 
+        val textLabelUrl = TextView(this).apply {
+            text = "Spletni naslov (URL):"
+            setTextColor(Color.parseColor("#94a3b8"))
+            textSize = 13f
+            setPadding(0, (12 * d).toInt(), 0, 0)
+        }
+        container.addView(textLabelUrl)
+
         val inputUrl = EditText(this).apply {
-            hint = "Spletni naslov (npr. https://...)"
+            hint = "https://..."
             setText(currentUrl)
             setTextColor(Color.WHITE)
             setHintTextColor(Color.parseColor("#64748b"))
+            setBackgroundResource(R.drawable.bg_omnibox)
+            setPadding((12 * d).toInt(), (10 * d).toInt(), (12 * d).toInt(), (10 * d).toInt())
         }
         container.addView(inputUrl)
+
+        val textLabelIcon = TextView(this).apply {
+            text = "Ikona / Emoji (npr. ⭐, 🎬, 📺, 🍿, 🐙, 🌐):"
+            setTextColor(Color.parseColor("#94a3b8"))
+            textSize = 13f
+            setPadding(0, (12 * d).toInt(), 0, 0)
+        }
+        container.addView(textLabelIcon)
+
+        val inputIcon = EditText(this).apply {
+            val detectedIcon = when {
+                currentUrl.contains("youtube.com") -> "📺"
+                currentUrl.contains("themoviedb.org") || currentUrl.contains("tmdb") -> "🍿"
+                currentUrl.contains("github.com") -> "🐙"
+                currentUrl.contains("stream") -> "🎬"
+                else -> "⭐"
+            }
+            setText(detectedIcon)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.parseColor("#64748b"))
+            setBackgroundResource(R.drawable.bg_omnibox)
+            setPadding((12 * d).toInt(), (10 * d).toInt(), (12 * d).toInt(), (10 * d).toInt())
+        }
+        container.addView(inputIcon)
 
         android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle("⭐ Dodaj Nov Zaznamek")
@@ -1083,8 +1514,9 @@ class MainActivity : android.app.Activity() {
             .setPositiveButton("Dodaj") { _, _ ->
                 val title = inputTitle.text.toString().trim()
                 val url = inputUrl.text.toString().trim()
+                val icon = inputIcon.text.toString().trim().ifBlank { "⭐" }
                 if (title.isNotEmpty() && url.isNotEmpty()) {
-                    viewModel.addBookmark(title, url, "⭐")
+                    viewModel.addBookmark(title, url, icon)
                     renderBookmarksGrid()
                     Toast.makeText(this, "Zaznamek shranjen!", Toast.LENGTH_SHORT).show()
                 }
@@ -1297,9 +1729,63 @@ class MainActivity : android.app.Activity() {
             if (handleCursorKeyEvent(event)) return true
         }
 
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK -> {
+                    sendPlayerCommand("TOGGLE_PLAY")
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                    sendPlayerCommand("PLAY")
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                    sendPlayerCommand("PAUSE")
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_REWIND, KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD -> {
+                    sendPlayerCommand("SEEK_RELATIVE", -10)
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_MEDIA_STEP_FORWARD -> {
+                    sendPlayerCommand("SEEK_RELATIVE", 10)
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_STOP -> {
+                    sendPlayerCommand("PAUSE")
+                    return true
+                }
+            }
+        }
+
         if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_BACK) {
-            if (customView != null) {
-                getActiveWebView()?.webChromeClient?.onHideCustomView()
+            if (isTvFullscreenMode || customView != null) {
+                if (customView != null) {
+                    getActiveWebView()?.onHideCustomViewListener?.invoke()
+                }
+                if (isTvFullscreenMode) {
+                    toggleFullscreenMode(false)
+                }
+                getActiveWebView()?.evaluateJavascript("""
+                    (function() {
+                        try {
+                            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                                if (document.exitFullscreen) document.exitFullscreen();
+                                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                            }
+                            document.querySelectorAll('.tv-fullscreen-video, [data-tv-fullscreen]').forEach(function(el) {
+                                el.classList.remove('tv-fullscreen-video');
+                                el.removeAttribute('data-tv-fullscreen');
+                                el.style.position = '';
+                                el.style.top = '';
+                                el.style.left = '';
+                                el.style.width = '';
+                                el.style.height = '';
+                                el.style.zIndex = '';
+                            });
+                        } catch(e) {}
+                    })();
+                """.trimIndent(), null)
                 return true
             }
             if (bookmarksPanel.visibility == View.VISIBLE ||
@@ -1315,6 +1801,38 @@ class MainActivity : android.app.Activity() {
                 active.goBack()
                 return true
             }
+
+            // Close modal / player inside single-page apps (StreamNexus / Web players)
+            if (active != null) {
+                active.evaluateJavascript("""
+                    (function() {
+                        try {
+                            const closeBtn = document.querySelector('#modalCloseBtn, .modal-close, .close-player, #closePlayerBtn, [data-dismiss="modal"], .player-back-btn, #btnBackFromPlayer, .btn-close');
+                            if (closeBtn && closeBtn.offsetParent !== null) {
+                                closeBtn.click();
+                                return "MODAL_CLOSED";
+                            }
+                            if (window.app && typeof window.app.closePlayer === 'function') {
+                                const m = document.getElementById('playerModal');
+                                if (m && m.style && m.style.display !== 'none') {
+                                    window.app.closePlayer();
+                                    return "MODAL_CLOSED";
+                                }
+                            }
+                        } catch(e) {}
+                        return "NO_MODAL";
+                    })();
+                """.trimIndent(), null)
+            }
+
+            val now = System.currentTimeMillis()
+            if (now - lastBackPressTime < 2500) {
+                finish()
+            } else {
+                lastBackPressTime = now
+                Toast.makeText(this, "Pritisnite NAZAJ še enkrat za izhod iz brskalnika", Toast.LENGTH_SHORT).show()
+            }
+            return true
         }
 
         return super.dispatchKeyEvent(event)
@@ -1388,5 +1906,108 @@ class MainActivity : android.app.Activity() {
         active.dispatchTouchEvent(up)
         down.recycle()
         up.recycle()
+    }
+
+    fun toggleFullscreenMode(forceEnable: Boolean? = null) {
+        val target = forceEnable ?: !isTvFullscreenMode
+        isTvFullscreenMode = target
+
+        val header = findViewById<View>(R.id.headerContainer)
+        val tabs = findViewById<View>(R.id.tabsBarContainer)
+        val pill = findViewById<View>(R.id.fullscreenExitPill)
+
+        if (isTvFullscreenMode) {
+            hideAllPanels()
+            header.visibility = View.GONE
+            tabs.visibility = View.GONE
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+            if (pill != null) {
+                pill.visibility = View.VISIBLE
+                pill.alpha = 1f
+                pill.animate().alpha(0f).setStartDelay(3000).setDuration(500).withEndAction {
+                    pill.visibility = View.GONE
+                }.start()
+            }
+
+            // Injektiraj JavaScript za razteg vseh video / iframe elementov čez celoten 100vw/100vh zaslon
+            getActiveWebView()?.evaluateJavascript("""
+                (function() {
+                    try {
+                        const v = document.querySelector('video') || document.querySelector('iframe');
+                        if (v) {
+                            if (v.requestFullscreen) { v.requestFullscreen().catch(function(e) {}); }
+                            else if (v.webkitRequestFullscreen) { v.webkitRequestFullscreen(); }
+                        }
+                        var cssId = 'tv_fullscreen_css';
+                        if (!document.getElementById(cssId)) {
+                            var s = document.createElement('style');
+                            s.id = cssId;
+                            s.innerHTML = '.tv-fullscreen-active #player, .tv-fullscreen-active iframe, .tv-fullscreen-active .player-wrapper { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999 !important; max-width: 100vw !important; max-height: 100vh !important; }';
+                            document.head.appendChild(s);
+                        }
+                        document.body.classList.add('tv-fullscreen-active');
+                    } catch(e) {}
+                })();
+            """.trimIndent(), null)
+
+            getActiveWebView()?.requestFocus()
+            Toast.makeText(this, "⛶ Celozaslonski način (Pritisnite NAZAJ za izhod)", Toast.LENGTH_SHORT).show()
+        } else {
+            header.visibility = View.VISIBLE
+            tabs.visibility = View.VISIBLE
+            if (pill != null) pill.visibility = View.GONE
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            getActiveWebView()?.evaluateJavascript("""
+                (function() {
+                    try {
+                        if (document.fullscreenElement || document.webkitFullscreenElement) {
+                            if (document.exitFullscreen) document.exitFullscreen();
+                            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                        }
+                        document.body.classList.remove('tv-fullscreen-active');
+                    } catch(e) {}
+                })();
+            """.trimIndent(), null)
+            Toast.makeText(this, "Izhod iz celozaslonskega načina", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun onWebPlayerStateReceived(stateJson: String) {
+        runOnUiThread {
+            try {
+                val obj = org.json.JSONObject(stateJson)
+                val isPlaying = obj.optBoolean("isPlaying", false)
+                val isFullscreen = obj.optBoolean("isFullscreen", false)
+
+                if (isPlaying) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else if (!isTvFullscreenMode) {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+
+                if (isFullscreen != isTvFullscreenMode) {
+                    toggleFullscreenMode(isFullscreen)
+                }
+            } catch (ignored: Exception) {}
+        }
+    }
+
+    fun sendPlayerCommand(action: String, value: Any? = null) {
+        val js = if (value != null) {
+            "window.FreenetPlayerBridge && window.FreenetPlayerBridge.sendCommand('$action', $value);"
+        } else {
+            "window.FreenetPlayerBridge && window.FreenetPlayerBridge.sendCommand('$action');"
+        }
+        getActiveWebView()?.evaluateJavascript(js, null)
     }
 }

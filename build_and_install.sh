@@ -28,6 +28,7 @@ echo "⚙️ 1/5: Prevajam Android XML vire (AAPT2)..."
 "$TOOLS_DIR/aapt2" compile --dir "$DIR/res" -o "$BUILD_DIR/compiled_res.zip"
 "$TOOLS_DIR/aapt2" link -I "$TOOLS_DIR/android.jar" \
     --manifest "$DIR/AndroidManifest.xml" \
+    -A "$DIR/assets" \
     --min-sdk-version 28 \
     --target-sdk-version 34 \
     --version-code 2 \

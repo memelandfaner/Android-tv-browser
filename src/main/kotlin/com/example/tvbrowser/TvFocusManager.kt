@@ -8,7 +8,8 @@ class TvFocusManager(
     private val editUrl: EditText,
     private val onToggleCursor: () -> Unit,
     private val onStartVoice: () -> Unit,
-    private val onToggleBookmarks: () -> Unit
+    private val onToggleBookmarks: () -> Unit,
+    private val onToggleFullscreen: () -> Unit
 ) {
 
     fun handleTvKey(keyCode: Int, event: KeyEvent?): Boolean {
@@ -34,9 +35,9 @@ class TvFocusManager(
                 return true
             }
 
-            // 🔵 Blue Button (Keycode 186 or PROG_BLUE) -> Toggle Bookmarks
-            186, KeyEvent.KEYCODE_PROG_BLUE -> {
-                onToggleBookmarks()
+            // 🔵 Blue Button (Keycode 186 or PROG_BLUE) / 'F' / Gamepad X -> Toggle Fullscreen
+            186, KeyEvent.KEYCODE_PROG_BLUE, KeyEvent.KEYCODE_F, KeyEvent.KEYCODE_BUTTON_X -> {
+                onToggleFullscreen()
                 return true
             }
         }
