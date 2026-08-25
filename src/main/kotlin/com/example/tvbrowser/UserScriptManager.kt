@@ -185,8 +185,23 @@ object UserScriptManager {
                     if (el.offsetParent === null && el.offsetWidth === 0 && el.offsetHeight === 0) return false;
                     return true;
                 });
-                if (focusable.length === 0) return;
+                if (focusable.length === 0) {
+                    if (direction === 'up' && window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
+                        window.AndroidNativeBridge.focusToolbar();
+                    }
+                    return;
+                }
                 let index = focusable.indexOf(current);
+
+                if (direction === 'up') {
+                    if (index <= 0 || (current && current.getBoundingClientRect().top <= 40)) {
+                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
+                            window.AndroidNativeBridge.focusToolbar();
+                            return;
+                        }
+                    }
+                }
+
                 if (direction === 'right' || direction === 'down') index++;
                 if (direction === 'left' || direction === 'up') index--;
                 if (index < 0) index = focusable.length - 1;

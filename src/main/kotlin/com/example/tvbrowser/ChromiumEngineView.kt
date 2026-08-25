@@ -397,6 +397,13 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
 
         @JavascriptInterface
+        fun focusToolbar() {
+            post {
+                onEdgeReachedTopListener?.invoke()
+            }
+        }
+
+        @JavascriptInterface
         fun launchNativeVideo(url: String?, title: String? = null) {
             post {
                 try {
