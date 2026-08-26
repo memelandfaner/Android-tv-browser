@@ -51,7 +51,12 @@ object UserScriptManager {
                 } catch(e) {}
 
                 // 5. MutationObserver to safely remove anti-adblock modal backdrops and annoyance walls
+                var _lastObserverRun = 0;
                 var observer = new MutationObserver(function() {
+                    var now = Date.now();
+                    if (now - _lastObserverRun < 1000) return;
+                    _lastObserverRun = now;
+
                     window.google_ad_status = 1;
                     window.canRunAds = true;
                     window.adblock = false;
@@ -451,7 +456,7 @@ object UserScriptManager {
             if (!document.getElementById(cssId)) {
                 var style = document.createElement('style');
                 style.id = cssId;
-                style.innerHTML = `
+                style.textContent = `
                     #ad, #ads, .ad, .ads, .ad-banner, .advertisement, .ad-container,
                     .adsbygoogle, [id^="google_ads_"], [id^="div-gpt-ad"], [class*="sponsored-post"],
                     .ytp-ad-module, .ytp-ad-overlay-container, .video-ads, #player-ads,
@@ -866,11 +871,15 @@ object UserScriptManager {
                     badge = document.createElement('div');
                     badge.id = 'freenet_dislike_badge';
                     badge.style.cssText = 'position:fixed;top:80px;right:40px;background:rgba(15,23,42,0.9);border:1px solid rgba(56,189,248,0.4);color:#fff;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:bold;z-index:999999;box-shadow:0 8px 24px rgba(0,0,0,0.6);pointer-events:none;';
-                    document.body.appendChild(badge);
+                    if (document.body) {
+                        document.body.appendChild(badge);
+                    } else if (document.documentElement) {
+                        document.documentElement.appendChild(badge);
+                    }
                 }
                 var dislikeText = Number(dislikes).toLocaleString();
                 var likeText = likes ? Number(likes).toLocaleString() : '';
-                badge.innerHTML = '👍 ' + likeText + ' &nbsp;|&nbsp; 👎 ' + dislikeText;
+                badge.textContent = '👍 ' + likeText + ' &nbsp;|&nbsp; 👎 ' + dislikeText;
             }
 
             function onVideoTimeUpdate() {
@@ -1086,7 +1095,7 @@ object UserScriptManager {
             if (!style) {
                 style = document.createElement('style');
                 style.id = 'tv_browser_focus_style';
-                style.innerHTML = ':focus, a:focus, button:focus, input:focus, [tabindex]:focus, button.search-button:focus, [aria-label*="Iskanje"]:focus, [aria-label*="Search"]:focus, c3-icon:focus { outline: 3px solid #38bdf8 !important; outline-offset: 3px !important; box-shadow: 0 0 15px rgba(56, 189, 248, 0.6) !important; }';
+                style.textContent = ':focus, a:focus, button:focus, input:focus, [tabindex]:focus, button.search-button:focus, [aria-label*="Iskanje"]:focus, [aria-label*="Search"]:focus, c3-icon:focus { outline: 3px solid #38bdf8 !important; outline-offset: 3px !important; box-shadow: 0 0 15px rgba(56, 189, 248, 0.6) !important; }';
                 if (document.head) document.head.appendChild(style);
                 else if (document.documentElement) document.documentElement.appendChild(style);
             }
@@ -1120,7 +1129,7 @@ object UserScriptManager {
                 });
             }
             instantMediaPlay();
-            setInterval(instantMediaPlay, 100);
+            setInterval(instantMediaPlay, 500);
 
             // 🎮 TV D-Pad: Pressing ArrowUp at top of webpage escapes to top toolbar
             document.addEventListener('keydown', function(e) {
@@ -1282,7 +1291,7 @@ object UserScriptManager {
                     if (!document.getElementById(cssId)) {
                         var s = document.createElement('style');
                         s.id = cssId;
-                        s.innerHTML = `
+                        s.textContent = `
                             html.freenet-tv-fullscreen, body.freenet-tv-fullscreen {
                                 overflow: hidden !important;
                                 background: #000 !important;
@@ -1912,7 +1921,12 @@ object UserScriptManager {
             triggerPlayButtons();
 
             // Observe dynamic changes
+            var _lastObsRun = 0;
             var obs = new MutationObserver(function() {
+                var now = Date.now();
+                if (now - _lastObsRun < 1000) return;
+                _lastObsRun = now;
+
                 suppressHomepageTrailers();
                 setupIframes();
                 document.querySelectorAll('video').forEach(setupVideoElement);

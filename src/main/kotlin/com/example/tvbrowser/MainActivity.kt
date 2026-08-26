@@ -782,7 +782,7 @@ class MainActivity : android.app.Activity() {
                             )
                             customViewContainer.visibility = View.VISIBLE
                             customViewContainer.bringToFront()
-                            findViewById<View>(R.id.headerContainer).visibility = View.GONE
+                            findViewById<View>(R.id.headerContainer)?.visibility = View.GONE
                             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                             hideSystemUI()
                         }
@@ -798,7 +798,7 @@ class MainActivity : android.app.Activity() {
                         customViewContainer.removeAllViews()
                         customView = null
                         customViewContainer.visibility = View.GONE
-                        findViewById<View>(R.id.headerContainer).visibility = View.VISIBLE
+                        findViewById<View>(R.id.headerContainer)?.visibility = View.VISIBLE
                         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                         try {
                             customViewCallback?.onCustomViewHidden()
@@ -2097,7 +2097,7 @@ class MainActivity : android.app.Activity() {
                         if (!s) {
                             s = document.createElement('style');
                             s.id = cssId;
-                            s.innerHTML = `
+                            s.textContent = `
                                 html.tv-fullscreen-active, body.tv-fullscreen-active {
                                     overflow: hidden !important;
                                     background: #000 !important;
