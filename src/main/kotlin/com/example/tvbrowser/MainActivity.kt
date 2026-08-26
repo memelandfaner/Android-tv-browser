@@ -104,7 +104,6 @@ class MainActivity : android.app.Activity() {
             },
             onToggleFullscreen = {
                 toggleFullscreenMode()
-                sendPlayerCommand("TOGGLE_FULLSCREEN")
             },
             onSubtitlesKey = {
                 sendPlayerCommand("SUBTITLES")
@@ -621,7 +620,6 @@ class MainActivity : android.app.Activity() {
 
         findViewById<View>(R.id.btnNavFullscreen).setOnClickListener {
             toggleFullscreenMode()
-            sendPlayerCommand("TOGGLE_FULLSCREEN")
         }
 
         findViewById<View>(R.id.fullscreenExitPill)?.setOnClickListener {
@@ -2167,16 +2165,11 @@ class MainActivity : android.app.Activity() {
             try {
                 val obj = org.json.JSONObject(stateJson)
                 val isPlaying = obj.optBoolean("isPlaying", false)
-                val isFullscreen = obj.optBoolean("isFullscreen", false)
 
                 if (isPlaying) {
                     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 } else if (!isTvFullscreenMode) {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                }
-
-                if (isFullscreen != isTvFullscreenMode) {
-                    toggleFullscreenMode(isFullscreen)
                 }
             } catch (ignored: Exception) {}
         }
