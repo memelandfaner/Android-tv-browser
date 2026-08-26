@@ -67,14 +67,14 @@ class ChromiumEngineView @JvmOverloads constructor(
 
     override fun loadUrl(url: String) {
         val prefs = context.getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
-        val uaOrdinal = prefs.getInt("user_agent_mode", UserAgentMode.TV.ordinal)
+        val uaOrdinal = prefs.getInt("ua_mode", UserAgentMode.TV.ordinal)
         setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
         super.loadUrl(url)
     }
 
     override fun loadUrl(url: String, additionalHttpHeaders: Map<String, String>) {
         val prefs = context.getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
-        val uaOrdinal = prefs.getInt("user_agent_mode", UserAgentMode.TV.ordinal)
+        val uaOrdinal = prefs.getInt("ua_mode", UserAgentMode.TV.ordinal)
         setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
         super.loadUrl(url, additionalHttpHeaders)
     }
