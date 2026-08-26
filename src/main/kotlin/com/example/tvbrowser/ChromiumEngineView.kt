@@ -91,6 +91,9 @@ class ChromiumEngineView @JvmOverloads constructor(
         s.allowUniversalAccessFromFileURLs = true
         s.setSupportZoom(false)
         s.builtInZoomControls = false
+        s.useWideViewPort = true
+        s.loadWithOverviewMode = true
+        s.offscreenPreRaster = true
         s.javaScriptCanOpenWindowsAutomatically = false
         s.setSupportMultipleWindows(false)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

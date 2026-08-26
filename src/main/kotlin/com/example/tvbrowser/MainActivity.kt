@@ -84,6 +84,10 @@ class MainActivity : android.app.Activity() {
         super.onCreate(savedInstanceState)
 
         try {
+            window.setFlags(
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+            )
             StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
         } catch (ignored: Exception) {}
 
