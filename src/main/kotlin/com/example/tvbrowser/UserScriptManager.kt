@@ -639,7 +639,7 @@ object UserScriptManager {
                         #guide-wrapper, ytd-mini-guide-renderer, ytd-guide-renderer,
                         #chips-wrapper, #chips-wrapper *, ytd-feed-filter-chip-bar-renderer, ytd-feed-filter-chip-bar-renderer *,
                         ytd-rich-grid-renderer > #header, ytd-browse > #header,
-                        #header.ytd-rich-grid-renderer, #header.ytd-browse, #header,
+                        #header.ytd-rich-grid-renderer, #header.ytd-browse,
                         ytd-statement-banner-renderer, ytd-banner-promo-renderer,
                         ytd-brand-video-singleton-renderer, ytd-hero-playlist-thumbnail-renderer,
                         ytd-primetime-promo-renderer, ytd-rich-section-renderer, #big-yoodle,
@@ -1130,7 +1130,6 @@ object UserScriptManager {
                 });
             }
             instantMediaPlay();
-            setInterval(instantMediaPlay, 500);
 
             // 🎮 TV D-Pad: Pressing ArrowUp at top of webpage escapes to top toolbar
             document.addEventListener('keydown', function(e) {
@@ -1555,11 +1554,24 @@ object UserScriptManager {
                 }
             }
 
-            // 5. Detection: Check if current page is an active watch / movie playback page
+            // 5. Detection: Check if current page is an active watch / movie playback page on streaming portals
             function isWatchPage() {
+                var h = (window.location.hostname || window.location.href || '').toLowerCase();
                 var p = (window.location.pathname || '').toLowerCase();
-                var h = (window.location.href || '').toLowerCase();
-                if (h.indexOf('youtube.com') !== -1 || h.indexOf('youtu.be') !== -1) return false;
+                if (h.indexOf('youtube.com') !== -1 || h.indexOf('youtu.be') !== -1 || h.indexOf('google.') !== -1 || h.indexOf('bing.com') !== -1 || h.indexOf('duckduckgo.com') !== -1) return false;
+
+                var isStreamingSite = h.indexOf('hydrahd') !== -1 ||
+                                      h.indexOf('vidbox') !== -1 ||
+                                      h.indexOf('vidsrc') !== -1 ||
+                                      h.indexOf('autoembed') !== -1 ||
+                                      h.indexOf('multiembed') !== -1 ||
+                                      h.indexOf('2embed') !== -1 ||
+                                      h.indexOf('111movies') !== -1 ||
+                                      h.indexOf('streamnexus') !== -1 ||
+                                      h.indexOf('file://') !== -1;
+
+                if (!isStreamingSite) return false;
+
                 var isWatchUrl = p.indexOf('/movie/') !== -1 ||
                                  p.indexOf('/series/') !== -1 ||
                                  p.indexOf('/tv/') !== -1 ||
@@ -1666,16 +1678,6 @@ object UserScriptManager {
                     } catch(e) {}
                 });
             }
-
-            // Detect when user clicks into iframe / player area or when iframe receives focus
-            window.addEventListener('blur', function() {
-                if (isWatchPage()) {
-                    applyCinemaFullscreen(true);
-                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
-                        window.AndroidNativeBridge.requestTvFullscreen();
-                    }
-                }
-            });
 
             document.addEventListener('click', function(e) {
                 if (isWatchPage()) {
