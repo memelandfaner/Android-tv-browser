@@ -530,6 +530,16 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+            if (scrollY <= 15) {
+                onEdgeReachedTopListener?.invoke()
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP && scrollY <= 15) {
             onEdgeReachedTopListener?.invoke()

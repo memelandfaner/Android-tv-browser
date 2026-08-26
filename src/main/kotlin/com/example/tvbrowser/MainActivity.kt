@@ -811,9 +811,11 @@ class MainActivity : android.app.Activity() {
                 }
             }
             onEdgeReachedTopListener = {
-                if (!isTvFullscreenMode) {
-                    editUrl.requestFocus()
-                    editUrl.selectAll()
+                runOnUiThread {
+                    if (!isTvFullscreenMode && customView == null) {
+                        editUrl.requestFocus()
+                        editUrl.selectAll()
+                    }
                 }
             }
             onToggleFullscreenRequestListener = { enable ->

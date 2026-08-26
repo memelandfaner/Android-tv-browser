@@ -31,6 +31,7 @@
                 android:text="◀"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
+                android:nextFocusRight="@id/btnForward"
                 android:nextFocusDown="@id/btnAddTab"
                 android:focusable="true" />
 
@@ -43,6 +44,8 @@
                 android:text="▶"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
+                android:nextFocusLeft="@id/btnBack"
+                android:nextFocusRight="@id/btnHome"
                 android:nextFocusDown="@id/btnAddTab"
                 android:focusable="true" />
 
@@ -55,7 +58,9 @@
                 android:text="🏠"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
-                android:nextFocusDown="@id/editUrl"
+                android:nextFocusLeft="@id/btnForward"
+                android:nextFocusRight="@id/editUrl"
+                android:nextFocusDown="@id/btnAddTab"
                 android:focusable="true" />
 
             <!-- Omnibox URL / Search input -->
@@ -77,6 +82,8 @@
                 android:ellipsize="end"
                 android:imeOptions="actionGo"
                 android:inputType="textUri|textWebEditText"
+                android:nextFocusLeft="@id/btnHome"
+                android:nextFocusRight="@id/btnStarBookmark"
                 android:nextFocusDown="@id/tabsScrollView"
                 android:focusable="true" />
 
@@ -89,12 +96,16 @@
                 android:text="⭐"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
+                android:nextFocusLeft="@id/editUrl"
+                android:nextFocusRight="@id/btnNavBookmarks"
+                android:nextFocusDown="@id/tabsScrollView"
                 android:focusable="true" />
 
             <HorizontalScrollView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:scrollbars="none"
+                android:focusable="false"
                 android:fillViewport="true">
 
                 <LinearLayout
@@ -113,6 +124,9 @@
                         android:text="Zaznamki"
                         android:textColor="@color/text_primary"
                         android:textSize="12sp"
+                        android:nextFocusLeft="@id/btnStarBookmark"
+                        android:nextFocusRight="@id/btnNavDownloads"
+                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
 
                     <Button
@@ -125,6 +139,9 @@
                         android:text="Prenosi"
                         android:textColor="@color/text_primary"
                         android:textSize="12sp"
+                        android:nextFocusLeft="@id/btnNavBookmarks"
+                        android:nextFocusRight="@id/btnNavHistory"
+                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
 
                     <Button
@@ -137,6 +154,9 @@
                         android:text="Zgodovina"
                         android:textColor="@color/text_primary"
                         android:textSize="12sp"
+                        android:nextFocusLeft="@id/btnNavDownloads"
+                        android:nextFocusRight="@id/btnNavZoom"
+                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
 
                     <Button
@@ -149,6 +169,9 @@
                         android:text="🔍 75%"
                         android:textColor="@color/accent_cyan"
                         android:textSize="12sp"
+                        android:nextFocusLeft="@id/btnNavHistory"
+                        android:nextFocusRight="@id/btnNavFullscreen"
+                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
 
                     <Button
@@ -160,6 +183,9 @@
                         android:text="⛶"
                         android:textColor="@color/text_primary"
                         android:textSize="14sp"
+                        android:nextFocusLeft="@id/btnNavZoom"
+                        android:nextFocusRight="@id/btnNavSettings"
+                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
 
                     <Button
@@ -172,6 +198,8 @@
                         android:text="⚙️"
                         android:textColor="@color/text_primary"
                         android:textSize="14sp"
+                        android:nextFocusLeft="@id/btnNavFullscreen"
+                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
                 </LinearLayout>
             </HorizontalScrollView>

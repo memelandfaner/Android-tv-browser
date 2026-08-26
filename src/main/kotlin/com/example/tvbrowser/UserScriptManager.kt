@@ -1153,6 +1153,23 @@ object UserScriptManager {
             instantMediaPlay();
             setInterval(instantMediaPlay, 100);
 
+            // 🎮 TV D-Pad: Pressing ArrowUp at top of webpage escapes to top toolbar
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowUp' || e.keyCode === 38) {
+                    var scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                    var activeEl = document.activeElement;
+                    var isAtTop = scrollTop <= 20;
+                    if (isAtTop) {
+                        var rect = activeEl ? activeEl.getBoundingClientRect() : null;
+                        if (!rect || rect.top <= 140 || activeEl === document.body || activeEl === document.documentElement) {
+                            if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
+                                window.AndroidNativeBridge.focusToolbar();
+                            }
+                        }
+                    }
+                }
+            }, true);
+
             // Privacy-First CMP: Auto-dismiss Cookie & Consent Walls
             function handleConsentPrivacy() {
                 // 1. Check for explicit Reject / Decline buttons first
