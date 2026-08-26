@@ -1287,6 +1287,13 @@ object UserScriptManager {
             }
 
             function applyCinemaFullscreen(enable) {
+                if (!isWatchPage()) {
+                    var oldStyle = document.getElementById('freenet_tv_cinema_fullscreen_css');
+                    if (oldStyle) oldStyle.remove();
+                    document.documentElement.classList.remove('freenet-tv-fullscreen');
+                    document.body.classList.remove('freenet-tv-fullscreen');
+                    return;
+                }
                 var cssId = 'freenet_tv_cinema_fullscreen_css';
                 if (enable) {
                     if (!document.getElementById(cssId)) {
@@ -1552,14 +1559,14 @@ object UserScriptManager {
             function isWatchPage() {
                 var p = (window.location.pathname || '').toLowerCase();
                 var h = (window.location.href || '').toLowerCase();
-                var isWatchUrl = p.indexOf('/watch') !== -1 ||
-                                 p.indexOf('/movie/') !== -1 ||
+                if (h.indexOf('youtube.com') !== -1 || h.indexOf('youtu.be') !== -1) return false;
+                var isWatchUrl = p.indexOf('/movie/') !== -1 ||
                                  p.indexOf('/series/') !== -1 ||
                                  p.indexOf('/tv/') !== -1 ||
                                  p.indexOf('/episode/') !== -1 ||
-                                 h.indexOf('watch') !== -1 ||
-                                 h.indexOf('embed') !== -1 ||
-                                 h.indexOf('movie') !== -1;
+                                 p.indexOf('/watch') !== -1 ||
+                                 h.indexOf('/embed/') !== -1 ||
+                                 h.indexOf('/stream/') !== -1;
                 return isWatchUrl;
             }
 
@@ -1580,15 +1587,19 @@ object UserScriptManager {
                 try {
                     if (!video._freenetBridgeAttached) {
                         video._freenetBridgeAttached = true;
-                        applyCinemaFullscreen(true);
+                        if (isWatchPage()) {
+                            applyCinemaFullscreen(true);
+                        }
 
                         video.addEventListener('play', function() {
                             video.muted = false;
                             video.volume = 1.0;
                             setupMediaSession(video);
-                            applyCinemaFullscreen(true);
-                            if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
-                                window.AndroidNativeBridge.requestTvFullscreen();
+                            if (isWatchPage()) {
+                                applyCinemaFullscreen(true);
+                                if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                                    window.AndroidNativeBridge.requestTvFullscreen();
+                                }
                             }
                             if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.forceUnmuteAudio === 'function') {
                                 window.AndroidNativeBridge.forceUnmuteAudio();
@@ -1606,9 +1617,11 @@ object UserScriptManager {
                         video.addEventListener('playing', function() { queueStateBroadcast(true); });
                         video.addEventListener('click', function() {
                             try {
-                                applyCinemaFullscreen(true);
-                                if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
-                                    window.AndroidNativeBridge.requestTvFullscreen();
+                                if (isWatchPage()) {
+                                    applyCinemaFullscreen(true);
+                                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.requestTvFullscreen === 'function') {
+                                        window.AndroidNativeBridge.requestTvFullscreen();
+                                    }
                                 }
                                 if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.forceUnmuteAudio === 'function') {
                                     window.AndroidNativeBridge.forceUnmuteAudio();

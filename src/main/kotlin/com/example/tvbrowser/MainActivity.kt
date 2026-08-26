@@ -275,6 +275,8 @@ class MainActivity : android.app.Activity() {
         }
         findViewById<View>(R.id.btnAddTab).setOnKeyListener(focusToWebListener)
         findViewById<View>(R.id.tabsScrollView).setOnKeyListener(focusToWebListener)
+        findViewById<View?>(R.id.btnQuickYouTube)?.setOnKeyListener(focusToWebListener)
+        findViewById<View?>(R.id.btnQuickStreamNexus)?.setOnKeyListener(focusToWebListener)
 
         findViewById<View>(R.id.btnBack).setOnClickListener {
             val active = getActiveWebView()
@@ -650,6 +652,20 @@ class MainActivity : android.app.Activity() {
             Toast.makeText(this, "➕ Odprt nov zavihek", Toast.LENGTH_SHORT).show()
         }
 
+        // ▶ Quick 1-Click YouTube Launcher
+        findViewById<View?>(R.id.btnQuickYouTube)?.setOnClickListener {
+            hideAllPanels()
+            loadUrl("https://www.youtube.com")
+            Toast.makeText(this, "▶ Odpiram YouTube...", Toast.LENGTH_SHORT).show()
+        }
+
+        // 🎬 Quick 1-Click StreamNexus Launcher
+        findViewById<View?>(R.id.btnQuickStreamNexus)?.setOnClickListener {
+            hideAllPanels()
+            loadUrl("file:///android_asset/stream/index.html")
+            Toast.makeText(this, "🎬 Odpiram StreamNexus...", Toast.LENGTH_SHORT).show()
+        }
+
         findViewById<View>(R.id.btnAddCustomBookmark).setOnClickListener {
             showAddBookmarkDialog()
         }
@@ -985,6 +1001,10 @@ class MainActivity : android.app.Activity() {
                     Toast.makeText(this, "Zavihek zaprt.", Toast.LENGTH_SHORT).show()
                 }
                 true
+            }
+
+            if (i == tabs.size - 1) {
+                tabLayout.nextFocusRightId = R.id.btnQuickYouTube
             }
 
             // Down key from tab moves to webview

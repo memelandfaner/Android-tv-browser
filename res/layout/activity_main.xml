@@ -185,7 +185,7 @@
                         android:textSize="14sp"
                         android:nextFocusLeft="@id/btnNavZoom"
                         android:nextFocusRight="@id/btnNavSettings"
-                        android:nextFocusDown="@id/tabsScrollView"
+                        android:nextFocusDown="@id/btnQuickYouTube"
                         android:focusable="true" />
 
                     <Button
@@ -199,7 +199,7 @@
                         android:textColor="@color/text_primary"
                         android:textSize="14sp"
                         android:nextFocusLeft="@id/btnNavFullscreen"
-                        android:nextFocusDown="@id/tabsScrollView"
+                        android:nextFocusDown="@id/btnQuickStreamNexus"
                         android:focusable="true" />
                 </LinearLayout>
             </HorizontalScrollView>
@@ -241,6 +241,48 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal" />
             </HorizontalScrollView>
+
+            <!-- Quick Links on right side of tabs bar (Instant 1-Click YouTube & StreamNexus) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_marginStart="8dp">
+
+                <Button
+                    android:id="@+id/btnQuickYouTube"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:layout_marginEnd="6dp"
+                    android:paddingHorizontal="10dp"
+                    android:background="@drawable/bg_quick_youtube"
+                    android:text="▶ YouTube"
+                    android:textColor="#ffffff"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:nextFocusLeft="@id/tabsScrollView"
+                    android:nextFocusRight="@id/btnQuickStreamNexus"
+                    android:nextFocusUp="@id/btnNavFullscreen"
+                    android:nextFocusDown="@id/contentContainer"
+                    android:focusable="true" />
+
+                <Button
+                    android:id="@+id/btnQuickStreamNexus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:paddingHorizontal="10dp"
+                    android:background="@drawable/bg_quick_streamnexus"
+                    android:text="🎬 StreamNexus"
+                    android:textColor="#ffffff"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:nextFocusLeft="@id/btnQuickYouTube"
+                    android:nextFocusRight="@id/btnQuickStreamNexus"
+                    android:nextFocusUp="@id/btnNavSettings"
+                    android:nextFocusDown="@id/contentContainer"
+                    android:focusable="true" />
+            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>
