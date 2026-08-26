@@ -399,8 +399,13 @@ class ChromiumEngineView @JvmOverloads constructor(
             }
         }
 
+        private var lastUnmuteTimestamp = 0L
+
         @JavascriptInterface
         fun forceUnmuteAudio() {
+            val now = SystemClock.uptimeMillis()
+            if (now - lastUnmuteTimestamp < 5000) return
+            lastUnmuteTimestamp = now
             post {
                 try {
                     val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
@@ -413,7 +418,6 @@ class ChromiumEngineView @JvmOverloads constructor(
                             am.setStreamVolume(AudioManager.STREAM_MUSIC, (max * 0.85).toInt(), 0)
                         }
                     }
-                    JblSoundManager.unlockAndUnmute(context)
                 } catch (ignored: Exception) {}
             }
         }

@@ -898,17 +898,10 @@ object UserScriptManager {
 
                 var playSelectors = [
                     '.player-control-play-pause-icon',
-                    '.player-control-mute-icon',
                     '.ytp-large-play-button',
                     '.ytp-play-button',
                     'button[aria-label*="Play"]',
-                    'button[aria-label*="Predvajaj"]',
-                    'button[aria-label*="zvok"]',
-                    'button[aria-label*="mute"]',
-                    '.html5-video-player',
-                    '.player-container',
-                    '.ytp-cairo-refresh-signature-moments',
-                    '#player-control-overlay'
+                    'button[aria-label*="Predvajaj"]'
                 ];
                 var btns = document.querySelectorAll(playSelectors.join(','));
                 btns.forEach(function(b) {
