@@ -243,14 +243,18 @@ class ChromiumEngineView @JvmOverloads constructor(
                 runScriptInjections()
 
                 if (url != null && (url.contains("youtube.com/watch") || url.contains("m.youtube.com/watch"))) {
-                    val triggerKey = {
-                        requestFocus()
-                        dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
-                        dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_CENTER))
-                    }
-                    postDelayed({ triggerKey() }, 400)
-                    postDelayed({ triggerKey() }, 1000)
-                    postDelayed({ triggerKey() }, 1800)
+                    postDelayed({
+                        evaluateJavascript("""
+                            (function() {
+                                var v = document.querySelector('video');
+                                if (v) {
+                                    if (v.muted) v.muted = false;
+                                    if (v.volume < 1.0) v.volume = 1.0;
+                                    if (v.paused) v.play().catch(function(){});
+                                }
+                            })();
+                        """.trimIndent(), null)
+                    }, 500)
                 }
             }
 

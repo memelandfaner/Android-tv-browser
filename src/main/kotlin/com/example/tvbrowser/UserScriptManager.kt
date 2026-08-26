@@ -477,7 +477,8 @@ object UserScriptManager {
                     ytm-promoted-sparkles-web-renderer, ytm-promoted-video-renderer,
                     ytm-ad-slot-renderer, ytm-companion-ad-renderer,
                     ytm-in-feed-ad-layout-renderer, ytm-statement-banner-renderer,
-                    #masthead-ad, .ytd-search-pyv-renderer {
+                    #masthead-ad, .ytd-search-pyv-renderer,
+                    ::cue, .ytp-caption-window-container, .caption-window, .ytp-caption-segment {
                         display: none !important;
                         visibility: hidden !important;
                         height: 0 !important;
@@ -879,7 +880,7 @@ object UserScriptManager {
                 }
                 var dislikeText = Number(dislikes).toLocaleString();
                 var likeText = likes ? Number(likes).toLocaleString() : '';
-                badge.textContent = '👍 ' + likeText + ' &nbsp;|&nbsp; 👎 ' + dislikeText;
+                badge.textContent = '👍 ' + likeText + '  |  👎 ' + dislikeText;
             }
 
             function onVideoTimeUpdate() {
