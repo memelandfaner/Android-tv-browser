@@ -202,11 +202,9 @@ class AdBlockEngine(context: Context? = null) {
         val lowerUrl = url.lowercase()
         if (lowerUrl.contains(".m3u8") || lowerUrl.contains(".ts") || lowerUrl.contains("/hls/") || 
             lowerUrl.contains("/embed/") || lowerUrl.contains("vidlink") || lowerUrl.contains("vidsrc") ||
-            lowerUrl.contains("autoembed") || lowerUrl.contains("multiembed") || lowerUrl.contains("hydrahd")) {
-            return false
-        }
-
-        if (lowerUrl.contains("googlevideo.com") && !lowerUrl.contains("adformat") && !lowerUrl.contains("ctier=l")) {
+            lowerUrl.contains("autoembed") || lowerUrl.contains("multiembed") || lowerUrl.contains("hydrahd") ||
+            lowerUrl.contains("googlevideo.com") || lowerUrl.contains("youtube.com/youtubei") ||
+            lowerUrl.contains("youtube.com/s/player") || lowerUrl.contains("youtube.com/watch")) {
             return false
         }
 
@@ -248,16 +246,9 @@ class AdBlockEngine(context: Context? = null) {
                lower.contains("static.doubleclick.net") ||
                lower.contains("pagead2.googlesyndication.com") ||
                lower.contains("adservice.google.com") ||
+               lower.contains("adservice.google.si") ||
                lower.contains("ad.youtube.com") ||
-               lower.contains("ads.youtube.com") ||
-               lower.contains("/api/stats/ads") ||
-               lower.contains("/pagead/") ||
-               lower.contains("/ptracking") ||
-               lower.contains("/get_midroll_info") ||
-               lower.contains("/api/stats/atr") ||
-               lower.contains("youtube.com/api/stats/qoe?adformat=") ||
-               lower.contains("youtube.com/youtubei/v1/log_event") ||
-               (lower.contains("googlevideo.com") && (lower.contains("&adformat=") || lower.contains("&ctier=l") || lower.contains("cver=html5-ads") || lower.contains("&alr=")))
+               lower.contains("ads.youtube.com")
     }
 
     fun isAntiAdblockScript(url: String?): Boolean {

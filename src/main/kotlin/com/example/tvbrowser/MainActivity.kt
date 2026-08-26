@@ -2084,18 +2084,11 @@ class MainActivity : android.app.Activity() {
             hideAllPanels()
             header.visibility = View.GONE
             tabs.visibility = View.GONE
+            if (pill != null) pill.visibility = View.GONE
             hideSystemUI()
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-            if (pill != null) {
-                pill.visibility = View.VISIBLE
-                pill.alpha = 1f
-                pill.animate().alpha(0f).setStartDelay(3000).setDuration(500).withEndAction {
-                    pill.visibility = View.GONE
-                }.start()
-            }
-
-            // Injektiraj JavaScript za razteg vseh video / iframe elementov čez celoten 100vw/100vh zaslon
+            // Injektiraj visoko-zmogljiv CSS za takojšen 100% čist razteg videa brez prekinitev
             getActiveWebView()?.evaluateJavascript("""
                 (function() {
                     try {
@@ -2136,9 +2129,10 @@ class MainActivity : android.app.Activity() {
                                     margin: 0 !important;
                                     padding: 0 !important;
                                     border: none !important;
+                                    transform: translateZ(0) !important;
                                 }
                             `;
-                            document.head.appendChild(s);
+                            (document.head || document.documentElement).appendChild(s);
                         }
                         document.documentElement.classList.add('tv-fullscreen-active');
                         document.body.classList.add('tv-fullscreen-active');
@@ -2147,7 +2141,6 @@ class MainActivity : android.app.Activity() {
             """.trimIndent(), null)
 
             getActiveWebView()?.requestFocus()
-            Toast.makeText(this, "⛶ Celozaslonski način (Pritisnite NAZAJ za izhod)", Toast.LENGTH_SHORT).show()
         } else {
             header.visibility = View.VISIBLE
             tabs.visibility = View.VISIBLE
@@ -2166,7 +2159,6 @@ class MainActivity : android.app.Activity() {
                     } catch(e) {}
                 })();
             """.trimIndent(), null)
-            Toast.makeText(this, "Izhod iz celozaslonskega načina", Toast.LENGTH_SHORT).show()
         }
     }
 

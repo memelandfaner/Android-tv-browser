@@ -824,25 +824,7 @@ object UserScriptManager {
             }
             injectSmartTubeStyle();
 
-            // 🛡️ 2. SmartTube JSON Hooking: Strip ad placements directly from YouTube Player API responses
-            function sanitizePlayerJson(obj) {
-                if (!obj || typeof obj !== 'object') return obj;
-                if (obj.adPlacements) delete obj.adPlacements;
-                if (obj.adSlots) delete obj.adSlots;
-                if (obj.playerAds) delete obj.playerAds;
-                if (obj.adBreakHeartbeatParams) delete obj.adBreakHeartbeatParams;
-                if (obj.adBreakService) delete obj.adBreakService;
-                return obj;
-            }
-
-            try {
-                var originalParse = JSON.parse;
-                JSON.parse = function() {
-                    var data = originalParse.apply(this, arguments);
-                    return sanitizePlayerJson(data);
-                };
-            } catch(e) {}
-
+            // 🛡️ 2. SmartTube Video Ad Fast-Forward & Instaskip (Natančno brez spreminjanja JSON ali vpliva na normalne videe)
             function getVideoId() {
                 var match = window.location.href.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
                 return match ? match[1] : null;
@@ -953,22 +935,14 @@ object UserScriptManager {
             }
 
             function showSkipToast(msg) {
-                var t = document.getElementById('freenet_skip_toast');
-                if (!t) {
-                    t = document.createElement('div');
-                    t.id = 'freenet_skip_toast';
-                    t.style.cssText = 'position:fixed;bottom:80px;right:40px;background:rgba(2,132,199,0.92);color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:bold;z-index:999999;box-shadow:0 8px 30px rgba(0,0,0,0.8);pointer-events:none;transition:opacity 0.3s;';
-                    document.body.appendChild(t);
-                }
-                t.textContent = msg;
-                t.style.opacity = '1';
-                setTimeout(function(){ if (t) t.style.opacity = '0'; }, 3000);
+                // Tihi način brez motenja celozaslonskega filma
             }
 
             // 🛡️ 3. SmartTube Video Ad Fast-Forward & Instaskip
             function blockYouTubeAds() {
                 var video = document.querySelector('video');
-                var isAdActive = document.querySelector('.ad-showing, .ad-interrupting, .video-ads, .ytp-ad-player-overlay');
+                var isAdActive = document.querySelector('.ad-showing, .ad-interrupting');
+                var moviePlayer = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
                 
                 if (isAdActive && video) {
                     video.muted = true;
@@ -976,17 +950,19 @@ object UserScriptManager {
                     if (isFinite(video.duration) && video.duration > 0) {
                         video.currentTime = video.duration;
                     }
+                    if (moviePlayer && typeof moviePlayer.skipAd === 'function') {
+                        try { moviePlayer.skipAd(); } catch(e) {}
+                    }
                 } else if (!isAdActive && video) {
-                    if (video.playbackRate === 16.0) {
+                    if (video.playbackRate > 2.0) {
                         video.playbackRate = 1.0;
                         video.muted = false;
                     }
-                    triggerInstantYouTubePlay(video);
                 }
 
                 // Instant click on YouTube Skip Ad buttons
                 var skipButtons = document.querySelectorAll(
-                    '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-overlay-close-button, button.ytp-ad-skip-button-text, .ytp-ad-skip-button-slot button, .ytp-ad-preview-container'
+                    '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-overlay-close-button, button.ytp-ad-skip-button-text, .ytp-ad-skip-button-slot button, .ytp-ad-preview-container, button[aria-label*="Preskoči"], button[aria-label*="Skip"]'
                 );
                 skipButtons.forEach(function(btn) {
                     try { btn.click(); } catch(e) {}

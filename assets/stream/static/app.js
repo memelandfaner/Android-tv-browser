@@ -326,23 +326,39 @@ class ClientStreamResolver {
         const e = episode || 1;
         const sources = [];
 
-        // 1. VidLink Pro (Glavni 1080p Full HD)
+        // 1. VidSrc ME (#1 Glavni Privzeti Server - 1080p Full HD brez podnapisov)
+        const vidsrcMeUrl = isTv
+            ? `https://vidsrcme.ru/embed/tv?tmdb=${tmdbId}&season=${s}&episode=${e}&sub=0&autoplay=1&quality=1080&res=1080`
+            : `https://vidsrcme.ru/embed/movie?tmdb=${tmdbId}&sub=0&autoplay=1&quality=1080&res=1080`;
+        sources.push({
+            id: "vidsrc_me",
+            name: "VidSrc ME (Glavni 1080p)",
+            provider_type: "free",
+            quality: "1080p",
+            quality_badge: "FREE 1080p",
+            url: vidsrcMeUrl,
+            is_embed: true,
+            priority_score: 100,
+            description: "Glavni 1080p Full HD strežnik z instantnim samodejnim predvajanjem brez podnapisov"
+        });
+
+        // 2. VidLink Pro
         const vidlinkUrl = isTv
             ? `https://vidlink.pro/tv/${tmdbId}/${s}/${e}?primaryColor=00e5ff&autoplay=true&sub=0&defaultQuality=1080&resolution=1080p&quality=1080`
             : `https://vidlink.pro/movie/${tmdbId}?primaryColor=00e5ff&autoplay=true&sub=0&defaultQuality=1080&resolution=1080p&quality=1080`;
         sources.push({
             id: "vidlink",
-            name: "VidLink Pro (Glavni 1080p HD)",
+            name: "VidLink Pro (Optimalni 1080p HD)",
             provider_type: "free",
             quality: "1080p",
             quality_badge: "FREE 1080p",
             url: vidlinkUrl,
             is_embed: true,
-            priority_score: 100,
-            description: "Glavni 1080p Full HD strežnik z instantnim samodejnim predvajanjem brez oglasov"
+            priority_score: 95,
+            description: "Hitri alternativni 1080p strežnik"
         });
 
-        // 2. VidSrc IN
+        // 3. VidSrc IN
         const vidsrcInUrl = isTv
             ? `https://vidsrc.in/embed/tv/${tmdbId}/${s}/${e}?sub=0&autoplay=1&quality=1080`
             : `https://vidsrc.in/embed/movie/${tmdbId}?sub=0&autoplay=1&quality=1080`;
@@ -354,24 +370,8 @@ class ClientStreamResolver {
             quality_badge: "FREE 1080p",
             url: vidsrcInUrl,
             is_embed: true,
-            priority_score: 95,
-            description: "Hitro globalno omrežje strežnikov"
-        });
-
-        // 3. VidSrc ME
-        const vidsrcMeUrl = isTv
-            ? `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${s}&episode=${e}&sub=0&autoplay=1&quality=1080&res=1080`
-            : `https://vidsrc.me/embed/movie?tmdb=${tmdbId}&sub=0&autoplay=1&quality=1080&res=1080`;
-        sources.push({
-            id: "vidsrc_me",
-            name: "VidSrc ME (Rezervni 1080p)",
-            provider_type: "free",
-            quality: "1080p",
-            quality_badge: "FREE 1080p",
-            url: vidsrcMeUrl,
-            is_embed: true,
             priority_score: 93,
-            description: "Alternativni 1080p strežnik"
+            description: "Hitro globalno omrežje strežnikov"
         });
 
         // 4. VidSrc PM
@@ -556,7 +556,33 @@ class TvRemoteEngine {
         const activeSearch = (document.activeElement === tvSearchInput) ? tvSearchInput : null;
 
         if (activeSearch) {
-            if (key === 'ArrowDown' || code === 20) {
+            if (key === 'ArrowUp' || code === 19) {
+                e.preventDefault();
+                this.app.hideKeyboard(); // Native + JS Dismiss virtual keyboard on TV
+                const searchTab = document.querySelector('.nav-btn[data-tab="search"]') || document.querySelector('.nav-btn.active') || document.querySelector('.nav-btn');
+                if (searchTab) this.setFocus(searchTab);
+                return;
+            } else if (key === 'ArrowLeft' || code === 21) {
+                e.preventDefault();
+                this.app.hideKeyboard();
+                const tvTab = document.querySelector('.nav-btn[data-tab="tv"]') || document.querySelector('.nav-btn[data-tab="movies"]') || document.querySelector('.nav-btn');
+                if (tvTab) this.setFocus(tvTab);
+                return;
+            } else if (key === 'ArrowRight' || code === 22) {
+                e.preventDefault();
+                this.app.hideKeyboard();
+                const clearBtn = document.getElementById('tvSearchClearBtn');
+                const closeBtn = document.getElementById('tvSearchCloseBtn');
+                if (clearBtn && clearBtn.offsetParent !== null && clearBtn.style.display !== 'none') {
+                    this.setFocus(clearBtn);
+                } else if (closeBtn && closeBtn.offsetParent !== null && closeBtn.style.display !== 'none') {
+                    this.setFocus(closeBtn);
+                } else {
+                    const settingsBtn = document.getElementById('settingsBtn');
+                    if (settingsBtn) this.setFocus(settingsBtn);
+                }
+                return;
+            } else if (key === 'ArrowDown' || code === 20) {
                 e.preventDefault();
                 this.app.hideKeyboard(); // Native + JS Dismiss virtual keyboard on TV
                 const firstLivePill = document.querySelector('#tvLiveMatchesBar .tv-live-match-pill');
@@ -590,12 +616,7 @@ class TvRemoteEngine {
                 return;
             } else if (key === 'Escape' || code === 4) {
                 e.preventDefault();
-                activeSearch.blur();
-                if (activeSearch.value) {
-                    this.app.clearSearch();
-                } else {
-                    this.app.closeSearch();
-                }
+                this.app.closeSearch();
                 return;
             }
             return;
@@ -729,6 +750,9 @@ class TvRemoteEngine {
                         this.setFocus(livePill);
                     } else if (tvSearchInput) {
                         this.setFocus(tvSearchInput);
+                    } else {
+                        const navBtn = document.querySelector('.nav-btn[data-tab="search"]') || document.querySelector('.nav-btn.active') || document.querySelector('.nav-btn');
+                        if (navBtn) this.setFocus(navBtn);
                     }
                     return;
                 } else if (this.currentFocusElement && this.currentFocusElement.classList.contains('tv-live-match-pill')) {
@@ -736,6 +760,11 @@ class TvRemoteEngine {
                     if (tvSearchInput) {
                         this.setFocus(tvSearchInput);
                     }
+                    return;
+                } else if (this.currentFocusElement && (this.currentFocusElement.id === 'tvSearchClearBtn' || this.currentFocusElement.id === 'tvSearchCloseBtn')) {
+                    e.preventDefault();
+                    const activeNav = document.querySelector('.nav-btn[data-tab="search"]') || document.querySelector('.nav-btn.active') || document.querySelector('.nav-btn');
+                    if (activeNav) this.setFocus(activeNav);
                     return;
                 }
             } else if (key === 'ArrowDown' || code === 20) {
@@ -754,6 +783,141 @@ class TvRemoteEngine {
                     const firstCard = document.querySelector('#searchResultsGrid .media-card');
                     if (firstCard) {
                         this.setFocus(firstCard);
+                    }
+                    return;
+                } else if (this.currentFocusElement && (this.currentFocusElement.id === 'tvSearchClearBtn' || this.currentFocusElement.id === 'tvSearchCloseBtn')) {
+                    e.preventDefault();
+                    const firstChip = document.querySelector('.tv-search-chip.active') || document.querySelector('.tv-search-chip');
+                    if (firstChip) this.setFocus(firstChip);
+                    return;
+                }
+            } else if (key === 'ArrowLeft' || code === 21) {
+                if (this.currentFocusElement && this.currentFocusElement.classList.contains('tv-search-chip')) {
+                    const prev = this.currentFocusElement.previousElementSibling;
+                    if (prev && prev.classList.contains('tv-search-chip')) {
+                        e.preventDefault();
+                        this.setFocus(prev);
+                        return;
+                    }
+                } else if (this.currentFocusElement && this.currentFocusElement.id === 'tvSearchCloseBtn') {
+                    e.preventDefault();
+                    const clearBtn = document.getElementById('tvSearchClearBtn');
+                    if (clearBtn && clearBtn.offsetParent !== null && clearBtn.style.display !== 'none') {
+                        this.setFocus(clearBtn);
+                    } else if (tvSearchInput) {
+                        this.setFocus(tvSearchInput);
+                    }
+                    return;
+                } else if (this.currentFocusElement && this.currentFocusElement.id === 'tvSearchClearBtn') {
+                    e.preventDefault();
+                    if (tvSearchInput) this.setFocus(tvSearchInput);
+                    return;
+                }
+            } else if (key === 'ArrowRight' || code === 22) {
+                if (this.currentFocusElement && this.currentFocusElement.classList.contains('tv-search-chip')) {
+                    const next = this.currentFocusElement.nextElementSibling;
+                    if (next && next.classList.contains('tv-search-chip')) {
+                        e.preventDefault();
+                        this.setFocus(next);
+                        return;
+                    }
+                } else if (this.currentFocusElement && this.currentFocusElement.id === 'tvSearchClearBtn') {
+                    e.preventDefault();
+                    const closeBtn = document.getElementById('tvSearchCloseBtn');
+                    if (closeBtn && closeBtn.offsetParent !== null && closeBtn.style.display !== 'none') {
+                        this.setFocus(closeBtn);
+                    }
+                    return;
+                } else if (this.currentFocusElement && this.currentFocusElement.id === 'tvSearchCloseBtn') {
+                    e.preventDefault();
+                    const settingsBtn = document.getElementById('settingsBtn');
+                    if (settingsBtn) this.setFocus(settingsBtn);
+                    return;
+                }
+            }
+        }
+
+        // Nav button / Genre chip adjacent handling
+        if (this.currentFocusElement && this.currentFocusElement.classList.contains('nav-btn')) {
+            if (key === 'ArrowLeft' || code === 21) {
+                const prev = this.currentFocusElement.previousElementSibling;
+                if (prev && prev.classList.contains('nav-btn')) {
+                    e.preventDefault();
+                    this.setFocus(prev);
+                    return;
+                } else {
+                    const brand = document.getElementById('brandLogo');
+                    if (brand) { e.preventDefault(); this.setFocus(brand); return; }
+                }
+            } else if (key === 'ArrowRight' || code === 22) {
+                const next = this.currentFocusElement.nextElementSibling;
+                if (next && next.classList.contains('nav-btn')) {
+                    e.preventDefault();
+                    this.setFocus(next);
+                    return;
+                } else {
+                    const sBox = document.getElementById('searchBox');
+                    const setBtn = document.getElementById('settingsBtn');
+                    if (sBox) { e.preventDefault(); this.setFocus(sBox); return; }
+                    else if (setBtn) { e.preventDefault(); this.setFocus(setBtn); return; }
+                }
+            } else if (key === 'ArrowDown' || code === 20) {
+                e.preventDefault();
+                if (searchSection && searchSection.style.display !== 'none') {
+                    if (tvSearchInput) { this.setFocus(tvSearchInput); return; }
+                }
+                const activeGenre = document.querySelector('.genre-chip.active') || document.querySelector('.genre-chip');
+                const firstCard = document.querySelector('#mediaGrid .media-card');
+                if (activeGenre && activeGenre.offsetParent !== null) {
+                    this.setFocus(activeGenre);
+                    return;
+                } else if (firstCard) {
+                    this.setFocus(firstCard);
+                    return;
+                }
+            }
+        } else if (this.currentFocusElement && this.currentFocusElement.classList.contains('genre-chip')) {
+            if (key === 'ArrowLeft' || code === 21) {
+                const prev = this.currentFocusElement.previousElementSibling;
+                if (prev && prev.classList.contains('genre-chip')) {
+                    e.preventDefault();
+                    this.setFocus(prev);
+                    return;
+                }
+            } else if (key === 'ArrowRight' || code === 22) {
+                const next = this.currentFocusElement.nextElementSibling;
+                if (next && next.classList.contains('genre-chip')) {
+                    e.preventDefault();
+                    this.setFocus(next);
+                    return;
+                }
+            } else if (key === 'ArrowUp' || code === 19) {
+                e.preventDefault();
+                const activeNav = document.querySelector('.nav-btn.active') || document.querySelector('.nav-btn');
+                if (activeNav) {
+                    this.setFocus(activeNav);
+                    return;
+                }
+            } else if (key === 'ArrowDown' || code === 20) {
+                e.preventDefault();
+                const firstCard = document.querySelector('#mediaGrid .media-card');
+                if (firstCard) {
+                    this.setFocus(firstCard);
+                    return;
+                }
+            }
+        } else if (this.currentFocusElement && this.currentFocusElement.classList.contains('media-card')) {
+            if (key === 'ArrowUp' || code === 19) {
+                const cards = Array.from(document.querySelectorAll('#mediaGrid .media-card'));
+                const idx = cards.indexOf(this.currentFocusElement);
+                if (idx >= 0 && idx < 6) { // Top row of feed grid
+                    e.preventDefault();
+                    const activeGenre = document.querySelector('.genre-chip.active') || document.querySelector('.genre-chip');
+                    const activeNav = document.querySelector('.nav-btn.active') || document.querySelector('.nav-btn');
+                    if (activeGenre && activeGenre.offsetParent !== null) {
+                        this.setFocus(activeGenre);
+                    } else if (activeNav) {
+                        this.setFocus(activeNav);
                     }
                     return;
                 }
@@ -1192,7 +1356,7 @@ class TvRemoteEngine {
         // En klik za nazaj: 1 korak nazaj v aplikaciji
         if (playerOverlay && playerOverlay.style.display !== 'none') {
             this.app.closePlayer();
-            // Vrnitev na opis filma ali seznam epizod serije
+            // Vrnitev na opis filma ali seznam epizod serije, če je bil odprt detailsModal
             if (detailsModal && detailsModal.classList.contains('active')) {
                 if (this.app.activeDetailsItem && this.app.activeDetailsItem.media_type === 'tv') {
                     // Serija: ohrani odprt seznam epizod in fokusiraj aktivno epizodo
@@ -1214,8 +1378,6 @@ class TvRemoteEngine {
                         this.setFocus(detailsModal);
                     }
                 }
-            } else if (this.app.activeDetailsItem) {
-                this.app.openDetails(this.app.activeDetailsItem.media_type, this.app.activeDetailsItem.id);
             } else {
                 if (this.lastActiveCard) {
                     this.setFocus(this.lastActiveCard);
@@ -1223,6 +1385,7 @@ class TvRemoteEngine {
                     this.focusFirstVisible();
                 }
             }
+            return;
         } else if (detailsModal && detailsModal.classList.contains('active')) {
             // En korak nazaj iz opisa filma / serije -> zapri podrobnosti in fokusiraj kartico v katalogu
             this.app.closeModal('detailsModal');
@@ -1543,24 +1706,49 @@ class StreamNexusApp {
         this.bindEvents();
         this.initAiEngine();
         await this.loadSettings();
-        await this.loadFeed(this.currentTab);
+        this.navigateHome();
         this.renderContinueWatching();
     }
 
     bindEvents() {
-        // TV Search Input with fast debounce
+        // TV Search Input with fast debounce & real-time live echo
         const tvSearchInput = document.getElementById('tvSearchInput');
+        const updateLiveQueryEcho = (val) => {
+            const echoBox = document.getElementById('tvSearchLiveQueryDisplay');
+            const echoText = document.getElementById('tvSearchLiveQueryText');
+            const echoCount = document.getElementById('tvSearchLiveQueryCount');
+            const trimmed = (val || '').trim();
+            if (echoBox && echoText) {
+                if (trimmed.length > 0) {
+                    echoText.textContent = `"${trimmed}"`;
+                    if (echoCount) {
+                        const len = trimmed.length;
+                        const word = len === 1 ? 'črka' : (len === 2 ? 'črki' : (len <= 4 ? 'črke' : 'črk'));
+                        echoCount.textContent = `(${len} ${word})`;
+                    }
+                    echoBox.style.display = 'flex';
+                } else {
+                    echoBox.style.display = 'none';
+                }
+            }
+        };
+
         let tvSearchTimeout = null;
         if (tvSearchInput) {
             tvSearchInput.addEventListener('input', (e) => {
-                clearTimeout(tvSearchTimeout);
                 const query = e.target.value;
+                updateLiveQueryEcho(query);
+                clearTimeout(tvSearchTimeout);
                 tvSearchTimeout = setTimeout(() => this.performSearch(query), 150);
+            });
+            tvSearchInput.addEventListener('keyup', (e) => {
+                updateLiveQueryEcho(e.target.value);
             });
             tvSearchInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.keyCode === 13) {
                     e.preventDefault();
                     clearTimeout(tvSearchTimeout);
+                    updateLiveQueryEcho(tvSearchInput.value);
                     this.performSearch(tvSearchInput.value);
                     setTimeout(() => {
                         const firstCard = document.querySelector('#searchResultsGrid .media-card');
@@ -1677,6 +1865,8 @@ class StreamNexusApp {
     }
 
     async setTab(tabName) {
+        this.hideKeyboard();
+
         if (tabName === 'search') {
             await this.openSearch();
             return;
@@ -1728,9 +1918,11 @@ class StreamNexusApp {
             await this.searchByTopic('trending', '🔥 Priporočeno za ogled');
         }
 
-        if (input) {
+        const firstChip = document.querySelector('.tv-search-chip.active') || document.querySelector('.tv-search-chip');
+        if (firstChip) {
+            this.tvRemote.setFocus(firstChip);
+        } else if (input) {
             this.tvRemote.setFocus(input);
-            input.focus();
         }
         this.showToast('🔍 Iskalnik (Izberite predlog spodaj ali vpišite naslov)');
     }
@@ -1750,7 +1942,9 @@ class StreamNexusApp {
         const searchSection = document.getElementById('searchSection');
         const feedSection = document.getElementById('feedSection');
         const continueSection = document.getElementById('continueSection');
+        const echoBox = document.getElementById('tvSearchLiveQueryDisplay');
 
+        if (echoBox) echoBox.style.display = 'none';
         if (searchSection) searchSection.style.display = 'none';
         if (feedSection) feedSection.style.display = 'block';
         if (continueSection && this.continueWatching && this.continueWatching.length > 0) {
@@ -1766,6 +1960,7 @@ class StreamNexusApp {
         const input = document.getElementById('tvSearchInput');
         const badge = document.getElementById('tvSearchCounterBadge');
         const liveContainer = document.getElementById('tvLiveMatchesContainer');
+        const echoBox = document.getElementById('tvSearchLiveQueryDisplay');
         if (input) {
             input.value = '';
             input.focus();
@@ -1773,6 +1968,7 @@ class StreamNexusApp {
         }
         if (badge) badge.style.display = 'none';
         if (liveContainer) liveContainer.style.display = 'none';
+        if (echoBox) echoBox.style.display = 'none';
 
         await this.searchByTopic('trending', '🔥 Priporočeno za ogled');
     }
@@ -1929,11 +2125,7 @@ class StreamNexusApp {
                     pill.innerHTML = `${isTv ? '📺' : '▶'} ${item.title || item.name} ${year ? `(${year})` : ''}`;
                     pill.title = `Takojšnji zagon: ${item.title || item.name}`;
                     pill.onclick = () => {
-                        if (item.media_type === 'movie') {
-                            this.playMovieDirectly(item);
-                        } else {
-                            this.openDetails('tv', item.id);
-                        }
+                        this.openDetails(item.media_type, item.id);
                     };
                     liveBar.appendChild(pill);
                 });
@@ -1966,11 +2158,7 @@ class StreamNexusApp {
             card.dataset.id = item.id;
             card.dataset.type = item.media_type;
             card.onclick = () => {
-                if (item.media_type === 'movie') {
-                    this.playMovieDirectly(item);
-                } else {
-                    this.openDetails('tv', item.id);
-                }
+                this.openDetails(item.media_type, item.id);
             };
 
             const posterUrl = item.poster || 'https://via.placeholder.com/300x450/111827/94a3b8?text=Ni+Slike';
@@ -2001,7 +2189,14 @@ class StreamNexusApp {
     }
 
     navigateHome() {
+        try { this.closePlayer(); } catch (e) {}
+        try { this.closeModal('detailsModal'); } catch (e) {}
+        try { this.closeModal('settingsModal'); } catch (e) {}
+        try { this.closeSearch(); } catch (e) {}
+        this.currentTab = 'trending';
         this.setTab('trending');
+        const activeNav = document.querySelector('.nav-btn[data-tab="trending"]') || document.querySelector('.nav-btn');
+        if (activeNav) this.tvRemote.setFocus(activeNav);
     }
 
     async loadFeed(tab, page = 1) {
@@ -2251,11 +2446,7 @@ class StreamNexusApp {
             card.className = 'media-card';
             card.tabIndex = 0;
             card.onclick = () => {
-                if (item.media_type === 'movie') {
-                    this.playMovieDirectly(item);
-                } else {
-                    this.openDetails('tv', item.id);
-                }
+                this.openDetails(item.media_type, item.id);
             };
 
             const posterUrl = item.poster || 'https://via.placeholder.com/300x450/111827/94a3b8?text=Ni+Slike';
