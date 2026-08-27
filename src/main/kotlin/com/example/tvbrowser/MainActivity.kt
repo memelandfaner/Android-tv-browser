@@ -271,9 +271,13 @@ class MainActivity : android.app.Activity() {
         }
 
         // TV D-Pad Focus Handoff: Pressing DOWN from header immediately focuses webpage
-        val focusToWebListener = View.OnKeyListener { _, keyCode, event ->
+        val focusToWebListener = View.OnKeyListener { v, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                getActiveWebView()?.requestFocus()
+                getActiveWebView()?.let { wv ->
+                    v.clearFocus()
+                    wv.requestFocus()
+                    wv.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('down');", null)
+                }
                 true
             } else false
         }
@@ -1916,6 +1920,9 @@ class MainActivity : android.app.Activity() {
                 }
             }
 
+            val activeWebView = getActiveWebView()
+            val isWebViewFocused = activeWebView != null && (currentFocus == activeWebView || currentFocus == webViewContainer || currentFocus == null)
+
             if (isTvFullscreenMode && !cursorOverlay.isCursorActive()) {
                 when (event.keyCode) {
                     KeyEvent.KEYCODE_DPAD_LEFT -> {
@@ -1928,39 +1935,30 @@ class MainActivity : android.app.Activity() {
                     }
                     KeyEvent.KEYCODE_DPAD_DOWN -> {
                         sendPlayerCommand("SHOW_CONTROLS")
-                    }
-                }
-            } else if (!cursorOverlay.isCursorActive() && !isAnyPanelOpen()) {
-                val isEditUrlFocused = currentFocus == editUrl
-                if (isEditUrlFocused) {
-                    if (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                        editUrl.clearFocus()
-                        getActiveWebView()?.requestFocus()
-                        getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('down');", null)
                         return true
                     }
-                } else {
-                    when (event.keyCode) {
-                        KeyEvent.KEYCODE_DPAD_LEFT -> {
-                            getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('left');", null)
-                            return true
-                        }
-                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                            getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('right');", null)
-                            return true
-                        }
-                        KeyEvent.KEYCODE_DPAD_UP -> {
-                            getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('up');", null)
-                            return true
-                        }
-                        KeyEvent.KEYCODE_DPAD_DOWN -> {
-                            getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('down');", null)
-                            return true
-                        }
-                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
-                            getActiveWebView()?.evaluateJavascript("if (window.clickActiveElement) window.clickActiveElement();", null)
-                            return true
-                        }
+                }
+            } else if (!cursorOverlay.isCursorActive() && !isAnyPanelOpen() && isWebViewFocused) {
+                when (event.keyCode) {
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        activeWebView?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('left');", null)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        activeWebView?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('right');", null)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_DPAD_UP -> {
+                        activeWebView?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('up');", null)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        activeWebView?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('down');", null)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                        activeWebView?.evaluateJavascript("if (window.clickActiveElement) window.clickActiveElement();", null)
+                        return true
                     }
                 }
             }
