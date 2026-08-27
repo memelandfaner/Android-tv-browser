@@ -573,13 +573,15 @@ object UserScriptManager {
                         opacity: 0 !important;
                     }
 
-                    /* 🎯 TV Spatial Focus Ring & Neon Halo for Philips TV Remote Navigation */
-                    :focus, :focus-visible, a:focus, button:focus, input:focus, select:focus, textarea:focus, [tabindex]:focus, [role="button"]:focus {
-                        outline: 3px solid #00e5ff !important;
-                        outline-offset: 2px !important;
-                        box-shadow: 0 0 18px rgba(0, 229, 255, 0.95), 0 0 35px rgba(0, 229, 255, 0.5) !important;
-                        border-radius: 6px !important;
-                        transition: outline 0.12s ease-out, box-shadow 0.12s ease-out, transform 0.12s ease-out !important;
+                    /* 🎯 Clean TV Focus Styling (Clean, non-distracting) */
+                    :focus:not(body):not(html), :focus-visible {
+                        outline: 2px solid #ff5500 !important;
+                        outline-offset: 1px !important;
+                        box-shadow: none !important;
+                    }
+                    /* Remove any intrusive focus on Google chips/suggestions */
+                    .gws-output-html, .sbfl_b, [data-async-context*="query"] :focus {
+                        box-shadow: none !important;
                     }
 
                     /* 🎬 TV Video Player Control Bar & Focus Accessibility Enhancement */
@@ -1260,7 +1262,7 @@ object UserScriptManager {
             if (!style) {
                 style = document.createElement('style');
                 style.id = 'tv_browser_focus_style';
-                style.textContent = ':focus, a:focus, button:focus, input:focus, [tabindex]:focus, button.search-button:focus, [aria-label*="Iskanje"]:focus, [aria-label*="Search"]:focus, c3-icon:focus { outline: 3px solid #38bdf8 !important; outline-offset: 3px !important; box-shadow: 0 0 15px rgba(56, 189, 248, 0.6) !important; }';
+                style.textContent = ':focus:not(body):not(html) { outline: 2px solid #ff5500 !important; outline-offset: 1px !important; box-shadow: none !important; }';
                 if (document.head) document.head.appendChild(style);
                 else if (document.documentElement) document.documentElement.appendChild(style);
             }

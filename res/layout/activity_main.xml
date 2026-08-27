@@ -113,144 +113,80 @@
             </LinearLayout>
 
             <Button
-                android:id="@+id/btnStarBookmark"
+                android:id="@+id/btnNavFullscreen"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
-                android:layout_marginStart="2dp"
+                android:layout_marginStart="4dp"
                 android:background="@drawable/bg_nav_button"
-                android:text="⭐"
+                android:text="⛶"
                 android:textColor="@color/text_primary"
                 android:textSize="13sp"
                 android:nextFocusLeft="@id/btnVoiceSearch"
-                android:nextFocusRight="@id/btnQuickYouTube"
+                android:nextFocusRight="@id/btnNavSettings"
                 android:focusable="true" />
+
+            <Button
+                android:id="@+id/btnNavSettings"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/bg_nav_button"
+                android:text="⚙️"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:nextFocusLeft="@id/btnNavFullscreen"
+                android:focusable="true" />
+
+            <!-- Hidden extra buttons (available in settings drawer) -->
+            <Button
+                android:id="@+id/btnStarBookmark"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"
+                android:focusable="false" />
 
             <Button
                 android:id="@+id/btnQuickYouTube"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:paddingHorizontal="8dp"
-                android:background="@drawable/bg_quick_youtube"
-                android:text="▶ YouTube"
-                android:textColor="#ffffff"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:nextFocusLeft="@id/btnStarBookmark"
-                android:nextFocusRight="@id/btnQuickStreamNexus"
-                android:focusable="true" />
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"
+                android:focusable="false" />
 
             <Button
                 android:id="@+id/btnQuickStreamNexus"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:paddingHorizontal="8dp"
-                android:background="@drawable/bg_quick_streamnexus"
-                android:text="🎬 StreamNexus"
-                android:textColor="#ffffff"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:nextFocusLeft="@id/btnQuickYouTube"
-                android:nextFocusRight="@id/btnNavBookmarks"
-                android:focusable="true" />
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"
+                android:focusable="false" />
 
-            <HorizontalScrollView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:scrollbars="none"
-                android:focusable="false"
-                android:fillViewport="true">
+            <Button
+                android:id="@+id/btnNavBookmarks"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"
+                android:focusable="false" />
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+            <Button
+                android:id="@+id/btnNavDownloads"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"
+                android:focusable="false" />
 
-                    <Button
-                        android:id="@+id/btnNavBookmarks"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="4dp"
-                        android:paddingHorizontal="8dp"
-                        android:background="@drawable/bg_nav_button"
-                        android:text="Zaznamki"
-                        android:textColor="@color/text_primary"
-                        android:textSize="11sp"
-                        android:nextFocusLeft="@id/btnQuickStreamNexus"
-                        android:nextFocusRight="@id/btnNavDownloads"
-                        android:focusable="true" />
+            <Button
+                android:id="@+id/btnNavHistory"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"
+                android:focusable="false" />
 
-                    <Button
-                        android:id="@+id/btnNavDownloads"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="4dp"
-                        android:paddingHorizontal="8dp"
-                        android:background="@drawable/bg_nav_button"
-                        android:text="Prenosi"
-                        android:textColor="@color/text_primary"
-                        android:textSize="11sp"
-                        android:nextFocusLeft="@id/btnNavBookmarks"
-                        android:nextFocusRight="@id/btnNavHistory"
-                        android:focusable="true" />
-
-                    <Button
-                        android:id="@+id/btnNavHistory"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="4dp"
-                        android:paddingHorizontal="8dp"
-                        android:background="@drawable/bg_nav_button"
-                        android:text="Zgodovina"
-                        android:textColor="@color/text_primary"
-                        android:textSize="11sp"
-                        android:nextFocusLeft="@id/btnNavDownloads"
-                        android:nextFocusRight="@id/btnNavZoom"
-                        android:focusable="true" />
-
-                    <Button
-                        android:id="@+id/btnNavZoom"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="4dp"
-                        android:paddingHorizontal="7dp"
-                        android:background="@drawable/bg_nav_button"
-                        android:text="🔍 75%"
-                        android:textColor="#ff5500"
-                        android:textSize="11sp"
-                        android:nextFocusLeft="@id/btnNavHistory"
-                        android:nextFocusRight="@id/btnNavFullscreen"
-                        android:focusable="true" />
-
-                    <Button
-                        android:id="@+id/btnNavFullscreen"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="4dp"
-                        android:background="@drawable/bg_nav_button"
-                        android:text="⛶"
-                        android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        android:nextFocusLeft="@id/btnNavZoom"
-                        android:nextFocusRight="@id/btnNavSettings"
-                        android:focusable="true" />
-
-                    <Button
-                        android:id="@+id/btnNavSettings"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_marginStart="4dp"
-                        android:layout_marginEnd="4dp"
-                        android:background="@drawable/bg_nav_button"
-                        android:text="⚙️"
-                        android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        android:nextFocusLeft="@id/btnNavFullscreen"
-                        android:focusable="true" />
-                </LinearLayout>
-            </HorizontalScrollView>
+            <Button
+                android:id="@+id/btnNavZoom"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"
+                android:focusable="false" />
         </LinearLayout>
 
         <!-- Hidden 2nd Row -->
