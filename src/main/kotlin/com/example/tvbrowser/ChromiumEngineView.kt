@@ -440,6 +440,17 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
 
         @JavascriptInterface
+        fun showKeyboard() {
+            post {
+                try {
+                    requestFocus()
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.showSoftInput(this@ChromiumEngineView, InputMethodManager.SHOW_IMPLICIT)
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
         fun focusToolbar() {
             post {
                 onEdgeReachedTopListener?.invoke()

@@ -186,6 +186,15 @@ object UserScriptManager {
                 'c3-icon[type="search"]',
                 'ytm-searchbox',
                 '.mobile-topbar-header-endpoint',
+                // 🔍 Google Search Results, AI Cards & Web Articles
+                'div.g a[href]',
+                'div.yuRUbf a',
+                'div#search a[href]',
+                'div.MjjYud a[href]',
+                'a[jsname]',
+                'h3 > a',
+                'a:has(h3)',
+                'a[data-ved]',
                 // 📺 YouTube Video Cards, Polymer items & Player Controls
                 'ytm-media-item',
                 'ytm-video-with-context-renderer',
@@ -256,11 +265,13 @@ object UserScriptManager {
                     if (el.disabled) return false;
                     if (el.getAttribute('aria-hidden') === 'true') return false;
                     
-                    // Izloči gumba Zasebnost, Pogoji in elemente v nogi
+                    // Izloči gumba Zasebnost, Pogoji, Skok na glavno vsebino in elemente v nogi
                     var href = (el.getAttribute('href') || '').toLowerCase();
                     var text = (el.textContent || '').trim().toLowerCase();
                     if (href.indexOf('policies.google.com') !== -1 || href.indexOf('privacy') !== -1 || href.indexOf('terms') !== -1) return false;
                     if (text === 'zasebnost' || text === 'pogoji' || text === 'privacy' || text === 'terms') return false;
+                    if (href.indexOf('#main') !== -1 || href.indexOf('skip') !== -1 || text.indexOf('skok na glavno vsebino') !== -1 || text.indexOf('skip to content') !== -1) return false;
+                    if (el.classList.contains('skip-to-content') || el.classList.contains('skip-link')) return false;
                     if (el.closest('#fbar, #footcnt, footer, .fbar, [role="contentinfo"]')) return false;
 
                     var style = window.getComputedStyle(el);
@@ -305,8 +316,14 @@ object UserScriptManager {
             window.focusNextElement = function(direction) {
                 var focusables = getFocusableElements();
                 if (focusables.length === 0) {
-                    if (direction === 'up' && window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
-                        window.AndroidNativeBridge.focusToolbar();
+                    if (direction === 'up') {
+                        if (window.scrollY > 30) {
+                            window.scrollBy({ top: -320, behavior: 'smooth' });
+                        } else if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
+                            window.AndroidNativeBridge.focusToolbar();
+                        }
+                    } else if (direction === 'down') {
+                        window.scrollBy({ top: 320, behavior: 'smooth' });
                     }
                     return;
                 }
@@ -386,7 +403,7 @@ object UserScriptManager {
                         var isYtCard = el.tagName.toLowerCase().indexOf('ytm-') !== -1 || el.tagName.toLowerCase().indexOf('ytd-') !== -1;
                         var priorityBonus = isInput ? -80 : (isSearchBtn ? -100 : (isYtCard ? -50 : 0));
                         
-                        var dist = primaryDist * 1.0 + orthogonalDist * 2.2 + rowBonus + priorityBonus;
+                        var dist = primaryDist * 1.0 + orthogonalDist * 0.45 + rowBonus + priorityBonus;
                         if (dist < bestDistance) {
                             bestDistance = dist;
                             bestCandidate = el;
@@ -396,15 +413,33 @@ object UserScriptManager {
 
                 if (bestCandidate) {
                     bestCandidate.focus();
-                    if (bestCandidate.scrollIntoViewIfNeeded) bestCandidate.scrollIntoViewIfNeeded();
-                    else bestCandidate.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                    try {
+                        bestCandidate.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    } catch(e) {
+                        if (bestCandidate.scrollIntoViewIfNeeded) bestCandidate.scrollIntoViewIfNeeded();
+                    }
                     if (bestCandidate.tagName === 'IFRAME') {
                         try { bestCandidate.contentWindow.focus(); } catch(e){}
                     }
+                } else if (direction === 'down') {
+                    // Ko pridemo do spodnjega roba, tekoče zavrti stran navzdol in poišči naslednji element
+                    window.scrollBy({ top: 320, behavior: 'smooth' });
+                    setTimeout(function() {
+                        var focusablesAfter = getFocusableElements();
+                        var nextEl = focusablesAfter.find(function(e) {
+                            var r = e.getBoundingClientRect();
+                            return r.top > 80 && r.top < window.innerHeight - 50;
+                        });
+                        if (nextEl) nextEl.focus();
+                    }, 180);
                 } else if (direction === 'up') {
-                    // Pojdi v orodno vrstico le, če zgoraj res ni nobenega elementa več
-                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
-                        window.AndroidNativeBridge.focusToolbar();
+                    // Ko gremo navzgor: če je stran pomaknjena navzdol, jo najprej pomakni gor, sicer pojdi v orodno vrstico
+                    if (window.scrollY > 40) {
+                        window.scrollBy({ top: -320, behavior: 'smooth' });
+                    } else {
+                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
+                            window.AndroidNativeBridge.focusToolbar();
+                        }
                     }
                 }
             };
@@ -442,6 +477,9 @@ object UserScriptManager {
                         var len = (act.value || '').length;
                         if (act.setSelectionRange) act.setSelectionRange(len, len);
                     } catch(e) {}
+                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.showKeyboard === 'function') {
+                        window.AndroidNativeBridge.showKeyboard();
+                    }
                 }
 
                 var isFs = (act.className && typeof act.className === 'string' && act.className.indexOf('fullscreen') !== -1) ||
