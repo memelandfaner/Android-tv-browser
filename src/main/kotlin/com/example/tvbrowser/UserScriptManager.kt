@@ -226,9 +226,10 @@ object UserScriptManager {
                 style.id = styleId;
                 style.textContent = `
                     :focus:not(body):not(html), [tabindex="0"]:focus, [data-tv-focused="true"] {
-                        outline: 2px solid #ff5500 !important;
-                        outline-offset: 1px !important;
-                        box-shadow: none !important;
+                        outline: 2.5px solid #38bdf8 !important;
+                        outline-offset: 2px !important;
+                        box-shadow: 0 0 10px rgba(56, 189, 248, 0.35) !important;
+                        border-radius: 8px !important;
                     }
                     /* 🚫 Trajno skrij Google zasebnost, pogoje in odvečne noge */
                     #fbar, #footcnt, footer, .fbar, [aria-label="Noga"], [role="contentinfo"],
@@ -589,11 +590,12 @@ object UserScriptManager {
                         opacity: 0 !important;
                     }
 
-                    /* 🎯 Clean TV Focus Styling (Clean, non-distracting) */
+                    /* 🎯 Clean TV Focus Styling (Eye-friendly Soft Sky Blue) */
                     :focus:not(body):not(html), :focus-visible {
-                        outline: 2px solid #ff5500 !important;
-                        outline-offset: 1px !important;
-                        box-shadow: none !important;
+                        outline: 2.5px solid #38bdf8 !important;
+                        outline-offset: 2px !important;
+                        box-shadow: 0 0 10px rgba(56, 189, 248, 0.35) !important;
+                        border-radius: 8px !important;
                     }
                     /* Remove any intrusive focus on Google chips/suggestions */
                     .gws-output-html, .sbfl_b, [data-async-context*="query"] :focus {
@@ -1278,7 +1280,7 @@ object UserScriptManager {
             if (!style) {
                 style = document.createElement('style');
                 style.id = 'tv_browser_focus_style';
-                style.textContent = ':focus:not(body):not(html) { outline: 2px solid #ff5500 !important; outline-offset: 1px !important; box-shadow: none !important; }';
+                style.textContent = ':focus:not(body):not(html) { outline: 2.5px solid #38bdf8 !important; outline-offset: 2px !important; box-shadow: 0 0 10px rgba(56, 189, 248, 0.35) !important; border-radius: 8px !important; }';
                 if (document.head) document.head.appendChild(style);
                 else if (document.documentElement) document.documentElement.appendChild(style);
             }
