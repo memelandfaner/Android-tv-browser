@@ -14,45 +14,43 @@
         android:background="@drawable/bg_nav_bar"
         android:elevation="12dp">
 
-        <!-- Main Navigation Toolbar -->
+        <!-- Main Navigation Toolbar (Brave Single Top Bar) -->
         <LinearLayout
             android:id="@+id/navBar"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="48dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="8dp">
 
             <Button
                 android:id="@+id/btnBack"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:background="@drawable/bg_nav_button"
                 android:text="◀"
                 android:textColor="@color/text_primary"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:nextFocusRight="@id/btnForward"
-                android:nextFocusDown="@id/btnAddTab"
                 android:focusable="true" />
 
             <Button
                 android:id="@+id/btnForward"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_marginStart="4dp"
                 android:background="@drawable/bg_nav_button"
                 android:text="▶"
                 android:textColor="@color/text_primary"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:nextFocusLeft="@id/btnBack"
                 android:nextFocusRight="@id/btnHome"
-                android:nextFocusDown="@id/btnAddTab"
                 android:focusable="true" />
 
             <Button
                 android:id="@+id/btnHome"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_marginStart="4dp"
                 android:background="@drawable/bg_nav_button"
                 android:text="🏠"
@@ -60,59 +58,101 @@
                 android:textSize="14sp"
                 android:nextFocusLeft="@id/btnForward"
                 android:nextFocusRight="@id/editUrl"
-                android:nextFocusDown="@id/btnAddTab"
                 android:focusable="true" />
 
-            <!-- Omnibox URL / Search input -->
-            <EditText
-                android:id="@+id/editUrl"
+            <!-- Brave Omnibox with integrated Voice Mic in Row 1 -->
+            <LinearLayout
+                android:id="@+id/omniboxContainer"
                 android:layout_width="0dp"
                 android:layout_height="38dp"
                 android:layout_weight="1"
-                android:minWidth="160dp"
                 android:layout_marginStart="6dp"
                 android:layout_marginEnd="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:background="@drawable/bg_omnibox"
-                android:hint="@string/url_hint"
-                android:textColorHint="@color/text_secondary"
-                android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                android:paddingHorizontal="14dp"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:imeOptions="actionGo"
-                android:inputType="textUri|textWebEditText"
-                android:nextFocusLeft="@id/btnHome"
-                android:nextFocusRight="@id/btnStarBookmark"
-                android:nextFocusDown="@id/tabsScrollView"
-                android:focusable="true" />
+                android:paddingHorizontal="6dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="🦁"
+                    android:textSize="13sp" />
+
+                <EditText
+                    android:id="@+id/editUrl"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:hint="@string/url_hint"
+                    android:textColorHint="@color/text_secondary"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:paddingHorizontal="8dp"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:imeOptions="actionGo"
+                    android:inputType="textUri|textWebEditText"
+                    android:nextFocusLeft="@id/btnHome"
+                    android:nextFocusRight="@id/btnVoiceSearch"
+                    android:focusable="true" />
+
+                <Button
+                    android:id="@+id/btnVoiceSearch"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:background="@drawable/bg_nav_button"
+                    android:text="🎙️"
+                    android:textColor="#ff5500"
+                    android:textSize="12sp"
+                    android:nextFocusLeft="@id/editUrl"
+                    android:nextFocusRight="@id/btnStarBookmark"
+                    android:focusable="true" />
+            </LinearLayout>
 
             <Button
                 android:id="@+id/btnStarBookmark"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:layout_marginStart="4dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="2dp"
                 android:background="@drawable/bg_nav_button"
                 android:text="⭐"
                 android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                android:nextFocusLeft="@id/editUrl"
-                android:nextFocusRight="@id/btnVoiceSearch"
-                android:nextFocusDown="@id/tabsScrollView"
+                android:textSize="13sp"
+                android:nextFocusLeft="@id/btnVoiceSearch"
+                android:nextFocusRight="@id/btnQuickYouTube"
                 android:focusable="true" />
 
             <Button
-                android:id="@+id/btnVoiceSearch"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:id="@+id/btnQuickYouTube"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
                 android:layout_marginStart="4dp"
-                android:background="@drawable/bg_nav_button"
-                android:text="🎙️"
-                android:textColor="#38bdf8"
-                android:textSize="14sp"
+                android:paddingHorizontal="8dp"
+                android:background="@drawable/bg_quick_youtube"
+                android:text="▶ YouTube"
+                android:textColor="#ffffff"
+                android:textSize="11sp"
+                android:textStyle="bold"
                 android:nextFocusLeft="@id/btnStarBookmark"
+                android:nextFocusRight="@id/btnQuickStreamNexus"
+                android:focusable="true" />
+
+            <Button
+                android:id="@+id/btnQuickStreamNexus"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:paddingHorizontal="8dp"
+                android:background="@drawable/bg_quick_streamnexus"
+                android:text="🎬 StreamNexus"
+                android:textColor="#ffffff"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:nextFocusLeft="@id/btnQuickYouTube"
                 android:nextFocusRight="@id/btnNavBookmarks"
-                android:nextFocusDown="@id/tabsScrollView"
                 android:focusable="true" />
 
             <HorizontalScrollView
@@ -131,172 +171,110 @@
                     <Button
                         android:id="@+id/btnNavBookmarks"
                         android:layout_width="wrap_content"
-                        android:layout_height="38dp"
+                        android:layout_height="36dp"
                         android:layout_marginStart="4dp"
-                        android:paddingHorizontal="10dp"
+                        android:paddingHorizontal="8dp"
                         android:background="@drawable/bg_nav_button"
                         android:text="Zaznamki"
                         android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:nextFocusLeft="@id/btnVoiceSearch"
+                        android:textSize="11sp"
+                        android:nextFocusLeft="@id/btnQuickStreamNexus"
                         android:nextFocusRight="@id/btnNavDownloads"
-                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
 
                     <Button
                         android:id="@+id/btnNavDownloads"
                         android:layout_width="wrap_content"
-                        android:layout_height="38dp"
+                        android:layout_height="36dp"
                         android:layout_marginStart="4dp"
-                        android:paddingHorizontal="10dp"
+                        android:paddingHorizontal="8dp"
                         android:background="@drawable/bg_nav_button"
                         android:text="Prenosi"
                         android:textColor="@color/text_primary"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         android:nextFocusLeft="@id/btnNavBookmarks"
                         android:nextFocusRight="@id/btnNavHistory"
-                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
 
                     <Button
                         android:id="@+id/btnNavHistory"
                         android:layout_width="wrap_content"
-                        android:layout_height="38dp"
+                        android:layout_height="36dp"
                         android:layout_marginStart="4dp"
-                        android:paddingHorizontal="10dp"
+                        android:paddingHorizontal="8dp"
                         android:background="@drawable/bg_nav_button"
                         android:text="Zgodovina"
                         android:textColor="@color/text_primary"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         android:nextFocusLeft="@id/btnNavDownloads"
                         android:nextFocusRight="@id/btnNavZoom"
-                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
 
                     <Button
                         android:id="@+id/btnNavZoom"
                         android:layout_width="wrap_content"
-                        android:layout_height="38dp"
+                        android:layout_height="36dp"
                         android:layout_marginStart="4dp"
-                        android:paddingHorizontal="8dp"
+                        android:paddingHorizontal="7dp"
                         android:background="@drawable/bg_nav_button"
                         android:text="🔍 75%"
-                        android:textColor="@color/accent_cyan"
-                        android:textSize="12sp"
+                        android:textColor="#ff5500"
+                        android:textSize="11sp"
                         android:nextFocusLeft="@id/btnNavHistory"
                         android:nextFocusRight="@id/btnNavFullscreen"
-                        android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />
 
                     <Button
                         android:id="@+id/btnNavFullscreen"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
                         android:layout_marginStart="4dp"
                         android:background="@drawable/bg_nav_button"
                         android:text="⛶"
                         android:textColor="@color/text_primary"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:nextFocusLeft="@id/btnNavZoom"
                         android:nextFocusRight="@id/btnNavSettings"
-                        android:nextFocusDown="@id/btnQuickYouTube"
                         android:focusable="true" />
 
                     <Button
                         android:id="@+id/btnNavSettings"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
                         android:layout_marginStart="4dp"
                         android:layout_marginEnd="4dp"
                         android:background="@drawable/bg_nav_button"
                         android:text="⚙️"
                         android:textColor="@color/text_primary"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:nextFocusLeft="@id/btnNavFullscreen"
-                        android:nextFocusDown="@id/btnQuickStreamNexus"
                         android:focusable="true" />
                 </LinearLayout>
             </HorizontalScrollView>
         </LinearLayout>
 
-        <!-- Multi-Tab & Fast Links Bar (Comfortable 38dp) -->
+        <!-- Hidden 2nd Row -->
         <LinearLayout
             android:id="@+id/tabsBarContainer"
             android:layout_width="match_parent"
-            android:layout_height="38dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:background="#0f172a"
-            android:paddingHorizontal="14dp">
+            android:layout_height="0dp"
+            android:visibility="gone">
 
             <Button
                 android:id="@+id/btnAddTab"
-                android:layout_width="34dp"
-                android:layout_height="30dp"
-                android:background="@drawable/bg_nav_button"
-                android:text="➕"
-                android:textColor="@color/accent_cyan"
-                android:textSize="13sp"
-                android:focusable="true" />
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
 
             <HorizontalScrollView
                 android:id="@+id/tabsScrollView"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:fillViewport="true"
-                android:scrollbars="none">
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
 
                 <LinearLayout
                     android:id="@+id/tabsLayout"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal" />
+                    android:layout_height="wrap_content" />
             </HorizontalScrollView>
-
-            <!-- Quick Links on right side of tabs bar (Instant 1-Click YouTube & StreamNexus) -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:layout_marginStart="8dp">
-
-                <Button
-                    android:id="@+id/btnQuickYouTube"
-                    android:layout_width="wrap_content"
-                    android:layout_height="30dp"
-                    android:layout_marginEnd="6dp"
-                    android:paddingHorizontal="10dp"
-                    android:background="@drawable/bg_quick_youtube"
-                    android:text="▶ YouTube"
-                    android:textColor="#ffffff"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:nextFocusLeft="@id/tabsScrollView"
-                    android:nextFocusRight="@id/btnQuickStreamNexus"
-                    android:nextFocusUp="@id/btnNavFullscreen"
-                    android:nextFocusDown="@id/contentContainer"
-                    android:focusable="true" />
-
-                <Button
-                    android:id="@+id/btnQuickStreamNexus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="30dp"
-                    android:paddingHorizontal="10dp"
-                    android:background="@drawable/bg_quick_streamnexus"
-                    android:text="🎬 StreamNexus"
-                    android:textColor="#ffffff"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:nextFocusLeft="@id/btnQuickYouTube"
-                    android:nextFocusRight="@id/btnQuickStreamNexus"
-                    android:nextFocusUp="@id/btnNavSettings"
-                    android:nextFocusDown="@id/contentContainer"
-                    android:focusable="true" />
-            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>

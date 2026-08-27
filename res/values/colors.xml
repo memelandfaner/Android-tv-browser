@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_primary">#0b0f19</color>
-    <color name="bg_surface">#111827</color>
-    <color name="bg_glass">#cc161f30</color>
-    <color name="border_glass">#33ffffff</color>
-    <color name="accent_cyan">#00d2ff</color>
+    <!-- Brave Dark Theme Color Palette -->
+    <color name="bg_primary">#0b0d13</color>
+    <color name="bg_surface">#141721</color>
+    <color name="bg_glass">#f0111520</color>
+    <color name="border_glass">#33ff5500</color>
+    <color name="accent_cyan">#ff5500</color>
+    <color name="accent_orange">#ff5500</color>
+    <color name="accent_orange_bright">#ff6e1a</color>
+    <color name="accent_purple">#8045ff</color>
     <color name="accent_yellow">#ffd700</color>
-    <color name="accent_red">#ff4b4b</color>
+    <color name="accent_red">#ff3838</color>
     <color name="text_primary">#ffffff</color>
     <color name="text_secondary">#9ca3af</color>
-    <color name="card_focus">#00d2ff</color>
+    <color name="card_focus">#ff5500</color>
+    <color name="brave_lion">#ff5500</color>
 </resources>

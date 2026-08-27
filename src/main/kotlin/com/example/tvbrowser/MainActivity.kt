@@ -282,10 +282,15 @@ class MainActivity : android.app.Activity() {
                 true
             } else false
         }
-        findViewById<View>(R.id.btnAddTab).setOnKeyListener(focusToWebListener)
-        findViewById<View>(R.id.tabsScrollView).setOnKeyListener(focusToWebListener)
-        findViewById<View?>(R.id.btnQuickYouTube)?.setOnKeyListener(focusToWebListener)
-        findViewById<View?>(R.id.btnQuickStreamNexus)?.setOnKeyListener(focusToWebListener)
+        val toolbarButtons = listOf(
+            R.id.btnBack, R.id.btnForward, R.id.btnHome, R.id.editUrl,
+            R.id.btnVoiceSearch, R.id.btnStarBookmark, R.id.btnQuickYouTube,
+            R.id.btnQuickStreamNexus, R.id.btnNavBookmarks, R.id.btnNavDownloads,
+            R.id.btnNavHistory, R.id.btnNavZoom, R.id.btnNavFullscreen, R.id.btnNavSettings
+        )
+        toolbarButtons.forEach { id ->
+            findViewById<View?>(id)?.setOnKeyListener(focusToWebListener)
+        }
 
         findViewById<View>(R.id.btnBack).setOnClickListener {
             val active = getActiveWebView()
