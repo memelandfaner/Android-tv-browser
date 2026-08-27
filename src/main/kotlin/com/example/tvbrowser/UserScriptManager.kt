@@ -736,7 +736,27 @@ object UserScriptManager {
                             pointer-events: none !important;
                         }
 
-                        /* 📺 SmartTube 4-Column Video Grid & Natural Rows */
+                        /* 📺 YouTube Feed Section Containers - Standard 100% Full-Width Block */
+                        ytm-section-list-renderer,
+                        ytm-section-list-renderer > #contents,
+                        #contents.ytm-section-list-renderer,
+                        ytm-item-section-renderer,
+                        ytm-item-section-renderer > #contents,
+                        #contents.ytm-item-section-renderer,
+                        ytm-search,
+                        ytd-search,
+                        ytd-section-list-renderer,
+                        ytd-item-section-renderer,
+                        ytd-two-column-search-results-renderer {
+                            display: block !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            box-sizing: border-box !important;
+                        }
+
+                        /* 📺 Natural Rows for Desktop YouTube */
                         ytd-rich-grid-row {
                             display: block !important;
                             margin: 0 !important;
@@ -756,52 +776,110 @@ object UserScriptManager {
                             box-sizing: border-box !important;
                         }
 
-                        ytm-section-list-renderer lazy-list,
-                        ytm-item-section-renderer lazy-list,
+                        /* 📺 SmartTube 4-Column Video Grid for Item Lists ONLY */
+                        ytm-item-section-renderer > lazy-list,
                         ytm-item-section-renderer > .lazy-list,
-                        ytm-rich-grid-renderer #contents,
-                        ytm-section-list-renderer #contents,
+                        ytm-rich-grid-renderer > #contents,
                         .rich-grid-renderer-contents,
-                        #contents.ytm-section-list-renderer,
-                        #contents.ytm-item-section-renderer {
+                        #contents.ytd-rich-grid-renderer {
                             display: grid !important;
                             grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
                             gap: 16px 14px !important;
-                            padding: 6px 18px 40px !important;
-                            max-width: 100% !important;
+                            padding: 8px 16px 40px !important;
+                            width: 100% !important;
                             box-sizing: border-box !important;
                         }
 
-                        /* 📺 SmartTube Video Cards */
-                        ytd-rich-item-renderer {
-                            flex: 1 1 calc(25% - 14px) !important;
-                            width: calc(25% - 14px) !important;
-                            max-width: calc(25% - 14px) !important;
-                            min-width: 220px !important;
-                            margin: 0 !important;
-                            padding: 8px !important;
-                            border-radius: 14px !important;
-                            background: rgba(255, 255, 255, 0.03) !important;
-                            border: 2px solid rgba(255, 255, 255, 0.05) !important;
-                            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
+                        /* 📺 Mobile YouTube Search Results & Shelf Lists */
+                        ytm-search ytm-item-section-renderer > lazy-list,
+                        ytm-search ytm-item-section-renderer > .lazy-list {
+                            display: grid !important;
+                            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                            gap: 20px 16px !important;
+                            padding: 8px 18px 40px !important;
+                            width: 100% !important;
                             box-sizing: border-box !important;
-                            cursor: pointer !important;
                         }
 
+                        /* 📺 YouTube Video Cards (Card Aspect & Clean Vertical Flow) */
                         ytm-media-item,
                         ytm-video-with-context-renderer,
                         ytm-rich-item-renderer,
                         ytm-compact-video-renderer,
                         ytd-video-renderer {
+                            display: flex !important;
+                            flex-direction: column !important;
                             width: 100% !important;
+                            max-width: 100% !important;
+                            min-width: 0 !important;
                             margin: 0 !important;
-                            padding: 8px !important;
+                            padding: 10px !important;
                             border-radius: 14px !important;
-                            background: rgba(255, 255, 255, 0.03) !important;
-                            border: 2px solid rgba(255, 255, 255, 0.05) !important;
+                            background: rgba(255, 255, 255, 0.04) !important;
+                            border: 2px solid rgba(255, 255, 255, 0.06) !important;
                             transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
                             box-sizing: border-box !important;
                             cursor: pointer !important;
+                        }
+
+                        /* 📺 Thumbnail Container Full Width in Card */
+                        .media-item-thumbnail-container,
+                        ytm-media-item .media-item-thumbnail-container,
+                        ytm-video-with-context-renderer .media-item-thumbnail-container,
+                        ytm-thumbnail-cover,
+                        .cover-container,
+                        .video-thumbnail-container {
+                            width: 100% !important;
+                            min-width: 100% !important;
+                            max-width: 100% !important;
+                            aspect-ratio: 16/9 !important;
+                            border-radius: 10px !important;
+                            overflow: hidden !important;
+                            margin-bottom: 8px !important;
+                        }
+
+                        .media-item-thumbnail-container img,
+                        ytm-thumbnail-cover img,
+                        .video-thumbnail-container img {
+                            width: 100% !important;
+                            height: 100% !important;
+                            object-fit: cover !important;
+                            border-radius: 10px !important;
+                        }
+
+                        /* 📺 Details and Metadata Below Thumbnail */
+                        .media-item-metadata,
+                        .compact-media-item-metadata,
+                        .details,
+                        #meta,
+                        ytm-media-item .details {
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            padding: 2px 4px !important;
+                            box-sizing: border-box !important;
+                        }
+
+                        /* 📺 Hide Shorts Shelves and Info/Clarification Panels in Search */
+                        ytm-reel-shelf-renderer,
+                        ytd-reel-shelf-renderer,
+                        ytm-shorts-lockup-view-model,
+                        ytm-reel-item-renderer,
+                        ytm-item-section-renderer:has(ytm-reel-shelf-renderer),
+                        ytm-item-section-renderer:has(ytm-info-panel-container-renderer),
+                        ytm-item-section-renderer:has(ytm-clarification-renderer),
+                        ytm-info-panel-container-renderer,
+                        ytm-clarification-renderer,
+                        #clarify-box,
+                        #about-this-result,
+                        [aria-label*="O teh rezultatih"],
+                        [aria-label*="About these results"] {
+                            display: none !important;
+                            visibility: hidden !important;
+                            height: 0px !important;
+                            width: 0px !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            opacity: 0 !important;
                         }
 
                         /* 📺 SmartTube D-Pad Focus Glow */
@@ -809,7 +887,7 @@ object UserScriptManager {
                         ytm-media-item:focus, ytm-media-item:focus-within,
                         ytm-video-with-context-renderer:focus, ytm-video-with-context-renderer:focus-within,
                         ytm-compact-video-renderer:focus, ytm-compact-video-renderer:focus-within {
-                            transform: scale(1.05) !important;
+                            transform: scale(1.04) !important;
                             border-color: #00d2ff !important;
                             background: rgba(0, 210, 255, 0.12) !important;
                             box-shadow: 0 8px 24px rgba(0, 210, 255, 0.4), 0 0 14px rgba(0, 210, 255, 0.6) !important;
