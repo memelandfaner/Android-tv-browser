@@ -25,12 +25,33 @@ object VoiceCommandEngine {
 
         val raw = spokenText.trim().lowercase()
 
-        // 1. App / Direct portal commands - le če izrecno zahteva odpiranje YouTube strani
+        // 1. YouTube & Iskanje Pesmi / Glasbe / Videoposnetkov
         if (raw == "youtube" || raw == "odpri youtube" || raw == "open youtube" || raw == "smarttube" || raw == "odpri smarttube") {
             return VoiceResult(CommandType.OPEN_URL, "https://www.youtube.com")
         }
-        if (raw.startsWith("youtube ") || raw.startsWith("poišči na youtube") || raw.startsWith("poišči na youtubu")) {
-            val query = raw.replace("youtube", "").replace("smarttube", "").replace("jutub", "").replace("poišči na youtubu", "").replace("poišči na youtube", "").replace("poišči v youtubu", "").replace("poišči", "").trim()
+        if (raw.startsWith("predvajaj ") || raw.startsWith("zavrti ") || raw.startsWith("poslušaj ") ||
+            raw.startsWith("pesem ") || raw.startsWith("komad ") || raw.startsWith("spot ") ||
+            raw.startsWith("youtube ") || raw.startsWith("poišči na youtube") || raw.startsWith("poišči na youtubu") ||
+            raw.contains("na youtube") || raw.contains("na youtubu")) {
+            
+            var query = raw
+            val ytPrefixes = listOf(
+                "odpri youtube in poišči ", "odpri youtube in predvajaj ", "odpri youtube ",
+                "poišči na youtubu ", "poišči na youtube ", "poišči v youtubu ",
+                "predvajaj pesem od ", "predvajaj glasbo od ", "predvajaj spot od ",
+                "predvajaj pesem ", "predvajaj komad ", "predvajaj glasbo ", "predvajaj spot ", "predvajaj ",
+                "zavrti pesem od ", "zavrti glasbo ", "zavrti spot ", "zavrti ",
+                "poslušaj pesem ", "poslušaj glasbo ", "poslušaj ",
+                "pesem od ", "pesem ", "komad ", "spot ",
+                "youtube ", "smarttube ", "jutub "
+            )
+            for (p in ytPrefixes) {
+                if (query.startsWith(p)) {
+                    query = query.substring(p.length).trim()
+                    break
+                }
+            }
+            query = query.replace("na youtube", "").replace("na youtubu", "").replace("on youtube", "").trim()
             return if (query.isNotEmpty()) {
                 VoiceResult(CommandType.OPEN_URL, "https://www.youtube.com/results?search_query=" + URLEncoder.encode(query, "UTF-8"))
             } else {

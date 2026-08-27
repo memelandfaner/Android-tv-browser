@@ -185,7 +185,25 @@ object UserScriptManager {
                 'a[aria-label*="Search"]',
                 'c3-icon[type="search"]',
                 'ytm-searchbox',
-                '.mobile-topbar-header-endpoint'
+                '.mobile-topbar-header-endpoint',
+                // 📺 YouTube Video Cards, Polymer items & Player Controls
+                'ytm-media-item',
+                'ytm-video-with-context-renderer',
+                'ytm-compact-video-renderer',
+                'ytm-rich-item-renderer',
+                'ytd-rich-item-renderer',
+                'ytd-video-renderer',
+                'a.media-item-thumbnail-container',
+                'a.compact-media-item-image',
+                'a.media-item-headline',
+                'a.compact-media-item-headline',
+                'a[href*="/watch"]',
+                'a[href*="watch?v="]',
+                '.ytp-play-button',
+                '.ytp-fullscreen-button',
+                '.ytp-settings-button',
+                '.ytp-subtitles-button',
+                '.player-control-play-pause-icon'
             ].join(', ');
 
             // Naredi izključno interaktivne elemente focusable (NE vseh generic div-ov!)
@@ -242,7 +260,7 @@ object UserScriptManager {
                 });
             }
 
-            // 🎯 Samodejno usmerjanje na iskalno polje na Google / iskalnikih
+            // 🎯 Samodejno usmerjanje na iskalno polje na Google / prvi YouTube video
             function autoFocusSearch() {
                 var isSearch = location.hostname.indexOf('google') !== -1 ||
                                location.hostname.indexOf('duckduckgo') !== -1 ||
@@ -251,6 +269,15 @@ object UserScriptManager {
                     var searchInput = document.querySelector('textarea[name="q"], input[name="q"], #APjFqb, .gLFyf, input[type="search"], input[type="text"]');
                     if (searchInput && document.activeElement !== searchInput) {
                         searchInput.focus();
+                        return true;
+                    }
+                }
+
+                // Na YouTube rezultatih iskanja samodejno fokusiraj prvi video rezultat
+                if (location.hostname.indexOf('youtube.com') !== -1) {
+                    var firstVideo = document.querySelector('ytm-video-with-context-renderer, ytm-compact-video-renderer, ytm-media-item, a[href*="watch?v="], ytd-video-renderer');
+                    if (firstVideo && document.activeElement !== firstVideo) {
+                        firstVideo.focus();
                         return true;
                     }
                 }
@@ -339,7 +366,8 @@ object UserScriptManager {
                                           el.classList.contains('search-btn') ||
                                           (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().indexOf('iskanje') !== -1) ||
                                           (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().indexOf('search') !== -1);
-                        var priorityBonus = isInput ? -80 : (isSearchBtn ? -100 : 0);
+                        var isYtCard = el.tagName.toLowerCase().indexOf('ytm-') !== -1 || el.tagName.toLowerCase().indexOf('ytd-') !== -1;
+                        var priorityBonus = isInput ? -80 : (isSearchBtn ? -100 : (isYtCard ? -50 : 0));
                         
                         var dist = primaryDist * 1.0 + orthogonalDist * 2.2 + rowBonus + priorityBonus;
                         if (dist < bestDistance) {
@@ -367,6 +395,24 @@ object UserScriptManager {
             window.clickActiveElement = function() {
                 var act = document.activeElement;
                 if (!act) return;
+
+                // Če je fokusirana YouTube kartica, najdi in klikni notranjo video povezavo
+                var isYtCard = act.tagName.toLowerCase().indexOf('ytm-') !== -1 ||
+                               act.tagName.toLowerCase().indexOf('ytd-') !== -1 ||
+                               act.classList.contains('media-item') ||
+                               act.classList.contains('video-card') ||
+                               act.classList.contains('compact-media-item');
+
+                if (isYtCard) {
+                    var link = act.querySelector('a[href*="watch"], a.media-item-thumbnail-container, a.compact-media-item-image, a[href]');
+                    if (link) {
+                        try {
+                            link.focus();
+                            link.click();
+                            return;
+                        } catch(_) {}
+                    }
+                }
 
                 var isSearchTrigger = act.classList.contains('topbar-search-button') ||
                                       act.classList.contains('search-btn') ||
@@ -411,10 +457,50 @@ object UserScriptManager {
                 }
             };
 
-            // ESC gre ven iz iframe
+            // 🕹️ TV Remote D-Pad Navigation Event Listener
             window.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' || e.keyCode === 27) { window.focus(); }
-            });
+                var k = e.keyCode || e.which;
+                var key = e.key || '';
+
+                // DPAD_LEFT (21 / 37 / ArrowLeft)
+                if (k === 37 || k === 21 || key === 'ArrowLeft') {
+                    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    window.focusNextElement('left');
+                }
+                // DPAD_UP (19 / 38 / ArrowUp)
+                else if (k === 38 || k === 19 || key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    window.focusNextElement('up');
+                }
+                // DPAD_RIGHT (22 / 39 / ArrowRight)
+                else if (k === 39 || k === 22 || key === 'ArrowRight') {
+                    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    window.focusNextElement('right');
+                }
+                // DPAD_DOWN (20 / 40 / ArrowDown)
+                else if (k === 40 || k === 20 || key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    window.focusNextElement('down');
+                }
+                // DPAD_CENTER / ENTER (13 / 23 / 66 / Enter / Select)
+                else if (k === 13 || k === 23 || k === 66 || key === 'Enter' || key === 'Select') {
+                    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                        return;
+                    }
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    window.clickActiveElement();
+                }
+                else if (k === 27 || key === 'Escape') {
+                    window.focus();
+                }
+            }, true);
 
             // Samodejni fokus ob nalaganju strani
             if (document.readyState === 'complete' || document.readyState === 'interactive') {

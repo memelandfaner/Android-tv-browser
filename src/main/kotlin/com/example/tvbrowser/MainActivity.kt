@@ -1930,6 +1930,39 @@ class MainActivity : android.app.Activity() {
                         sendPlayerCommand("SHOW_CONTROLS")
                     }
                 }
+            } else if (!cursorOverlay.isCursorActive() && !isAnyPanelOpen()) {
+                val isEditUrlFocused = currentFocus == editUrl
+                if (isEditUrlFocused) {
+                    if (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                        editUrl.clearFocus()
+                        getActiveWebView()?.requestFocus()
+                        getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('down');", null)
+                        return true
+                    }
+                } else {
+                    when (event.keyCode) {
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('left');", null)
+                            return true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('right');", null)
+                            return true
+                        }
+                        KeyEvent.KEYCODE_DPAD_UP -> {
+                            getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('up');", null)
+                            return true
+                        }
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            getActiveWebView()?.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('down');", null)
+                            return true
+                        }
+                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                            getActiveWebView()?.evaluateJavascript("if (window.clickActiveElement) window.clickActiveElement();", null)
+                            return true
+                        }
+                    }
+                }
             }
         }
 
@@ -2011,6 +2044,19 @@ class MainActivity : android.app.Activity() {
         }
 
         return super.dispatchKeyEvent(event)
+    }
+
+    fun focusTopBar() {
+        editUrl.requestFocus()
+        editUrl.selectAll()
+    }
+
+    private fun isAnyPanelOpen(): Boolean {
+        return bookmarksPanel.visibility == View.VISIBLE ||
+               downloadsPanel.visibility == View.VISIBLE ||
+               historyPanel.visibility == View.VISIBLE ||
+               settingsPanel.visibility == View.VISIBLE ||
+               voiceListeningOverlay.visibility == View.VISIBLE
     }
 
     private fun handleCursorKeyEvent(event: KeyEvent): Boolean {

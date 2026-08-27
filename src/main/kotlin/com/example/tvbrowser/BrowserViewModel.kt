@@ -191,10 +191,44 @@ class BrowserViewModel(context: Context) {
             }
         } catch (ignored: Exception) {}
 
-        // 1. Če uporabnik izrecno začne z "yt:" ali "youtube: ", išči na YouTube
-        if (raw.startsWith("yt:", ignoreCase = true) || raw.startsWith("youtube:", ignoreCase = true)) {
-            val q = raw.substringAfter(":").trim()
-            val encoded = try { URLEncoder.encode(q, "UTF-8") } catch (e: Exception) { q }
+        // 1. Če uporabnik išče pesem, glasbo ali izrecno išče na YouTube
+        val activeUrl = state.tabs.getOrNull(state.activeTabIndex)?.url ?: ""
+        val isExplicitYt = raw.startsWith("yt:", ignoreCase = true) ||
+                           raw.startsWith("youtube:", ignoreCase = true) ||
+                           raw.startsWith("youtube ", ignoreCase = true) ||
+                           raw.startsWith("yt ", ignoreCase = true) ||
+                           raw.startsWith("pesem ", ignoreCase = true) ||
+                           raw.startsWith("komad ", ignoreCase = true) ||
+                           raw.startsWith("spot ", ignoreCase = true) ||
+                           raw.startsWith("predvajaj ", ignoreCase = true) ||
+                           raw.startsWith("zavrti ", ignoreCase = true) ||
+                           raw.startsWith("poslušaj ", ignoreCase = true) ||
+                           raw.contains("na youtube", ignoreCase = true) ||
+                           raw.contains("na youtubu", ignoreCase = true)
+
+        val isSearchingOnYouTubeTab = activeUrl.contains("youtube.com", ignoreCase = true) && !raw.startsWith("google", ignoreCase = true)
+
+        if (isExplicitYt || isSearchingOnYouTubeTab) {
+            var q = raw
+            val ytPrefixes = listOf(
+                "odpri youtube in poišči ", "odpri youtube in predvajaj ", "odpri youtube ",
+                "poišči na youtubu ", "poišči na youtube ", "poišči v youtubu ",
+                "predvajaj pesem od ", "predvajaj glasbo od ", "predvajaj spot od ",
+                "predvajaj pesem ", "predvajaj komad ", "predvajaj glasbo ", "predvajaj spot ", "predvajaj ",
+                "zavrti pesem od ", "zavrti glasbo ", "zavrti spot ", "zavrti ",
+                "poslušaj pesem ", "poslušaj glasbo ", "poslušaj ",
+                "pesem od ", "pesem ", "komad ", "spot ",
+                "yt:", "youtube:", "youtube ", "yt "
+            )
+            for (p in ytPrefixes) {
+                if (q.startsWith(p, ignoreCase = true)) {
+                    q = q.substring(p.length).trim()
+                    break
+                }
+            }
+            q = q.replace(Regex("(?i)\\s+na\\s+youtub[ue]"), "").replace(Regex("(?i)\\s+on\\s+youtube"), "").trim()
+            val finalQuery = if (q.isNotEmpty()) q else raw
+            val encoded = try { URLEncoder.encode(finalQuery, "UTF-8") } catch (e: Exception) { finalQuery }
             return "https://www.youtube.com/results?search_query=$encoded"
         }
 
