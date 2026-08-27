@@ -223,7 +223,12 @@ object UserScriptManager {
                     bogus.forEach(function(b) { b.removeAttribute('tabindex'); });
 
                     document.querySelectorAll(INTERACTIVE_SELECTORS).forEach(function(el) {
-                        if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+                        if (!el.hasAttribute('tabindex')) {
+                            var r = el.getBoundingClientRect();
+                            if (r.width >= 12 && r.height >= 12) {
+                                el.tabIndex = 0;
+                            }
+                        }
                     });
                 } catch(e) {}
             }
@@ -234,11 +239,24 @@ object UserScriptManager {
                 var style = document.createElement('style');
                 style.id = styleId;
                 style.textContent = `
-                    :focus:not(body):not(html), [tabindex="0"]:focus, [data-tv-focused="true"] {
+                    a[href]:focus,
+                    button:focus,
+                    input:focus,
+                    textarea:focus,
+                    select:focus,
+                    [role="button"]:focus,
+                    [role="link"]:focus,
+                    [role="tab"]:focus,
+                    [role="menuitem"]:focus,
+                    [data-tv-focused="true"] {
                         outline: 2.5px solid #38bdf8 !important;
                         outline-offset: 2px !important;
                         box-shadow: 0 0 10px rgba(56, 189, 248, 0.35) !important;
                         border-radius: 8px !important;
+                    }
+                    div:focus:not([role="button"]), span:focus, [aria-hidden="true"]:focus, .RNNXgb:focus, .a4bIc:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
                     }
                     /* 🚫 Trajno skrij Google zasebnost, pogoje in odvečne noge */
                     #fbar, #footcnt, footer, .fbar, [aria-label="Noga"], [role="contentinfo"],

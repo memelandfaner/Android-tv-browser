@@ -277,6 +277,7 @@ class MainActivity : android.app.Activity() {
         // TV D-Pad Focus Handoff: Pressing DOWN from header immediately focuses webpage
         val focusToWebListener = View.OnKeyListener { v, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                isWebInputFocused = false
                 getActiveWebView()?.let { wv ->
                     v.clearFocus()
                     wv.requestFocus()
@@ -1855,13 +1856,18 @@ class MainActivity : android.app.Activity() {
                 }
             }
 
-            // 🛡️ When typing in Omnibox or in a web input/search field, let soft keyboard (Gboard) handle all keys!
-            if (editUrl.hasFocus() || isWebInputFocused) {
+            // 🛡️ When Omnibox has focus, let EditText handle typing/keyboard:
+            if (editUrl.hasFocus()) {
                 return super.dispatchKeyEvent(event)
             }
 
             val activeWebView = getActiveWebView()
-            val isWebViewFocused = activeWebView != null && (currentFocus == activeWebView || currentFocus == webViewContainer || currentFocus == null)
+            val isWebViewFocused = activeWebView != null && (currentFocus == activeWebView || currentFocus == webViewContainer)
+
+            // When actively typing inside an HTML input in the focused WebView, let soft keyboard handle keys:
+            if (isWebViewFocused && isWebInputFocused) {
+                return super.dispatchKeyEvent(event)
+            }
 
             if (isTvFullscreenMode && !cursorOverlay.isCursorActive()) {
                 when (event.keyCode) {
