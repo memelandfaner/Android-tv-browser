@@ -48,7 +48,7 @@ class ChromiumEngineView @JvmOverloads constructor(
         val s = settings
         when (mode) {
             UserAgentMode.TV -> {
-                s.userAgentString = "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
+                s.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
                 s.useWideViewPort = true
                 s.loadWithOverviewMode = true
             }
@@ -112,14 +112,14 @@ class ChromiumEngineView @JvmOverloads constructor(
         isFocusable = true
         isFocusableInTouchMode = true
 
-        // 🌙 Forced Dark Engine (Android 10+ / API 29+)
+        // 🌐 Original Webpage Theme Rendering (Allow original Google & site design)
         try {
             if (Build.VERSION.SDK_INT >= 29) {
-                s.forceDark = WebSettings.FORCE_DARK_ON
+                s.forceDark = WebSettings.FORCE_DARK_OFF
             }
         } catch (ignored: Throwable) {}
         try {
-            s.javaClass.getMethod("setAlgorithmicDarkeningAllowed", Boolean::class.javaPrimitiveType).invoke(s, true)
+            s.javaClass.getMethod("setAlgorithmicDarkeningAllowed", Boolean::class.javaPrimitiveType).invoke(s, false)
         } catch (ignored: Throwable) {}
 
         s.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
