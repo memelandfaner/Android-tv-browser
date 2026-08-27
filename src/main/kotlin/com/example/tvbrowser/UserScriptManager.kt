@@ -512,14 +512,44 @@ object UserScriptManager {
                 }
             };
 
+            // ⌨️ Sync Input Focus with Android Native Bridge
+            document.addEventListener('focusin', function(e) {
+                var t = e.target;
+                if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.onInputFocusChanged === 'function') {
+                        window.AndroidNativeBridge.onInputFocusChanged(true);
+                    }
+                }
+            }, true);
+
+            document.addEventListener('focusout', function(e) {
+                var t = e.target;
+                if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+                    if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.onInputFocusChanged === 'function') {
+                        window.AndroidNativeBridge.onInputFocusChanged(false);
+                    }
+                }
+            }, true);
+
             // 🕹️ TV Remote D-Pad Navigation Event Listener
             window.addEventListener('keydown', function(e) {
                 var k = e.keyCode || e.which;
                 var key = e.key || '';
+                var isTyping = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable);
+
+                // Če uporabnik tipka v vnosnem polju ali iskalniku, NE blokiraj tipk!
+                if (isTyping) {
+                    if (k === 13 || k === 66 || key === 'Enter') {
+                        // Ob pritisku ENTER pošlji obrazec / iskanje
+                        if (document.activeElement.form) {
+                            try { document.activeElement.form.submit(); } catch(_) {}
+                        }
+                    }
+                    return;
+                }
 
                 // DPAD_LEFT (21 / 37 / ArrowLeft)
                 if (k === 37 || k === 21 || key === 'ArrowLeft') {
-                    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
                     e.preventDefault();
                     e.stopImmediatePropagation();
                     window.focusNextElement('left');
@@ -532,7 +562,6 @@ object UserScriptManager {
                 }
                 // DPAD_RIGHT (22 / 39 / ArrowRight)
                 else if (k === 39 || k === 22 || key === 'ArrowRight') {
-                    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
                     e.preventDefault();
                     e.stopImmediatePropagation();
                     window.focusNextElement('right');
@@ -545,9 +574,6 @@ object UserScriptManager {
                 }
                 // DPAD_CENTER / ENTER (13 / 23 / 66 / Enter / Select)
                 else if (k === 13 || k === 23 || k === 66 || key === 'Enter' || key === 'Select') {
-                    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
-                        return;
-                    }
                     e.preventDefault();
                     e.stopImmediatePropagation();
                     window.clickActiveElement();

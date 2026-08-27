@@ -81,6 +81,9 @@ class MainActivity : android.app.Activity() {
     // Active Chromium WebViews pool mapped by Tab index
     private val webViewPool = mutableListOf<ChromiumEngineView>()
 
+    @Volatile
+    var isWebInputFocused = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -283,7 +286,7 @@ class MainActivity : android.app.Activity() {
             } else false
         }
         val toolbarButtons = listOf(
-            R.id.btnBack, R.id.btnForward, R.id.btnHome, R.id.editUrl,
+            R.id.btnBack, R.id.btnForward, R.id.btnHome,
             R.id.btnVoiceSearch, R.id.btnStarBookmark, R.id.btnQuickYouTube,
             R.id.btnQuickStreamNexus, R.id.btnNavBookmarks, R.id.btnNavDownloads,
             R.id.btnNavHistory, R.id.btnNavZoom, R.id.btnNavFullscreen, R.id.btnNavSettings
@@ -310,6 +313,7 @@ class MainActivity : android.app.Activity() {
 
         // 🏠 Home -> Selected Search Engine
         findViewById<View>(R.id.btnHome).setOnClickListener {
+            hideAllPanels()
             loadUrl(viewModel.homeUrl())
         }
 
@@ -320,12 +324,12 @@ class MainActivity : android.app.Activity() {
             }
         }
         editUrl.setOnEditorActionListener { _, actionId, event ->
-            if (actionId == EditorInfo.IME_ACTION_GO || (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER)) {
+            if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_SEARCH || (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
+                hideKeyboard()
                 handleUrlSubmit()
                 true
             } else false
         }
-        editUrl.setOnKeyListener(focusToWebListener)
 
         findViewById<View>(R.id.btnStarBookmark).setOnClickListener {
             val active = getActiveWebView()
@@ -1849,6 +1853,11 @@ class MainActivity : android.app.Activity() {
                     sendPlayerCommand("PAUSE")
                     return true
                 }
+            }
+
+            // 🛡️ When typing in Omnibox or in a web input/search field, let soft keyboard (Gboard) handle all keys!
+            if (editUrl.hasFocus() || isWebInputFocused) {
+                return super.dispatchKeyEvent(event)
             }
 
             val activeWebView = getActiveWebView()

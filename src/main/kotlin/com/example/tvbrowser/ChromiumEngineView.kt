@@ -451,6 +451,15 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
 
         @JavascriptInterface
+        fun onInputFocusChanged(isFocused: Boolean) {
+            post {
+                try {
+                    (context as? MainActivity)?.isWebInputFocused = isFocused
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
         fun focusToolbar() {
             post {
                 onEdgeReachedTopListener?.invoke()
