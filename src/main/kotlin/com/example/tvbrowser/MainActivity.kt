@@ -1687,97 +1687,13 @@ class MainActivity : android.app.Activity() {
         }
     }
 
-    // =========================================================================
-    // 🎙️ SPEECH RECOGNITION (PHILIPS TV MIC INTEGRATION)
-    // =========================================================================
     private fun startVoiceSearch() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 102)
             return
         }
 
-        showVoiceListeningHUD()
-
-        try {
-            if (speechRecognizer == null) {
-                val katnissComp = ComponentName(
-                    "com.google.android.katniss",
-                    "com.google.android.apps.tvsearch.voice.recognition.KatnissRecognitionService"
-                )
-                speechRecognizer = try {
-                    SpeechRecognizer.createSpeechRecognizer(this, katnissComp)
-                } catch (e: Exception) {
-                    SpeechRecognizer.createSpeechRecognizer(this)
-                }
-            }
-
-            val recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sl-SI")
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "sl-SI")
-                putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "sl-SI")
-                putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            }
-
-            speechRecognizer?.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {
-                    textVoiceStatus.text = "Govorite zdaj... (npr. 'Odpri YouTube', 'TMDB Filmi')"
-                }
-
-                override fun onBeginningOfSpeech() {
-                    textVoiceStatus.text = "Poslušam..."
-                }
-
-                override fun onRmsChanged(rmsdB: Float) {
-                    val scale = 1.0f + (rmsdB.coerceIn(0f, 10f) / 15f)
-                    textVoiceMicIcon.scaleX = scale
-                    textVoiceMicIcon.scaleY = scale
-                }
-
-                override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {
-                    textVoiceStatus.text = "Obdelujem glasovni ukaz..."
-                }
-
-                override fun onError(error: Int) {
-                    hideVoiceListeningHUD()
-                    if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                        Toast.makeText(this@MainActivity, "Govor ni bil zaznan. Poskusite znova.", Toast.LENGTH_SHORT).show()
-                    } else if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
-                        // Ignore busy error
-                    } else {
-                        launchSpeechIntentFallback()
-                    }
-                }
-
-                override fun onResults(results: Bundle?) {
-                    hideVoiceListeningHUD()
-                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    if (!matches.isNullOrEmpty()) {
-                        val spoken = matches[0]
-                        Toast.makeText(this@MainActivity, "🎙️ '$spoken'", Toast.LENGTH_SHORT).show()
-                        executeVoiceCommand(spoken)
-                    }
-                }
-
-                override fun onPartialResults(partialResults: Bundle?) {
-                    val partial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    if (!partial.isNullOrEmpty()) {
-                        textVoiceStatus.text = "» ${partial[0]} «"
-                    }
-                }
-
-                override fun onEvent(eventType: Int, params: Bundle?) {}
-            })
-
-            speechRecognizer?.startListening(recognizerIntent)
-
-        } catch (e: Exception) {
-            hideVoiceListeningHUD()
-            launchSpeechIntentFallback()
-        }
+        launchSpeechIntentFallback()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -1817,6 +1733,8 @@ class MainActivity : android.app.Activity() {
         try {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sl-SI")
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "sl-SI")
                 putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt))
             }
             startActivityForResult(intent, 101)
