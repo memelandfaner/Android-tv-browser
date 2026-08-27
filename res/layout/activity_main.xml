@@ -97,6 +97,20 @@
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:nextFocusLeft="@id/editUrl"
+                android:nextFocusRight="@id/btnVoiceSearch"
+                android:nextFocusDown="@id/tabsScrollView"
+                android:focusable="true" />
+
+            <Button
+                android:id="@+id/btnVoiceSearch"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_nav_button"
+                android:text="🎙️"
+                android:textColor="#38bdf8"
+                android:textSize="14sp"
+                android:nextFocusLeft="@id/btnStarBookmark"
                 android:nextFocusRight="@id/btnNavBookmarks"
                 android:nextFocusDown="@id/tabsScrollView"
                 android:focusable="true" />
@@ -124,7 +138,7 @@
                         android:text="Zaznamki"
                         android:textColor="@color/text_primary"
                         android:textSize="12sp"
-                        android:nextFocusLeft="@id/btnStarBookmark"
+                        android:nextFocusLeft="@id/btnVoiceSearch"
                         android:nextFocusRight="@id/btnNavDownloads"
                         android:nextFocusDown="@id/tabsScrollView"
                         android:focusable="true" />

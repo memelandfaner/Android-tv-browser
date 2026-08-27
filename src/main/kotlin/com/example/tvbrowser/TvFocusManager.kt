@@ -35,7 +35,8 @@ class TvFocusManager(
                 return true
             }
 
-            // 🔴 Red Button (Keycode 183 or PROG_RED) -> Servers in player or Voice Search on page
+            // 🎙️ Dedicated Remote Mic Key / Voice Assist / Search / 🔴 Red Button (Keycode 183)
+            KeyEvent.KEYCODE_VOICE_ASSIST, KeyEvent.KEYCODE_SEARCH, KeyEvent.KEYCODE_ASSIST,
             183, KeyEvent.KEYCODE_PROG_RED -> {
                 if (isFullscreenActive()) {
                     onServersKey()

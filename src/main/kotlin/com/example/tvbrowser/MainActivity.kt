@@ -1,6 +1,7 @@
 package com.example.tvbrowser
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -337,6 +338,10 @@ class MainActivity : android.app.Activity() {
                     Toast.makeText(this, "⭐ Dodano med zaznamke: $currentTitle", Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+
+        findViewById<View?>(R.id.btnVoiceSearch)?.setOnClickListener {
+            startVoiceSearch()
         }
 
         // ⚙️ Settings Switches
@@ -1686,16 +1691,19 @@ class MainActivity : android.app.Activity() {
             return
         }
 
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            launchSpeechIntentFallback()
-            return
-        }
-
         showVoiceListeningHUD()
 
         try {
             if (speechRecognizer == null) {
-                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+                val katnissComp = ComponentName(
+                    "com.google.android.katniss",
+                    "com.google.android.apps.tvsearch.voice.recognition.KatnissRecognitionService"
+                )
+                speechRecognizer = try {
+                    SpeechRecognizer.createSpeechRecognizer(this, katnissComp)
+                } catch (e: Exception) {
+                    SpeechRecognizer.createSpeechRecognizer(this)
+                }
             }
 
             val recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
