@@ -25,9 +25,12 @@ object VoiceCommandEngine {
 
         val raw = spokenText.trim().lowercase()
 
-        // 1. App / Direct portal commands
-        if (raw.contains("smarttube") || raw.contains("youtube") || raw.contains("jutub")) {
-            val query = raw.replace("odpri", "").replace("youtube", "").replace("smarttube", "").replace("jutub", "").replace("poišči", "").replace("posnetek", "").trim()
+        // 1. App / Direct portal commands - le če izrecno zahteva odpiranje YouTube strani
+        if (raw == "youtube" || raw == "odpri youtube" || raw == "open youtube" || raw == "smarttube" || raw == "odpri smarttube") {
+            return VoiceResult(CommandType.OPEN_URL, "https://www.youtube.com")
+        }
+        if (raw.startsWith("youtube ") || raw.startsWith("poišči na youtube") || raw.startsWith("poišči na youtubu")) {
+            val query = raw.replace("youtube", "").replace("smarttube", "").replace("jutub", "").replace("poišči na youtubu", "").replace("poišči na youtube", "").replace("poišči v youtubu", "").replace("poišči", "").trim()
             return if (query.isNotEmpty()) {
                 VoiceResult(CommandType.OPEN_URL, "https://www.youtube.com/results?search_query=" + URLEncoder.encode(query, "UTF-8"))
             } else {
@@ -35,20 +38,15 @@ object VoiceCommandEngine {
             }
         }
 
-        if (raw.contains("tmdb") || raw.contains("filmi") || raw.contains("film") || raw.contains("serija")) {
-            val query = raw.replace("odpri", "").replace("tmdb", "").replace("filmi", "").replace("film", "").replace("poišči", "").trim()
-            return if (query.isNotEmpty()) {
-                VoiceResult(CommandType.OPEN_URL, "https://www.themoviedb.org/search?query=" + URLEncoder.encode(query, "UTF-8"))
-            } else {
-                VoiceResult(CommandType.OPEN_URL, "https://www.themoviedb.org")
-            }
+        if (raw == "tmdb" || raw == "odpri tmdb") {
+            return VoiceResult(CommandType.OPEN_URL, "https://www.themoviedb.org")
         }
 
-        if (raw.contains("github") || raw.contains("git")) {
+        if (raw == "github" || raw == "odpri github") {
             return VoiceResult(CommandType.OPEN_URL, "https://github.com")
         }
 
-        if (raw.contains("streamnexus") || raw.contains("nexus") || raw.contains("filmi hd")) {
+        if (raw == "streamnexus" || raw == "odpri streamnexus") {
             return VoiceResult(CommandType.OPEN_URL, "https://www.themoviedb.org/movie")
         }
 
@@ -75,8 +73,15 @@ object VoiceCommandEngine {
             return VoiceResult(CommandType.RELOAD)
         }
 
-        // 3. Fallback: Search on Google
-        val cleaned = raw.replace("poišči", "").replace("išči", "").replace("najdi", "").replace("google", "").trim()
-        return VoiceResult(CommandType.SEARCH, cleaned.ifEmpty { raw })
+        // 3. Glavni privzeti iskalnik: VEDNO GOOGLE za vsa iskanja ("search for rtv", "poišči...", itd.)
+        var cleanQuery = raw
+        val prefixes = listOf("search for ", "search ", "poišči ", "išči ", "najdi ", "google ")
+        for (p in prefixes) {
+            if (cleanQuery.startsWith(p, ignoreCase = true)) {
+                cleanQuery = cleanQuery.substring(p.length).trim()
+                break
+            }
+        }
+        return VoiceResult(CommandType.SEARCH, cleanQuery.ifEmpty { raw })
     }
 }

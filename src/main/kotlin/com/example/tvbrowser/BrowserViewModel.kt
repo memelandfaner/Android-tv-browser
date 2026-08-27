@@ -2,7 +2,7 @@ package com.example.tvbrowser
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Patterns
+import java.net.URLDecoder
 import java.net.URLEncoder
 
 class BrowserViewModel(context: Context) {
@@ -184,19 +184,43 @@ class BrowserViewModel(context: Context) {
         var raw = input.trim()
         if (raw.isEmpty()) return homeUrl()
 
-        if (!raw.startsWith("http://") && !raw.startsWith("https://")) {
-            raw = if (Patterns.WEB_URL.matcher(raw).matches() || (raw.contains(".") && !raw.contains(" "))) {
-                "https://$raw"
-            } else {
-                val current = state.tabs.getOrNull(state.activeTabIndex)?.url ?: ""
-                val encoded = try { URLEncoder.encode(raw, "UTF-8") } catch (e: Exception) { raw }
-                if (current.contains("youtube.com")) {
-                    "https://www.youtube.com/results?search_query=$encoded"
-                } else {
-                    searchUrl(encoded)
-                }
+        // 0. Decode percent-encoded text if needed (e.g. search%20for%20rtv -> search for rtv)
+        try {
+            if (raw.contains("%20") || raw.contains("+")) {
+                raw = URLDecoder.decode(raw, "UTF-8").trim()
+            }
+        } catch (ignored: Exception) {}
+
+        // 1. Če uporabnik izrecno začne z "yt:" ali "youtube: ", išči na YouTube
+        if (raw.startsWith("yt:", ignoreCase = true) || raw.startsWith("youtube:", ignoreCase = true)) {
+            val q = raw.substringAfter(":").trim()
+            val encoded = try { URLEncoder.encode(q, "UTF-8") } catch (e: Exception) { q }
+            return "https://www.youtube.com/results?search_query=$encoded"
+        }
+
+        // 2. Če je že polni veljaven URL (http:// ali https://)
+        if (raw.startsWith("http://") || raw.startsWith("https://")) {
+            return raw
+        }
+
+        // 3. Če je čista spletna domena (npr. 24ur.com, rtvslo.si, github.com) brez presledkov
+        val hasSpace = raw.contains(" ") || raw.contains("\t")
+        val isCleanDomain = !hasSpace && raw.contains(".") && !raw.startsWith("search", ignoreCase = true) && raw.matches(Regex("^[a-zA-Z0-9-]+\\.[a-zA-Z]{2,}(/.*)?$"))
+
+        if (isCleanDomain) {
+            return "https://$raw"
+        }
+
+        // 4. Za VSA ostala iskanja ("search for rtv", "rtv", "slovenija", itd.) -> VEDNO GOOGLE
+        var cleanQuery = raw
+        val prefixes = listOf("search for ", "search ", "poišči ", "išči ", "najdi ", "google ")
+        for (p in prefixes) {
+            if (cleanQuery.startsWith(p, ignoreCase = true)) {
+                cleanQuery = cleanQuery.substring(p.length).trim()
+                break
             }
         }
-        return raw
+        val encoded = try { URLEncoder.encode(cleanQuery.ifEmpty { raw }, "UTF-8") } catch (e: Exception) { raw }
+        return searchUrl(encoded)
     }
 }

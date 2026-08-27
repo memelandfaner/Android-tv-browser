@@ -125,16 +125,16 @@ class MainActivity : android.app.Activity() {
 
         // Vedno čist začetni zagon: odpri domačo stran (Google / Nastavljeni iskalnik)
         val homeUrl = viewModel.homeUrl()
-        val initialUrl = intent?.data?.toString()?.takeIf { it.isNotBlank() } ?: homeUrl
+        val initialUrl = intent?.data?.toString()?.takeIf { it.isNotBlank() }?.let { viewModel.processUrlInput(it) } ?: homeUrl
         createAndSelectTab(initialUrl, "Iskalnik")
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
-        val url = intent?.data?.toString()
-        if (!url.isNullOrBlank()) {
-            loadUrl(url)
+        val raw = intent?.data?.toString()
+        if (!raw.isNullOrBlank()) {
+            loadUrl(viewModel.processUrlInput(raw))
         } else {
             // Ob ponovnem zagonu iz TV menija vedno osveži na začetno stran
             loadUrl(viewModel.homeUrl())
@@ -713,13 +713,14 @@ class MainActivity : android.app.Activity() {
 
     fun loadUrl(url: String) {
         hideAllPanels()
+        val processedUrl = viewModel.processUrlInput(url)
         val active = getActiveWebView()
         if (active != null) {
-            editUrl.setText(formatDisplayUrl(url))
-            updateOmniboxHint(url)
-            active.loadUrl(url)
+            editUrl.setText(formatDisplayUrl(processedUrl))
+            updateOmniboxHint(processedUrl)
+            active.loadUrl(processedUrl)
         } else {
-            createAndSelectTab(url, "Nalagam...")
+            createAndSelectTab(processedUrl, "Nalagam...")
         }
     }
 
