@@ -308,10 +308,12 @@ object UserScriptManager {
 
             // 🎯 Samodejno usmerjanje na iskalno polje na Google / prvi YouTube video
             function autoFocusSearch() {
-                var isSearch = location.hostname.indexOf('google') !== -1 ||
-                               location.hostname.indexOf('duckduckgo') !== -1 ||
-                               location.hostname.indexOf('bing') !== -1;
-                if (isSearch) {
+                var isSearchHome = (location.hostname.indexOf('google') !== -1 ||
+                                    location.hostname.indexOf('duckduckgo') !== -1 ||
+                                    location.hostname.indexOf('bing') !== -1) &&
+                                   (location.pathname === '/' || location.pathname === '') &&
+                                   (!location.search || location.search.indexOf('q=') === -1);
+                if (isSearchHome) {
                     var searchInput = document.querySelector('textarea[name="q"], input[name="q"], #APjFqb, .gLFyf, input[type="search"], input[type="text"]');
                     if (searchInput && document.activeElement !== searchInput) {
                         searchInput.focus();
@@ -320,7 +322,7 @@ object UserScriptManager {
                 }
 
                 // Na YouTube rezultatih iskanja samodejno fokusiraj prvi video rezultat
-                if (location.hostname.indexOf('youtube.com') !== -1) {
+                if (location.hostname.indexOf('youtube.com') !== -1 && location.pathname.indexOf('/watch') === -1) {
                     var firstVideo = document.querySelector('ytm-video-with-context-renderer, ytm-compact-video-renderer, ytm-media-item, a[href*="watch?v="], ytd-video-renderer');
                     if (firstVideo && document.activeElement !== firstVideo) {
                         firstVideo.focus();
@@ -332,6 +334,13 @@ object UserScriptManager {
 
             // 🧭 2D Geometrijska Navigacija (Spatial Navigation Beam)
             window.focusNextElement = function(direction) {
+                try {
+                    // Počisti morebiten moder tekstovni izbor
+                    if (window.getSelection) {
+                        window.getSelection().removeAllRanges();
+                    }
+                } catch(_) {}
+
                 var focusables = getFocusableElements();
                 if (focusables.length === 0) {
                     if (direction === 'up') {
@@ -348,11 +357,15 @@ object UserScriptManager {
 
                 var current = document.activeElement;
                 
-                // Če ni nič izbrano, daj prioriteto iskalnemu polju ali prvemu elementu
+                // Če ni nič izbrano ali smo na vrhu, izberi prvi vidni element
                 if (!current || current === document.body || current === document.documentElement || focusables.indexOf(current) === -1) {
                     if (autoFocusSearch()) return;
                     if (focusables.length > 0) {
-                        focusables[0].focus();
+                        var sorted = focusables.slice().sort(function(a, b) {
+                            return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+                        });
+                        sorted[0].focus();
+                        try { sorted[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(_) {}
                         return;
                     }
                 }

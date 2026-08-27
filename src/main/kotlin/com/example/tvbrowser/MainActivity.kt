@@ -1856,13 +1856,29 @@ class MainActivity : android.app.Activity() {
                 }
             }
 
-            // 🛡️ When Omnibox has focus, let EditText handle typing/keyboard:
+            val activeWebView = getActiveWebView()
+            val isHeaderFocused = currentFocus != null && (currentFocus?.id == R.id.btnBack || currentFocus?.id == R.id.btnForward || currentFocus?.id == R.id.btnHome || currentFocus?.id == R.id.editUrl || currentFocus?.id == R.id.btnVoiceSearch || currentFocus?.id == R.id.btnStarBookmark || currentFocus?.id == R.id.btnQuickYouTube || currentFocus?.id == R.id.btnQuickStreamNexus || currentFocus?.id == R.id.btnNavBookmarks || currentFocus?.id == R.id.btnNavDownloads || currentFocus?.id == R.id.btnNavHistory || currentFocus?.id == R.id.btnNavZoom || currentFocus?.id == R.id.btnNavFullscreen || currentFocus?.id == R.id.btnNavSettings)
+
+            // 🛡️ If typing in Omnibox, let EditText handle text & Gboard:
             if (editUrl.hasFocus()) {
                 return super.dispatchKeyEvent(event)
             }
 
-            val activeWebView = getActiveWebView()
-            val isWebViewFocused = activeWebView != null && (currentFocus == activeWebView || currentFocus == webViewContainer)
+            // ⬇️ If focused on a toolbar button, pressing DPAD_DOWN immediately hands off to web content:
+            if (isHeaderFocused) {
+                if (event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    isWebInputFocused = false
+                    activeWebView?.let { wv ->
+                        currentFocus?.clearFocus()
+                        wv.requestFocus()
+                        wv.evaluateJavascript("if (window.focusNextElement) window.focusNextElement('down');", null)
+                    }
+                    return true
+                }
+                return super.dispatchKeyEvent(event)
+            }
+
+            val isWebViewFocused = activeWebView != null && (currentFocus == activeWebView || currentFocus == webViewContainer || currentFocus == null || !isHeaderFocused)
 
             // When actively typing inside an HTML input in the focused WebView, let soft keyboard handle keys:
             if (isWebViewFocused && isWebInputFocused) {
