@@ -219,18 +219,26 @@ object UserScriptManager {
                 } catch(e) {}
             }
 
-            // Injected styling za fokus (rumena obroba / yellow outline)
+            // Injected styling za fokus (čista, nemoteča obroba)
             var styleId = 'freenet-dpad-focus-style';
             if (!document.getElementById(styleId)) {
                 var style = document.createElement('style');
                 style.id = styleId;
                 style.textContent = `
-                    :focus, [tabindex="0"]:focus, [data-tv-focused="true"] {
-                        outline: 3.5px solid #ffd700 !important;
-                        outline-offset: 2px !important;
-                        box-shadow: 0 0 18px rgba(255, 215, 0, 0.95) !important;
-                        border-radius: 6px !important;
-                        z-index: 999999 !important;
+                    :focus:not(body):not(html), [tabindex="0"]:focus, [data-tv-focused="true"] {
+                        outline: 2px solid #ff5500 !important;
+                        outline-offset: 1px !important;
+                        box-shadow: none !important;
+                    }
+                    /* 🚫 Trajno skrij Google zasebnost, pogoje in odvečne noge */
+                    #fbar, #footcnt, footer, .fbar, [aria-label="Noga"], [role="contentinfo"],
+                    a[href*="policies.google.com"], a[href*="privacy"], a[href*="terms"],
+                    a[href*="zasebnost"], a[href*="pogoji"], .fbar-content, #swml, #W5egbf {
+                        display: none !important;
+                        visibility: hidden !important;
+                        height: 0 !important;
+                        opacity: 0 !important;
+                        pointer-events: none !important;
                     }
                 `;
                 (document.head || document.documentElement).appendChild(style);
@@ -246,6 +254,14 @@ object UserScriptManager {
                     if (!el) return false;
                     if (el.disabled) return false;
                     if (el.getAttribute('aria-hidden') === 'true') return false;
+                    
+                    // Izloči gumba Zasebnost, Pogoji in elemente v nogi
+                    var href = (el.getAttribute('href') || '').toLowerCase();
+                    var text = (el.textContent || '').trim().toLowerCase();
+                    if (href.indexOf('policies.google.com') !== -1 || href.indexOf('privacy') !== -1 || href.indexOf('terms') !== -1) return false;
+                    if (text === 'zasebnost' || text === 'pogoji' || text === 'privacy' || text === 'terms') return false;
+                    if (el.closest('#fbar, #footcnt, footer, .fbar, [role="contentinfo"]')) return false;
+
                     var style = window.getComputedStyle(el);
                     if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
                     
