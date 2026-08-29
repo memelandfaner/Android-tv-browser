@@ -918,6 +918,58 @@ object UserScriptManager {
                         .video-thumbnail-container, img.video-thumbnail, ytm-thumbnail-cover img {
                             border-radius: 10px !important;
                         }
+
+                        /* 📺 Hide Bottom Mobile Bar & Distractions on TV */
+                        ytm-pivot-bar-renderer, #pivot-bar, .pivot-bar, ytm-app footer,
+                        ytm-mobile-topbar-renderer [aria-label*="Kratki"] {
+                            display: none !important;
+                            height: 0px !important;
+                            visibility: hidden !important;
+                            opacity: 0 !important;
+                            pointer-events: none !important;
+                        }
+
+                        /* 📺 Multi-Column TV Grid with Compact Smaller Posters for m.youtube.com */
+                        ytm-browse, ytm-search, .page-container, ytm-section-list-renderer, ytm-item-section-renderer {
+                            display: block !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            padding: 0 !important;
+                        }
+
+                        ytm-rich-grid-renderer #contents,
+                        ytm-section-list-renderer .lazy-list,
+                        ytm-browse ytm-item-section-renderer .lazy-list,
+                        ytm-search ytm-item-section-renderer .lazy-list,
+                        .lazy-list {
+                            display: grid !important;
+                            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+                            gap: 14px !important;
+                            padding: 14px !important;
+                        }
+
+                        ytm-media-item, ytm-rich-item-renderer, ytm-video-with-context-renderer {
+                            display: flex !important;
+                            flex-direction: column !important;
+                            width: 100% !important;
+                            margin: 0 !important;
+                            padding: 6px !important;
+                            box-sizing: border-box !important;
+                            border-radius: 12px !important;
+                            background: rgba(15, 23, 42, 0.6) !important;
+                            border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                            cursor: pointer !important;
+                        }
+
+                        /* Compact Poster Thumbnail Sizing */
+                        .media-item-thumbnail-container, ytm-thumbnail-cover, .cover-container, .thumbnail-container,
+                        .video-thumbnail-container, img.video-thumbnail, ytm-thumbnail-cover img {
+                            border-radius: 8px !important;
+                            aspect-ratio: 16 / 9 !important;
+                            width: 100% !important;
+                            max-height: 145px !important;
+                            object-fit: cover !important;
+                        }
                     `;
                     (document.head || document.documentElement).appendChild(style);
                 }

@@ -68,15 +68,41 @@ class ChromiumEngineView @JvmOverloads constructor(
     override fun loadUrl(url: String) {
         val prefs = context.getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
         val uaOrdinal = prefs.getInt("ua_mode", UserAgentMode.TV.ordinal)
-        setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
-        super.loadUrl(url)
+        val targetUrl = if (url.contains("youtube.com") && !url.contains("music.youtube.com")) {
+            url.replace("://www.youtube.com", "://m.youtube.com")
+               .replace("://youtube.com", "://m.youtube.com")
+        } else {
+            url
+        }
+
+        if (targetUrl.contains("m.youtube.com")) {
+            settings.userAgentString = "Mozilla/5.0 (Linux; Android 11; Philips 50PUS8507) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
+            settings.useWideViewPort = false
+            settings.loadWithOverviewMode = false
+        } else {
+            setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
+        }
+        super.loadUrl(targetUrl)
     }
 
     override fun loadUrl(url: String, additionalHttpHeaders: Map<String, String>) {
         val prefs = context.getSharedPreferences("browser_settings", Context.MODE_PRIVATE)
         val uaOrdinal = prefs.getInt("ua_mode", UserAgentMode.TV.ordinal)
-        setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
-        super.loadUrl(url, additionalHttpHeaders)
+        val targetUrl = if (url.contains("youtube.com") && !url.contains("music.youtube.com")) {
+            url.replace("://www.youtube.com", "://m.youtube.com")
+               .replace("://youtube.com", "://m.youtube.com")
+        } else {
+            url
+        }
+
+        if (targetUrl.contains("m.youtube.com")) {
+            settings.userAgentString = "Mozilla/5.0 (Linux; Android 11; Philips 50PUS8507) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
+            settings.useWideViewPort = false
+            settings.loadWithOverviewMode = false
+        } else {
+            setUserAgentMode(UserAgentMode.values().getOrElse(uaOrdinal) { UserAgentMode.TV })
+        }
+        super.loadUrl(targetUrl, additionalHttpHeaders)
     }
 
     private fun configureUngoogledChromiumSettings() {

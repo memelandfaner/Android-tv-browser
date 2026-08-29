@@ -242,7 +242,7 @@ class BrowserViewModel(context: Context) {
             q = q.replace(Regex("(?i)\\s+na\\s+youtub[ue]"), "").replace(Regex("(?i)\\s+on\\s+youtube"), "").trim()
             val finalQuery = if (q.isNotEmpty()) q else raw
             val encoded = try { URLEncoder.encode(finalQuery, "UTF-8") } catch (e: Exception) { finalQuery }
-            return "https://www.youtube.com/results?search_query=$encoded"
+            return "https://m.youtube.com/results?search_query=$encoded"
         }
 
         // 4. Za VSA ostala iskanja ("search for rtv", "rtv", "slovenija", itd.) -> VEDNO GOOGLE
