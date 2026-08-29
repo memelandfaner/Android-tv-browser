@@ -48,7 +48,7 @@ class ChromiumEngineView @JvmOverloads constructor(
         val s = settings
         when (mode) {
             UserAgentMode.TV -> {
-                s.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                s.userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
                 s.useWideViewPort = true
                 s.loadWithOverviewMode = true
             }
@@ -89,11 +89,12 @@ class ChromiumEngineView @JvmOverloads constructor(
         s.allowContentAccess = true
         s.allowFileAccessFromFileURLs = true
         s.allowUniversalAccessFromFileURLs = true
-        s.setSupportZoom(false)
-        s.builtInZoomControls = false
+        s.setSupportZoom(true)          // BREZ tega overview mode ne dela
+        s.builtInZoomControls = true
+        s.displayZoomControls = false
         s.useWideViewPort = true
         s.loadWithOverviewMode = true
-        s.offscreenPreRaster = true
+        s.offscreenPreRaster = false    // na MediaTek pogosto prvi frame prazen/črn
         s.javaScriptCanOpenWindowsAutomatically = false
         s.setSupportMultipleWindows(false)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -102,12 +103,13 @@ class ChromiumEngineView @JvmOverloads constructor(
         s.setRenderPriority(WebSettings.RenderPriority.HIGH)
         s.cacheMode = WebSettings.LOAD_DEFAULT
 
-        // Default: TV / Optimized Pixel 5 User-Agent
+        // Default: TV / Desktop Linux Chrome User-Agent
         setUserAgentMode(UserAgentMode.TV)
-        s.textZoom = 75
-        s.defaultFontSize = 15
-        s.defaultFixedFontSize = 13
-        s.setNeedInitialFocus(true)
+        s.textZoom = 110                // TV gledaš z 3 m, ne 75 %
+        s.defaultFontSize = 16
+        s.defaultFixedFontSize = 14
+        s.setNeedInitialFocus(false)
+        setInitialScale(0)              // spoštuj <meta viewport>
 
         isFocusable = true
         isFocusableInTouchMode = true
@@ -150,15 +152,20 @@ class ChromiumEngineView @JvmOverloads constructor(
                 val rawUrl = request?.url?.toString() ?: return false
 
                 // 🛡️ 0. Google Warning / Interstitial Direct Destination Bypass
-                if (rawUrl.contains("google.") && (rawUrl.contains("/interstitial") || rawUrl.contains("/url?") || rawUrl.contains("url="))) {
-                    try {
-                        val parsed = Uri.parse(rawUrl)
-                        val target = parsed.getQueryParameter("url") ?: parsed.getQueryParameter("q")
-                        if (!target.isNullOrEmpty() && (target.startsWith("http://") || target.startsWith("https://"))) {
-                            view?.loadUrl(target)
-                            return true
-                        }
-                    } catch (ignored: Exception) {}
+                val host = request?.url?.host?.lowercase() ?: ""
+                val path = request?.url?.path ?: ""
+                val isGoogleInterstitial =
+                    host.contains("google.") &&
+                    (path.contains("/interstitial") || path == "/url")
+                if (isGoogleInterstitial) {
+                    val target = request?.url?.getQueryParameter("url")
+                        ?: request?.url?.getQueryParameter("q")
+                    if (!target.isNullOrEmpty() &&
+                        (target.startsWith("http://") || target.startsWith("https://")) &&
+                        !target.contains("google.")) {
+                        view?.loadUrl(target)
+                        return true
+                    }
                 }
 
                 // ⚡ 1. Anti-AMP & Tracking Stripper (Only for main-frame navigations)

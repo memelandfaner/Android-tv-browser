@@ -713,7 +713,7 @@ object UserScriptManager {
                     .ytp-ad-module, .ytp-ad-overlay-container, .video-ads, #player-ads,
                     iframe[src*="doubleclick"], iframe[src*="googleads"], iframe[src*="adservice"],
                     #app-banner, .smartbanner, [class*="open-in-app"], [class*="app-promo"],
-                    .banner-open-app, a[href*="market://"], a[href*="play.google.com/store"],
+                    .banner-open-app,
                     .ytp-ce-element, .ytp-ce-covering-overlay,
                     #onetrust-banner-sdk, .fc-consent-root, .didomi-popup-container,
                     ytd-rich-section-renderer[is-shorts], ytd-reel-shelf-renderer,
@@ -728,8 +728,7 @@ object UserScriptManager {
                     ytm-promoted-sparkles-web-renderer, ytm-promoted-video-renderer,
                     ytm-ad-slot-renderer, ytm-companion-ad-renderer,
                     ytm-in-feed-ad-layout-renderer, ytm-statement-banner-renderer,
-                    #masthead-ad, .ytd-search-pyv-renderer,
-                    ::cue, .ytp-caption-window-container, .caption-window, .ytp-caption-segment {
+                    #masthead-ad, .ytd-search-pyv-renderer {
                         display: none !important;
                         visibility: hidden !important;
                         height: 0 !important;
@@ -768,20 +767,12 @@ object UserScriptManager {
                         display: flex !important;
                         z-index: 100000 !important;
                     }
-                    .jw-icon, .jw-button-color, .plyr__controls button, .vjs-control, .ytp-button,
-                    .jw-slider-horizontal, .plyr__progress, .vjs-progress-control {
-                        min-width: 44px !important;
-                        min-height: 44px !important;
-                        margin: 0 4px !important;
-                        cursor: pointer !important;
-                    }
                     .jw-icon:focus, .jw-button-color:focus, .plyr__controls button:focus, .vjs-control:focus, .ytp-button:focus,
                     .jw-slider-horizontal:focus, [class*="server"]:focus, .server-btn:focus, .tv-hud-btn:focus {
                         outline: 3px solid #00e5ff !important;
                         outline-offset: 3px !important;
                         box-shadow: 0 0 20px rgba(0, 229, 255, 0.95), 0 0 40px rgba(0, 229, 255, 0.5) !important;
                         background: rgba(0, 229, 255, 0.28) !important;
-                        transform: scale(1.18) !important;
                         border-radius: 8px !important;
                         z-index: 100001 !important;
                     }

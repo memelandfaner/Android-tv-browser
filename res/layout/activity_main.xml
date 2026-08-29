@@ -237,7 +237,8 @@
         android:id="@+id/contentContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/headerContainer">
+        android:layout_below="@id/headerContainer"
+        android:layout_alignParentBottom="true">
 
         <!-- Container for Multi-Tab WebViews -->
         <FrameLayout
