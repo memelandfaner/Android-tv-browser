@@ -1067,16 +1067,22 @@ object UserScriptManager {
             function triggerInstantYouTubePlay(video) {
                 if (!video) return;
                 if (video.muted) video.muted = false;
+                if (video.defaultMuted) video.defaultMuted = false;
                 if (video.volume < 1.0) video.volume = 1.0;
 
-                try {
-                    video.play().catch(function(){});
-                } catch(e) {}
+                if (video.paused && !video.ended) {
+                    try {
+                        video.play().catch(function(){});
+                    } catch(e) {}
+                }
 
                 var playSelectors = [
                     '.player-control-play-pause-icon',
                     '.ytp-large-play-button',
                     '.ytp-play-button',
+                    '.player-container',
+                    'ytm-player',
+                    '.ytp-cued-thumbnail-overlay',
                     'button[aria-label*="Play"]',
                     'button[aria-label*="Predvajaj"]'
                 ];
