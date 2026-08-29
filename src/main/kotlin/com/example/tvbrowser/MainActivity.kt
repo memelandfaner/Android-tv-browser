@@ -318,11 +318,21 @@ class MainActivity : android.app.Activity() {
             loadUrl(viewModel.homeUrl())
         }
 
+        val omniboxBox = findViewById<View>(R.id.omniboxContainer)
         editUrl.setSelectAllOnFocus(true)
         editUrl.setOnFocusChangeListener { _, hasFocus ->
+            omniboxBox?.isSelected = hasFocus
+            omniboxBox?.isActivated = hasFocus
             if (hasFocus) {
                 editUrl.selectAll()
+                showKeyboard(editUrl)
             }
+        }
+        editUrl.setOnClickListener {
+            omniboxBox?.isSelected = true
+            omniboxBox?.isActivated = true
+            editUrl.selectAll()
+            showKeyboard(editUrl)
         }
         editUrl.setOnEditorActionListener { _, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_SEARCH || (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
@@ -1041,6 +1051,12 @@ class MainActivity : android.app.Activity() {
 
             tabsLayout.addView(tabLayout)
         }
+    }
+
+    private fun showKeyboard(target: View = editUrl) {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        target.requestFocus()
+        imm?.showSoftInput(target, InputMethodManager.SHOW_IMPLICIT)
     }
 
     private fun hideKeyboard() {

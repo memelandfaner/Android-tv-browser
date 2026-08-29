@@ -158,6 +158,11 @@ object UserScriptManager {
             var INTERACTIVE_SELECTORS = [
                 'textarea',
                 'input:not([type="hidden"])',
+                'input#search',
+                '#search-input input',
+                'ytd-searchbox input',
+                'input[name="search_query"]',
+                'textarea',
                 'select',
                 'button',
                 'a[href]',
@@ -185,6 +190,7 @@ object UserScriptManager {
                 'a[aria-label*="Search"]',
                 'c3-icon[type="search"]',
                 'ytm-searchbox',
+                'ytd-searchbox',
                 '.mobile-topbar-header-endpoint',
                 // 🔍 Google Search Results, AI Cards & Web Articles
                 'div.g a[href]',
@@ -248,11 +254,13 @@ object UserScriptManager {
                     [role="link"]:focus,
                     [role="tab"]:focus,
                     [role="menuitem"]:focus,
+                    #search:focus-within,
+                    ytd-searchbox:focus-within,
                     [data-tv-focused="true"] {
-                        outline: 2.5px solid #38bdf8 !important;
+                        outline: 3.5px solid #00d2ff !important;
                         outline-offset: 2px !important;
-                        box-shadow: 0 0 10px rgba(56, 189, 248, 0.35) !important;
-                        border-radius: 8px !important;
+                        box-shadow: 0 0 16px rgba(0, 210, 255, 0.7) !important;
+                        border-radius: 10px !important;
                     }
                     div:focus:not([role="button"]), span:focus, [aria-hidden="true"]:focus, .RNNXgb:focus, .a4bIc:focus {
                         outline: none !important;
@@ -426,13 +434,14 @@ object UserScriptManager {
                     }
 
                     if (isInDirection) {
-                        var isInput = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+                        var isInput = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.id === 'search' || el.classList.contains('ytd-searchbox'));
                         var isSearchBtn = el.classList.contains('topbar-search-button') ||
                                           el.classList.contains('search-btn') ||
+                                          el.id === 'search-icon-legacy' ||
                                           (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().indexOf('iskanje') !== -1) ||
                                           (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().indexOf('search') !== -1);
                         var isYtCard = el.tagName.toLowerCase().indexOf('ytm-') !== -1 || el.tagName.toLowerCase().indexOf('ytd-') !== -1;
-                        var priorityBonus = isInput ? -80 : (isSearchBtn ? -100 : (isYtCard ? -50 : 0));
+                        var priorityBonus = isInput ? -350 : (isSearchBtn ? -250 : (isYtCard ? -50 : 0));
                         
                         var dist = primaryDist * 1.0 + orthogonalDist * 0.45 + rowBonus + priorityBonus;
                         if (dist < bestDistance) {
