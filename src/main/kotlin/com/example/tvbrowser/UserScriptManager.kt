@@ -202,12 +202,17 @@ object UserScriptManager {
                 'a:has(h3)',
                 'a[data-ved]',
                 // 📺 YouTube Video Cards, Polymer items & Player Controls
+                'ytd-rich-item-renderer',
+                'ytd-video-renderer',
+                'ytd-grid-video-renderer',
+                'ytd-compact-video-renderer',
+                'yt-chip-cloud-chip-renderer',
                 'ytm-media-item',
                 'ytm-video-with-context-renderer',
                 'ytm-compact-video-renderer',
                 'ytm-rich-item-renderer',
-                'ytd-rich-item-renderer',
-                'ytd-video-renderer',
+                'a#thumbnail',
+                'a#video-title-link',
                 'a.media-item-thumbnail-container',
                 'a.compact-media-item-image',
                 'a.media-item-headline',
@@ -256,11 +261,34 @@ object UserScriptManager {
                     [role="menuitem"]:focus,
                     #search:focus-within,
                     ytd-searchbox:focus-within,
+                    ytd-rich-item-renderer:focus,
+                    ytd-rich-item-renderer:focus-within,
+                    ytd-video-renderer:focus,
+                    ytd-video-renderer:focus-within,
+                    ytd-grid-video-renderer:focus,
+                    ytd-grid-video-renderer:focus-within,
+                    ytd-compact-video-renderer:focus,
+                    ytd-compact-video-renderer:focus-within,
+                    ytm-media-item:focus,
+                    ytm-video-with-context-renderer:focus,
+                    yt-chip-cloud-chip-renderer:focus,
+                    yt-chip-cloud-chip-renderer:focus-within,
                     [data-tv-focused="true"] {
-                        outline: 3.5px solid #00d2ff !important;
-                        outline-offset: 2px !important;
-                        box-shadow: 0 0 16px rgba(0, 210, 255, 0.7) !important;
-                        border-radius: 10px !important;
+                        outline: 4px solid #00d2ff !important;
+                        outline-offset: 3px !important;
+                        box-shadow: 0 0 24px rgba(0, 210, 255, 0.85) !important;
+                        border-radius: 12px !important;
+                    }
+                    ytd-rich-item-renderer[data-tv-focused="true"],
+                    ytd-video-renderer[data-tv-focused="true"],
+                    ytm-media-item[data-tv-focused="true"] {
+                        outline: 4px solid #00d2ff !important;
+                        outline-offset: 4px !important;
+                        box-shadow: 0 0 28px rgba(0, 210, 255, 0.9) !important;
+                        border-radius: 14px !important;
+                        transform: scale(1.025) !important;
+                        transition: transform 0.12s ease-out !important;
+                        z-index: 100 !important;
                     }
                     div:focus:not([role="button"]), span:focus, [aria-hidden="true"]:focus, .RNNXgb:focus, .a4bIc:focus {
                         outline: none !important;
@@ -422,14 +450,14 @@ object UserScriptManager {
                             isInDirection = true;
                             primaryDist = Math.max(0, r.top - curRect.bottom);
                             orthogonalDist = Math.abs(dx);
-                            if (isSameCol) rowBonus = -200;
+                            if (isSameCol) rowBonus = -300;
                         }
                     } else if (direction === 'up') {
                         if (cy < curCy - 4) {
                             isInDirection = true;
                             primaryDist = Math.max(0, curRect.top - r.bottom);
                             orthogonalDist = Math.abs(dx);
-                            if (isSameCol) rowBonus = -200;
+                            if (isSameCol) rowBonus = -300;
                         }
                     }
 
@@ -441,7 +469,7 @@ object UserScriptManager {
                                           (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().indexOf('iskanje') !== -1) ||
                                           (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().indexOf('search') !== -1);
                         var isYtCard = el.tagName.toLowerCase().indexOf('ytm-') !== -1 || el.tagName.toLowerCase().indexOf('ytd-') !== -1;
-                        var priorityBonus = isInput ? -350 : (isSearchBtn ? -250 : (isYtCard ? -50 : 0));
+                        var priorityBonus = isInput ? -350 : (isSearchBtn ? -250 : (isYtCard ? -80 : 0));
                         
                         var dist = primaryDist * 1.0 + orthogonalDist * 0.45 + rowBonus + priorityBonus;
                         if (dist < bestDistance) {
@@ -452,6 +480,10 @@ object UserScriptManager {
                 }
 
                 if (bestCandidate) {
+                    document.querySelectorAll('[data-tv-focused="true"]').forEach(function(e) {
+                        e.removeAttribute('data-tv-focused');
+                    });
+                    bestCandidate.setAttribute('data-tv-focused', 'true');
                     bestCandidate.focus();
                     try {
                         bestCandidate.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
@@ -462,7 +494,6 @@ object UserScriptManager {
                         try { bestCandidate.contentWindow.focus(); } catch(e){}
                     }
                 } else if (direction === 'down') {
-                    // Ko pridemo do spodnjega roba, tekoče zavrti stran navzdol in poišči naslednji element
                     window.scrollBy({ top: 320, behavior: 'smooth' });
                     setTimeout(function() {
                         var focusablesAfter = getFocusableElements();
@@ -470,10 +501,15 @@ object UserScriptManager {
                             var r = e.getBoundingClientRect();
                             return r.top > 80 && r.top < window.innerHeight - 50;
                         });
-                        if (nextEl) nextEl.focus();
+                        if (nextEl) {
+                            document.querySelectorAll('[data-tv-focused="true"]').forEach(function(e) {
+                                e.removeAttribute('data-tv-focused');
+                            });
+                            nextEl.setAttribute('data-tv-focused', 'true');
+                            nextEl.focus();
+                        }
                     }, 180);
                 } else if (direction === 'up') {
-                    // Ko gremo navzgor: če je stran pomaknjena navzdol, jo najprej pomakni gor, sicer pojdi v orodno vrstico
                     if (window.scrollY > 40) {
                         window.scrollBy({ top: -320, behavior: 'smooth' });
                     } else {
@@ -493,16 +529,24 @@ object UserScriptManager {
                                act.tagName.toLowerCase().indexOf('ytd-') !== -1 ||
                                act.classList.contains('media-item') ||
                                act.classList.contains('video-card') ||
-                               act.classList.contains('compact-media-item');
+                               act.classList.contains('compact-media-item') ||
+                               (act.closest && act.closest('ytd-rich-item-renderer, ytd-video-renderer, ytm-media-item'));
 
                 if (isYtCard) {
-                    var link = act.querySelector('a[href*="watch"], a.media-item-thumbnail-container, a.compact-media-item-image, a[href]');
-                    if (link) {
+                    var card = (act.closest && act.closest('ytd-rich-item-renderer, ytd-video-renderer, ytm-media-item')) || act;
+                    var link = card.querySelector('a#thumbnail, a#video-title-link, a[href*="watch"], a.media-item-thumbnail-container, a.compact-media-item-image, a[href]');
+                    if (link && link.href) {
+                        try { link.focus(); } catch(_) {}
+                        try { link.click(); } catch(_) {}
                         try {
-                            link.focus();
-                            link.click();
-                            return;
+                            link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
                         } catch(_) {}
+                        setTimeout(function() {
+                            if (window.location.href.indexOf('watch') === -1 && link.href.indexOf('watch') !== -1) {
+                                window.location.href = link.href;
+                            }
+                        }, 50);
+                        return;
                     }
                 }
 
