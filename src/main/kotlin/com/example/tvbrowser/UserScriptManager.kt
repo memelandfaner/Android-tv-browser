@@ -814,108 +814,29 @@ object UserScriptManager {
                     style = document.createElement('style');
                     style.id = 'tv_yt_smarttube_css';
                     style.textContent = `
-                        /* 🛡️ AD & PROMO BLOCKING */
+                        /* 🛡️ Pure YouTube Ad & Promo Blocking */
                         #player-ads, .ytp-ad-module, .ytp-ad-overlay-container, .video-ads,
-                        .ytp-ad-player-overlay, .ytp-ad-player-overlay-flyout-cta, .ytp-ad-button-vm,
+                        .ytp-ad-player-overlay, .ytp-ad-button-vm,
                         ytd-ad-slot-renderer, ytm-ad-slot-renderer,
                         ytd-in-feed-ad-layout-renderer, ytm-in-feed-ad-layout-renderer,
                         ytd-promoted-sparkles-web-renderer, ytm-promoted-sparkles-web-renderer,
-                        ytd-promoted-video-renderer, ytm-promoted-video-renderer,
                         ytd-banner-promo-renderer, ytd-statement-banner-renderer,
-                        #masthead-ad, ytd-rich-item-renderer:has(ytd-ad-slot-renderer),
-                        ytd-rich-item-renderer:has(ytd-in-feed-ad-layout-renderer),
-                        ytd-rich-section-renderer, #shorts-container,
-                        ytd-search-pyv-renderer, #pyv-watched-badge, .ytd-search-pyv-renderer,
-                        ytd-search-sub-menu-renderer, #info-button, #about-this-ad,
-                        ytd-clarification-renderer, #clarify-box, #about-this-result,
-                        ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"],
-                        .badge-style-type-ad, ytd-badge-supported-renderer:has(.badge-style-type-ad),
-                        [aria-label*="Sponzorirano"], [aria-label*="Sponsored"], [aria-label*="Sponzor"],
-                        [aria-label*="O teh rezultatih"], [aria-label*="About these results"],
-                        ytm-promoted-video-renderer, ytd-brand-video-singleton-renderer,
-                        ytm-pivot-bar-renderer, .pivot-bar, ytm-app-upsell, ytm-upsell-dialog-renderer,
-                        .yt-spec-bottom-sheet-layout__bottom-sheet-renderer-container,
-                        [aria-label="Kratki videoposnetki"], [aria-label="Shorts"],
-                        #masthead-container, ytd-masthead, #masthead-container *, ytd-masthead *,
-                        #guide-wrapper, ytd-mini-guide-renderer, ytd-guide-renderer,
-                        #chips-wrapper, #chips-wrapper *, ytd-feed-filter-chip-bar-renderer, ytd-feed-filter-chip-bar-renderer *,
-                        ytd-rich-grid-renderer > #header, ytd-browse > #header,
-                        #header.ytd-rich-grid-renderer, #header.ytd-browse,
-                        ytd-statement-banner-renderer, ytd-banner-promo-renderer,
-                        ytd-brand-video-singleton-renderer, ytd-hero-playlist-thumbnail-renderer,
-                        ytd-primetime-promo-renderer, ytd-rich-section-renderer, #big-yoodle,
-                        ytm-mobile-topbar-renderer, header.mobile-topbar-header, .mobile-topbar-header,
-                        ytm-reel-shelf-renderer, ytm-channel-banner-renderer {
+                        #masthead-ad, #offer-module, #clarify-box, #about-this-result,
+                        ytm-promoted-video-renderer, ytd-brand-video-singleton-renderer {
                             display: none !important;
                             visibility: hidden !important;
                             height: 0px !important;
                             width: 0px !important;
                             margin: 0 !important;
                             padding: 0 !important;
-                            border: none !important;
-                            background: transparent !important;
-                            box-shadow: none !important;
-                            pointer-events: none !important;
                             opacity: 0 !important;
+                            pointer-events: none !important;
                         }
 
                         /* 📺 Clean YouTube Dark Background */
                         body, ytm-app, ytd-app, #app, .page-container, ytm-browse, #content, #page-manager, #primary, html {
                             background: #07090e !important;
                             color: #f1f5f9 !important;
-                        }
-
-                        /* 📺 Zero Top Gap for YouTube Desktop/TV */
-                        :root, ytd-app {
-                            --ytd-masthead-height: 0px !important;
-                            --ytd-toolbar-height: 0px !important;
-                            --ytd-rich-grid-chips-bar-top: 0px !important;
-                        }
-                        html body ytd-app #content,
-                        html body ytd-app #page-manager,
-                        html body ytd-app ytd-page-manager,
-                        html body ytd-app ytd-browse,
-                        html body ytd-app ytd-two-column-browse-results-renderer,
-                        html body ytd-app #primary,
-                        html body ytd-app ytd-rich-grid-renderer,
-                        html body ytd-app ytd-rich-grid-renderer > #contents,
-                        html body ytd-app #contents.ytd-rich-grid-renderer {
-                            margin: 0 !important;
-                            margin-top: 0px !important;
-                            padding-top: 0px !important;
-                            top: 0px !important;
-                            transform: none !important;
-                        }
-
-                        /* 🛡️ Pure YouTube Ad Banners & Overlays Blocking */
-                        ytd-promoted-sparkles-web-renderer,
-                        ytd-in-feed-ad-layout-renderer,
-                        ytd-ad-slot-renderer,
-                        ytd-banner-promo-renderer,
-                        ytd-statement-banner-renderer,
-                        #player-ads,
-                        #masthead-ad,
-                        .ytp-ad-module,
-                        .ytp-ad-overlay-container,
-                        .ytp-ad-message-container,
-                        .ytp-ad-player-overlay,
-                        .ytp-ad-action-interstitial,
-                        .ad-container,
-                        .ad-showing,
-                        .ad-interrupting,
-                        ytm-promoted-sparkles-web-renderer,
-                        ytm-ad-slot-renderer,
-                        #offer-module,
-                        #clarify-box,
-                        #about-this-result {
-                            display: none !important;
-                            visibility: hidden !important;
-                            height: 0px !important;
-                            width: 0px !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            opacity: 0 !important;
-                            pointer-events: none !important;
                         }
 
                         /* 📺 Hide Annoying Shorts Shelves */
@@ -930,10 +851,12 @@ object UserScriptManager {
                             padding: 0 !important;
                         }
 
-                        /* 📺 Smart TV D-Pad Focus Glow for YouTube Video Items */
+                        /* 📺 Smart TV D-Pad Focus Glow for YouTube Video Items, Chips & Buttons */
                         ytd-rich-item-renderer:focus-within,
                         ytd-video-renderer:focus-within,
                         ytd-compact-video-renderer:focus-within,
+                        yt-chip-cloud-chip-renderer:focus-within,
+                        #chips yt-chip-cloud-chip-renderer:focus,
                         ytm-media-item:focus-within,
                         ytm-video-with-context-renderer:focus-within,
                         ytm-compact-video-renderer:focus-within,
@@ -956,6 +879,8 @@ object UserScriptManager {
                 }
             }
             injectSmartTubeStyle();
+
+
 
             // 🛡️ 2. SmartTube Video Ad Fast-Forward & Instaskip (Natančno brez spreminjanja JSON ali vpliva na normalne videe)
             function getVideoId() {
@@ -1132,47 +1057,7 @@ object UserScriptManager {
                                 try { item.remove(); } catch(e) {}
                             }
                         }
-                    }
-                });
-                // Force zero top margins and remove masthead headers injected by Polymer JS
-                var appEl = document.querySelector('ytd-app');
-                if (appEl && !appEl.hasAttribute('masthead-hidden')) {
-                    appEl.setAttribute('masthead-hidden', '');
-                }
-                var badTops = document.querySelectorAll('#masthead-container, ytd-masthead, #chips-wrapper, ytd-feed-filter-chip-bar-renderer, ytd-rich-grid-renderer > #header, ytd-browse > #header, #header.ytd-browse, #header.ytd-rich-grid-renderer, #header, ytd-statement-banner-renderer, ytd-banner-promo-renderer, ytd-brand-video-singleton-renderer, ytd-hero-playlist-thumbnail-renderer');
-                badTops.forEach(function(el) {
-                    try { el.remove(); } catch(e) {}
-                });
-                var grid = document.querySelector('ytd-rich-grid-renderer');
-                if (grid) {
-                    grid.style.setProperty('padding-top', '0px', 'important');
-                    grid.style.setProperty('margin-top', '0px', 'important');
-                }
-                var pm = document.querySelector('#page-manager, ytd-page-manager');
-                if (pm) {
-                    pm.style.setProperty('margin-top', '0px', 'important');
-                    pm.style.setProperty('padding-top', '0px', 'important');
-                }
-                var content = document.querySelector('#content.ytd-app');
-                if (content) {
-                    content.style.setProperty('margin-top', '0px', 'important');
-                    content.style.setProperty('padding-top', '0px', 'important');
-                }
-                var pm = document.querySelector('#page-manager, ytd-page-manager');
-                if (pm && (pm.style.marginTop !== '0px' || pm.style.paddingTop !== '0px')) {
-                    pm.style.marginTop = '0px';
-                    pm.style.paddingTop = '0px';
-                }
-                var primaryEl = document.querySelector('#primary, #primary.ytd-two-column-browse-results-renderer');
-                if (primaryEl && (primaryEl.style.paddingTop !== '0px' || primaryEl.style.marginTop !== '0px')) {
-                    primaryEl.style.paddingTop = '0px';
-                    primaryEl.style.marginTop = '0px';
-                }
-                var gridEl = document.querySelector('ytd-rich-grid-renderer');
-                if (gridEl && (gridEl.style.paddingTop !== '0px' || gridEl.style.marginTop !== '0px')) {
-                    gridEl.style.paddingTop = '0px';
-                    gridEl.style.marginTop = '0px';
-                }
+                // Ad cleanup only
 
                 // 🎮 SmartTube D-Pad Traversal: Make video items seamlessly focusable
                 var items = document.querySelectorAll('ytm-media-item, ytm-rich-item-renderer, ytm-compact-video-renderer, ytm-video-with-context-renderer, ytd-rich-item-renderer, ytd-video-renderer');
