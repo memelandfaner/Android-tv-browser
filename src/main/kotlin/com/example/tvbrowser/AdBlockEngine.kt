@@ -243,12 +243,22 @@ class AdBlockEngine(context: Context? = null) {
         if (url == null || url.isEmpty()) return false
         val lower = url.lowercase()
         return lower.contains("googleads.g.doubleclick.net") ||
+               lower.contains("pubads.g.doubleclick.net") ||
+               lower.contains("securepubads.g.doubleclick.net") ||
                lower.contains("static.doubleclick.net") ||
                lower.contains("pagead2.googlesyndication.com") ||
-               lower.contains("adservice.google.com") ||
-               lower.contains("adservice.google.si") ||
+               lower.contains("adservice.google.") ||
                lower.contains("ad.youtube.com") ||
-               lower.contains("ads.youtube.com")
+               lower.contains("ads.youtube.com") ||
+               lower.contains("youtube.com/pagead/") ||
+               lower.contains("youtube.com/api/stats/ads") ||
+               lower.contains("youtube.com/api/stats/atr") ||
+               lower.contains("youtube.com/api/stats/qoe") ||
+               lower.contains("youtube.com/ptracking") ||
+               lower.contains("youtube.com/get_midroll_info") ||
+               lower.contains("youtubei/v1/player/ad_break") ||
+               lower.contains("youtubei/v1/att/get") ||
+               (lower.contains("googlevideo.com/videoplayback") && (lower.contains("&adformat=") || lower.contains("&ad_type=") || lower.contains("&ad_cpn=")))
     }
 
     fun isAntiAdblockScript(url: String?): Boolean {

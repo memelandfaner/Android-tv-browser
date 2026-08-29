@@ -1111,8 +1111,17 @@ object UserScriptManager {
             // 🛡️ 3. SmartTube Video Ad Fast-Forward & Instaskip
             function blockYouTubeAds() {
                 var video = document.querySelector('video');
-                var isAdActive = document.querySelector('.ad-showing, .ad-interrupting');
-                var moviePlayer = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
+                var moviePlayer = document.getElementById('movie_player') || document.querySelector('.html5-video-player, ytm-player');
+                var isAdActive = false;
+                if (moviePlayer && moviePlayer.classList) {
+                    isAdActive = moviePlayer.classList.contains('ad-showing') ||
+                                 moviePlayer.classList.contains('ad-interrupting');
+                }
+                if (!isAdActive) {
+                    isAdActive = !!document.querySelector(
+                        '.ad-showing, .ad-interrupting, .ytp-ad-player-overlay, .ytp-ad-module:not([style*="display: none"]), ytm-player-control-overlay .ad-showing'
+                    );
+                }
                 
                 if (isAdActive && video) {
                     video.muted = true;
@@ -1120,19 +1129,11 @@ object UserScriptManager {
                     if (isFinite(video.duration) && video.duration > 0) {
                         video.currentTime = video.duration;
                     }
-                    if (moviePlayer && typeof moviePlayer.skipAd === 'function') {
-                        try { moviePlayer.skipAd(); } catch(e) {}
-                    }
-                } else if (!isAdActive && video) {
-                    if (video.playbackRate > 2.0) {
-                        video.playbackRate = 1.0;
-                        video.muted = false;
-                    }
                 }
 
                 // Instant click on YouTube Skip Ad buttons
                 var skipButtons = document.querySelectorAll(
-                    '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-overlay-close-button, button.ytp-ad-skip-button-text, .ytp-ad-skip-button-slot button, .ytp-ad-preview-container, button[aria-label*="Preskoči"], button[aria-label*="Skip"]'
+                    '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-overlay-close-button, button.ytp-ad-skip-button-text, .ytp-ad-skip-button-slot button, .ytp-ad-preview-container, button[aria-label*="Preskoči"], button[aria-label*="Skip"], [id^="skip-button"]'
                 );
                 skipButtons.forEach(function(btn) {
                     try { btn.click(); } catch(e) {}
@@ -1184,7 +1185,8 @@ object UserScriptManager {
                                 try { item.remove(); } catch(e) {}
                             }
                         }
-                // Ad cleanup only
+                    }
+                });
 
                 // 🎮 SmartTube D-Pad Traversal: Make video items seamlessly focusable
                 var items = document.querySelectorAll('ytm-media-item, ytm-rich-item-renderer, ytm-compact-video-renderer, ytm-video-with-context-renderer, ytd-rich-item-renderer, ytd-video-renderer');
@@ -1220,7 +1222,7 @@ object UserScriptManager {
                 }
                 attachPlayer();
                 blockYouTubeAds();
-            }, 60);
+            }, 25);
         })();
     """
 

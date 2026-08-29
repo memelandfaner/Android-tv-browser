@@ -15,6 +15,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.webkit.*
+import java.io.ByteArrayInputStream
 
 enum class UserAgentMode {
     TV, DESKTOP, MOBILE
@@ -241,7 +242,19 @@ class ChromiumEngineView @JvmOverloads constructor(
 
                 // 🛡️ 3. YouTube Ad & Telemetry Stream Blocking
                 if (adBlockEngine.isYouTubeAd(url)) {
-                    return AdBlockEngine.createEmptyResponse("text/plain")
+                    val isJson = lowerUrl.contains("json") || lowerUrl.contains("/pagead/") || lowerUrl.contains("/api/stats/ads") || lowerUrl.contains("get_midroll_info") || lowerUrl.contains("ad_break")
+                    return if (isJson) {
+                        WebResourceResponse(
+                            "application/json",
+                            "UTF-8",
+                            200,
+                            "OK",
+                            mapOf("Access-Control-Allow-Origin" to "*", "Cache-Control" to "no-store"),
+                            ByteArrayInputStream("{\"adPlacements\":[],\"status\":\"ok\"}".toByteArray(Charsets.UTF_8))
+                        )
+                    } else {
+                        AdBlockEngine.createEmptyResponse("text/plain")
+                    }
                 }
 
                 // 🚫 4. Ad & Popunder Domain Blocking
