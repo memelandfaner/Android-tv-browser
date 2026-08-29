@@ -57,6 +57,19 @@
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:nextFocusLeft="@id/btnForward"
+                android:nextFocusRight="@id/btnQuickYouTube"
+                android:focusable="true" />
+
+            <Button
+                android:id="@+id/btnQuickYouTube"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_nav_button"
+                android:text="▶"
+                android:textColor="#ff0000"
+                android:textSize="14sp"
+                android:nextFocusLeft="@id/btnHome"
                 android:nextFocusRight="@id/editUrl"
                 android:focusable="true" />
 
@@ -95,7 +108,7 @@
                     android:ellipsize="end"
                     android:imeOptions="actionGo"
                     android:inputType="textUri|textWebEditText"
-                    android:nextFocusLeft="@id/btnHome"
+                    android:nextFocusLeft="@id/btnQuickYouTube"
                     android:nextFocusRight="@id/btnVoiceSearch"
                     android:focusable="true" />
 
@@ -141,13 +154,6 @@
             <!-- Hidden extra buttons (available in settings drawer) -->
             <Button
                 android:id="@+id/btnStarBookmark"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone"
-                android:focusable="false" />
-
-            <Button
-                android:id="@+id/btnQuickYouTube"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:visibility="gone"
