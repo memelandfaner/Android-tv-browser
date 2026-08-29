@@ -849,231 +849,65 @@ object UserScriptManager {
                             display: none !important;
                             visibility: hidden !important;
                             height: 0px !important;
-                            min-height: 0px !important;
-                            max-height: 0px !important;
                             width: 0px !important;
-                            min-width: 0px !important;
-                            max-width: 0px !important;
                             margin: 0 !important;
                             padding: 0 !important;
                             border: none !important;
                             background: transparent !important;
                             box-shadow: none !important;
                             pointer-events: none !important;
-                            position: fixed !important;
-                            top: -99999px !important;
-                            left: -99999px !important;
-                            z-index: -99999 !important;
                             opacity: 0 !important;
                         }
 
-                        /* 📺 CSS Variables Reset */
-                        :root, ytd-app, html, body {
-                            --ytd-masthead-height: 0px !important;
-                            --ytd-toolbar-height: 0px !important;
-                            --ytd-mini-guide-width: 0px !important;
-                            --ytd-guide-width: 0px !important;
-                            --ytd-rich-grid-chips-bar-top: 0px !important;
-                            --ytd-rich-grid-posts-per-row: 4 !important;
-                            --ytd-rich-grid-items-per-row: 4 !important;
-                        }
-
-                        /* 📺 Clean Dark Background */
+                        /* 📺 Clean YouTube Dark Background */
                         body, ytm-app, ytd-app, #app, .page-container, ytm-browse, #content, #page-manager, #primary, html {
                             background: #07090e !important;
                             color: #f1f5f9 !important;
                         }
 
-                        /* 📺 Remove all top gaps, headers and margins from TV & mobile YouTube */
-                        html, body, ytd-app, ytm-app, .page-container, ytm-browse,
-                        html body ytd-app #content.ytd-app,
+                        /* 📺 Zero Top Gap for YouTube Desktop/TV */
+                        :root, ytd-app {
+                            --ytd-masthead-height: 0px !important;
+                            --ytd-toolbar-height: 0px !important;
+                            --ytd-rich-grid-chips-bar-top: 0px !important;
+                        }
+                        html body ytd-app #content,
                         html body ytd-app #page-manager,
                         html body ytd-app ytd-page-manager,
-                        html body ytd-app #page-manager.ytd-app,
-                        html body ytd-app[masthead-hidden] #page-manager,
                         html body ytd-app ytd-browse,
-                        html body ytd-app ytd-browse[page-subtype="home"],
                         html body ytd-app ytd-two-column-browse-results-renderer,
                         html body ytd-app #primary,
-                        html body ytd-app #primary.ytd-two-column-browse-results-renderer,
-                        html body ytd-app ytd-rich-grid-renderer {
-                            margin: 0 !important;
-                            margin-top: 0px !important;
-                            padding-top: 0px !important;
-                            top: 0px !important;
-                            width: 100% !important;
-                        }
-
+                        html body ytd-app ytd-rich-grid-renderer,
                         html body ytd-app ytd-rich-grid-renderer > #contents,
                         html body ytd-app #contents.ytd-rich-grid-renderer {
                             margin: 0 !important;
                             margin-top: 0px !important;
                             padding-top: 0px !important;
                             top: 0px !important;
-                            width: 100% !important;
+                            transform: none !important;
                         }
 
-                        ytd-rich-grid-renderer > #header,
-                        ytd-rich-grid-renderer #header,
-                        ytd-browse > #header,
-                        ytd-browse #header,
-                        #header.ytd-rich-grid-renderer,
-                        #header.ytd-browse,
-                        #header,
-                        #chips,
-                        #chips-wrapper,
-                        ytd-feed-filter-chip-bar-renderer {
-                            display: none !important;
-                            visibility: hidden !important;
-                            height: 0px !important;
-                            min-height: 0px !important;
-                            max-height: 0px !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            border: none !important;
-                            opacity: 0 !important;
-                            z-index: -99999 !important;
-                            position: static !important;
-                            pointer-events: none !important;
-                        }
-
-                        /* 📺 YouTube Feed Section Containers - Standard 100% Full-Width Block */
-                        ytm-section-list-renderer,
-                        ytm-section-list-renderer > #contents,
-                        #contents.ytm-section-list-renderer,
-                        ytm-item-section-renderer,
-                        ytm-item-section-renderer > #contents,
-                        #contents.ytm-item-section-renderer,
-                        ytm-search,
-                        ytd-search,
-                        ytd-section-list-renderer,
-                        ytd-item-section-renderer,
-                        ytd-two-column-search-results-renderer {
-                            display: block !important;
-                            width: 100% !important;
-                            max-width: 100% !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            box-sizing: border-box !important;
-                        }
-
-                        /* 📺 Natural Rows for Desktop YouTube */
-                        ytd-rich-grid-row {
-                            display: block !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            width: 100% !important;
-                        }
-
-                        ytd-rich-grid-row > #contents,
-                        #contents.ytd-rich-grid-row {
-                            display: flex !important;
-                            flex-direction: row !important;
-                            flex-wrap: nowrap !important;
-                            gap: 14px !important;
-                            margin: 0 !important;
-                            padding: 6px 16px !important;
-                            width: 100% !important;
-                            box-sizing: border-box !important;
-                        }
-
-                        /* 📺 SmartTube 4-Column Video Grid for Item Lists ONLY */
-                        ytm-item-section-renderer > lazy-list,
-                        ytm-item-section-renderer > .lazy-list,
-                        ytm-rich-grid-renderer > #contents,
-                        .rich-grid-renderer-contents,
-                        #contents.ytd-rich-grid-renderer {
-                            display: grid !important;
-                            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-                            gap: 16px 14px !important;
-                            padding: 8px 16px 40px !important;
-                            width: 100% !important;
-                            box-sizing: border-box !important;
-                        }
-
-                        /* 📺 Mobile YouTube Search Results & Shelf Lists */
-                        ytm-search ytm-item-section-renderer > lazy-list,
-                        ytm-search ytm-item-section-renderer > .lazy-list {
-                            display: grid !important;
-                            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-                            gap: 20px 16px !important;
-                            padding: 8px 18px 40px !important;
-                            width: 100% !important;
-                            box-sizing: border-box !important;
-                        }
-
-                        /* 📺 YouTube Video Cards (Card Aspect & Clean Vertical Flow) */
-                        ytm-media-item,
-                        ytm-video-with-context-renderer,
-                        ytm-rich-item-renderer,
-                        ytm-compact-video-renderer,
-                        ytd-video-renderer {
-                            display: flex !important;
-                            flex-direction: column !important;
-                            width: 100% !important;
-                            max-width: 100% !important;
-                            min-width: 0 !important;
-                            margin: 0 !important;
-                            padding: 10px !important;
-                            border-radius: 14px !important;
-                            background: rgba(255, 255, 255, 0.04) !important;
-                            border: 2px solid rgba(255, 255, 255, 0.06) !important;
-                            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
-                            box-sizing: border-box !important;
-                            cursor: pointer !important;
-                        }
-
-                        /* 📺 Thumbnail Container Full Width in Card */
-                        .media-item-thumbnail-container,
-                        ytm-media-item .media-item-thumbnail-container,
-                        ytm-video-with-context-renderer .media-item-thumbnail-container,
-                        ytm-thumbnail-cover,
-                        .cover-container,
-                        .video-thumbnail-container {
-                            width: 100% !important;
-                            min-width: 100% !important;
-                            max-width: 100% !important;
-                            aspect-ratio: 16/9 !important;
-                            border-radius: 10px !important;
-                            overflow: hidden !important;
-                            margin-bottom: 8px !important;
-                        }
-
-                        .media-item-thumbnail-container img,
-                        ytm-thumbnail-cover img,
-                        .video-thumbnail-container img {
-                            width: 100% !important;
-                            height: 100% !important;
-                            object-fit: cover !important;
-                            border-radius: 10px !important;
-                        }
-
-                        /* 📺 Details and Metadata Below Thumbnail */
-                        .media-item-metadata,
-                        .compact-media-item-metadata,
-                        .details,
-                        #meta,
-                        ytm-media-item .details {
-                            width: 100% !important;
-                            max-width: 100% !important;
-                            padding: 2px 4px !important;
-                            box-sizing: border-box !important;
-                        }
-
-                        /* 📺 Hide Shorts Shelves and Info/Clarification Panels in Search */
-                        ytm-reel-shelf-renderer,
-                        ytd-reel-shelf-renderer,
-                        ytm-shorts-lockup-view-model,
-                        ytm-reel-item-renderer,
-                        ytm-item-section-renderer:has(ytm-reel-shelf-renderer),
-                        ytm-item-section-renderer:has(ytm-info-panel-container-renderer),
-                        ytm-item-section-renderer:has(ytm-clarification-renderer),
-                        ytm-info-panel-container-renderer,
-                        ytm-clarification-renderer,
+                        /* 🛡️ Pure YouTube Ad Banners & Overlays Blocking */
+                        ytd-promoted-sparkles-web-renderer,
+                        ytd-in-feed-ad-layout-renderer,
+                        ytd-ad-slot-renderer,
+                        ytd-banner-promo-renderer,
+                        ytd-statement-banner-renderer,
+                        #player-ads,
+                        #masthead-ad,
+                        .ytp-ad-module,
+                        .ytp-ad-overlay-container,
+                        .ytp-ad-message-container,
+                        .ytp-ad-player-overlay,
+                        .ytp-ad-action-interstitial,
+                        .ad-container,
+                        .ad-showing,
+                        .ad-interrupting,
+                        ytm-promoted-sparkles-web-renderer,
+                        ytm-ad-slot-renderer,
+                        #offer-module,
                         #clarify-box,
-                        #about-this-result,
-                        [aria-label*="O teh rezultatih"],
-                        [aria-label*="About these results"] {
+                        #about-this-result {
                             display: none !important;
                             visibility: hidden !important;
                             height: 0px !important;
@@ -1081,27 +915,41 @@ object UserScriptManager {
                             margin: 0 !important;
                             padding: 0 !important;
                             opacity: 0 !important;
+                            pointer-events: none !important;
                         }
 
-                        /* 📺 SmartTube D-Pad Focus Glow */
-                        ytd-rich-item-renderer:focus, ytd-rich-item-renderer:focus-within, ytd-rich-item-renderer:hover,
-                        ytm-media-item:focus, ytm-media-item:focus-within,
-                        ytm-video-with-context-renderer:focus, ytm-video-with-context-renderer:focus-within,
-                        ytm-compact-video-renderer:focus, ytm-compact-video-renderer:focus-within {
-                            transform: scale(1.04) !important;
-                            border-color: #00d2ff !important;
-                            background: rgba(0, 210, 255, 0.12) !important;
-                            box-shadow: 0 8px 24px rgba(0, 210, 255, 0.4), 0 0 14px rgba(0, 210, 255, 0.6) !important;
-                            outline: none !important;
-                            z-index: 100 !important;
+                        /* 📺 Hide Annoying Shorts Shelves */
+                        ytm-reel-shelf-renderer,
+                        ytd-reel-shelf-renderer,
+                        ytm-shorts-lockup-view-model,
+                        ytm-reel-item-renderer {
+                            display: none !important;
+                            visibility: hidden !important;
+                            height: 0px !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
                         }
 
-                        /* 📺 16:9 Rounded Thumbnails */
+                        /* 📺 Smart TV D-Pad Focus Glow for YouTube Video Items */
+                        ytd-rich-item-renderer:focus-within,
+                        ytd-video-renderer:focus-within,
+                        ytd-compact-video-renderer:focus-within,
+                        ytm-media-item:focus-within,
+                        ytm-video-with-context-renderer:focus-within,
+                        ytm-compact-video-renderer:focus-within,
+                        a#thumbnail:focus {
+                            outline: 3px solid #00d2ff !important;
+                            outline-offset: 4px !important;
+                            border-radius: 12px !important;
+                            box-shadow: 0 0 16px rgba(0, 210, 255, 0.6) !important;
+                            transition: outline 0.15s ease, box-shadow 0.15s ease !important;
+                        }
+
+                        /* 📺 16:9 Smooth Rounded Thumbnails */
                         ytd-thumbnail, ytd-thumbnail img, #thumbnail,
                         .media-item-thumbnail-container, ytm-thumbnail-cover, .cover-container, .thumbnail-container,
                         .video-thumbnail-container, img.video-thumbnail, ytm-thumbnail-cover img {
                             border-radius: 10px !important;
-                            overflow: hidden !important;
                         }
                     `;
                     (document.head || document.documentElement).appendChild(style);
