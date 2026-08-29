@@ -882,7 +882,7 @@ object UserScriptManager {
                         .player-control-mute-icon, .ytm-unmute-button, ytm-mute-button,
                         ytm-inline-player-mute-button, button.inline-player-mute-button,
                         button[aria-label*="Vklopite zvok"], button[aria-label*="Vklopi zvok"],
-                        button[aria-label*="Izklopi zvok"], button[aria-label*="zvok"],
+                        button[aria-label*="Izklopi zvok"],
                         button[aria-label*="Unmute"], button[aria-label*="unmute"],
                         button[aria-label*="Mute"], button[aria-label*="mute"],
                         button.ytp-mute-button, .ytp-volume-panel {
@@ -894,6 +894,25 @@ object UserScriptManager {
                             padding: 0 !important;
                             opacity: 0 !important;
                             pointer-events: none !important;
+                        }
+
+                        /* 🚫 Skrij obtičale bele vrtljive kroge nalaganja (Stuck Buffering Spinner) */
+                        .playing-mode .ytp-spinner,
+                        .html5-video-player:not(.buffering) .ytp-spinner,
+                        div.ytp-spinner[style*="opacity: 0"] {
+                            display: none !important;
+                            opacity: 0 !important;
+                        }
+
+                        /* 🚫 100% Blokada podnapisov (Subtitles OFF) */
+                        .ytp-caption-window-container,
+                        .ytp-caption-segment,
+                        .caption-window,
+                        .ytm-custom-caption-renderer,
+                        ::cue {
+                            display: none !important;
+                            visibility: hidden !important;
+                            opacity: 0 !important;
                         }
 
                         /* 📺 Clean YouTube Dark Background */
@@ -1065,35 +1084,37 @@ object UserScriptManager {
             }
 
             function triggerInstantYouTubePlay(video) {
+                if (!video) video = document.querySelector('video');
                 if (!video) return;
                 if (video.muted) video.muted = false;
                 if (video.defaultMuted) video.defaultMuted = false;
                 if (video.volume < 1.0) video.volume = 1.0;
 
+                // Če video že teče, se ga nikoli ne dotikamo s kliki
+                if (!video.paused) return;
+
                 if (video.paused && !video.ended) {
                     try {
                         video.play().catch(function(){});
                     } catch(e) {}
+                    var moviePlayer = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
+                    if (moviePlayer && typeof moviePlayer.playVideo === 'function') {
+                        try { moviePlayer.playVideo(); } catch(e) {}
+                    }
+                    var playSelectors = [
+                        '.ytp-large-play-button',
+                        '.ytp-cued-thumbnail-overlay',
+                        'button.ytp-play-button[aria-label*="Play"]',
+                        'button.ytp-play-button[aria-label*="Predvajaj"]'
+                    ];
+                    if (video.currentTime < 0.1) {
+                        playSelectors.push('.player-control-play-pause-icon');
+                    }
+                    var btns = document.querySelectorAll(playSelectors.join(','));
+                    btns.forEach(function(b) {
+                        try { b.click(); } catch(e) {}
+                    });
                 }
-
-                var playSelectors = [
-                    '.player-control-play-pause-icon',
-                    '.ytp-large-play-button',
-                    '.ytp-play-button',
-                    '.player-container',
-                    'ytm-player',
-                    '.ytp-cued-thumbnail-overlay',
-                    'button[aria-label*="Play"]',
-                    'button[aria-label*="Predvajaj"]'
-                ];
-                var btns = document.querySelectorAll(playSelectors.join(','));
-                btns.forEach(function(b) {
-                    try {
-                        b.click();
-                        var evt = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-                        b.dispatchEvent(evt);
-                    } catch(e) {}
-                });
             }
 
             function attachPlayer() {
@@ -1161,6 +1182,25 @@ object UserScriptManager {
                 unmuteButtons.forEach(function(btn) {
                     try { btn.click(); btn.remove(); } catch(e) {}
                 });
+
+                // 🚫 Podnapisi privzeto 100% izklopljeni (Subtitles OFF by default)
+                if (video && video.textTracks) {
+                    for (var t = 0; t < video.textTracks.length; t++) {
+                        try { video.textTracks[t].mode = 'disabled'; } catch(e) {}
+                    }
+                }
+                var activeCc = document.querySelector('button.ytp-subtitles-button[aria-pressed="true"]');
+                if (activeCc) {
+                    try { activeCc.click(); } catch(e) {}
+                }
+
+                // 🔄 Skrij obtičali spinner med normalnim tekočim predvajanjem
+                if (video && !video.paused && video.currentTime > 0.5) {
+                    var spinners = document.querySelectorAll('.ytp-spinner');
+                    spinners.forEach(function(sp) {
+                        try { sp.style.display = 'none'; sp.style.opacity = '0'; } catch(e) {}
+                    });
+                }
 
                 // Remove sponsored rich items, clarification boxes and promo banners
                 var badSelectors = [

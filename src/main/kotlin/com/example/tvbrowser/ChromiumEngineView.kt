@@ -244,12 +244,17 @@ class ChromiumEngineView @JvmOverloads constructor(
                 if (adBlockEngine.isYouTubeAd(url)) {
                     val isJson = lowerUrl.contains("json") || lowerUrl.contains("/pagead/") || lowerUrl.contains("/api/stats/ads") || lowerUrl.contains("get_midroll_info") || lowerUrl.contains("ad_break")
                     return if (isJson) {
+                        val origin = request?.requestHeaders?.get("Origin") ?: request?.requestHeaders?.get("origin") ?: "https://m.youtube.com"
                         WebResourceResponse(
                             "application/json",
                             "UTF-8",
                             200,
                             "OK",
-                            mapOf("Access-Control-Allow-Origin" to "*", "Cache-Control" to "no-store"),
+                            mapOf(
+                                "Access-Control-Allow-Origin" to origin,
+                                "Access-Control-Allow-Credentials" to "true",
+                                "Cache-Control" to "no-store"
+                            ),
                             ByteArrayInputStream("{\"adPlacements\":[],\"status\":\"ok\"}".toByteArray(Charsets.UTF_8))
                         )
                     } else {
