@@ -735,9 +735,12 @@ class MainActivity : android.app.Activity() {
 
     private fun handleUrlSubmit() {
         hideSoftKeyboard()
+        editUrl.clearFocus()
         val target = viewModel.processUrlInput(editUrl.text.toString())
         loadUrl(target)
-        getActiveWebView()?.requestFocus()
+        val active = getActiveWebView()
+        active?.requestFocus(View.FOCUS_DOWN)
+        active?.evaluateJavascript("if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();", null)
     }
 
     fun loadUrl(url: String) {
@@ -1943,6 +1946,13 @@ class MainActivity : android.app.Activity() {
         }
 
         if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (isWebInputFocused) {
+                isWebInputFocused = false
+                hideSoftKeyboard()
+                getActiveWebView()?.evaluateJavascript("if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();", null)
+                return true
+            }
+
             if (isTvFullscreenMode || customView != null) {
                 if (customView != null) {
                     getActiveWebView()?.onHideCustomViewListener?.invoke()
