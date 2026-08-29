@@ -52,9 +52,9 @@ class AdBlockEngine(context: Context? = null) {
         "imrworldwide.com", "moatads.com", "crazyegg.com", "kissmetrics.com",
         "mouseflow.com", "fullstory.com", "amplitude.com", "branch.io",
         "appsflyer.com", "adjust.com", "kochava.com", "singular.net",
-        "yandex.ru/metrika", "mc.yandex.ru", "statcounter.com", "chartbeat.com",
+        "yandex.ru", "mc.yandex.ru", "an.yandex.ru", "statcounter.com", "chartbeat.com",
         "newrelic.com", "datadoghq.com", "clarity.ms", "bugsnag.com",
-        "sentry.io", "telemetry.mozilla.org", "graph.facebook.com/tr",
+        "sentry.io", "telemetry.mozilla.org", "graph.facebook.com",
         "tr.snapchat.com", "analytics.twitter.com", "analytics.tiktok.com",
         "byteoversea.com", "ib.adnxs.com", "pixel.wp.com",
 

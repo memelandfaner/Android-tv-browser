@@ -191,7 +191,20 @@ class BrowserViewModel(context: Context) {
             }
         } catch (ignored: Exception) {}
 
-        // 1. Če uporabnik išče pesem, glasbo ali izrecno išče na YouTube
+        // 1. Če je že polni veljaven URL (http:// ali https://)
+        if (raw.startsWith("http://", ignoreCase = true) || raw.startsWith("https://", ignoreCase = true)) {
+            return raw
+        }
+
+        // 2. Če je čista spletna domena (npr. 24ur.com, hydrahd.ws, rtvslo.si, github.com) brez presledkov
+        val hasSpace = raw.contains(" ") || raw.contains("\t")
+        val isCleanDomain = !hasSpace && raw.contains(".") && !raw.startsWith("search", ignoreCase = true) && raw.matches(Regex("^[a-zA-Z0-9-]+\\.[a-zA-Z]{2,}(/.*)?$"))
+
+        if (isCleanDomain) {
+            return "https://$raw"
+        }
+
+        // 3. Če uporabnik išče pesem, glasbo ali izrecno išče na YouTube
         val activeUrl = state.tabs.getOrNull(state.activeTabIndex)?.url ?: ""
         val isExplicitYt = raw.startsWith("yt:", ignoreCase = true) ||
                            raw.startsWith("youtube:", ignoreCase = true) ||
@@ -230,19 +243,6 @@ class BrowserViewModel(context: Context) {
             val finalQuery = if (q.isNotEmpty()) q else raw
             val encoded = try { URLEncoder.encode(finalQuery, "UTF-8") } catch (e: Exception) { finalQuery }
             return "https://www.youtube.com/results?search_query=$encoded"
-        }
-
-        // 2. Če je že polni veljaven URL (http:// ali https://)
-        if (raw.startsWith("http://") || raw.startsWith("https://")) {
-            return raw
-        }
-
-        // 3. Če je čista spletna domena (npr. 24ur.com, rtvslo.si, github.com) brez presledkov
-        val hasSpace = raw.contains(" ") || raw.contains("\t")
-        val isCleanDomain = !hasSpace && raw.contains(".") && !raw.startsWith("search", ignoreCase = true) && raw.matches(Regex("^[a-zA-Z0-9-]+\\.[a-zA-Z]{2,}(/.*)?$"))
-
-        if (isCleanDomain) {
-            return "https://$raw"
         }
 
         // 4. Za VSA ostala iskanja ("search for rtv", "rtv", "slovenija", itd.) -> VEDNO GOOGLE

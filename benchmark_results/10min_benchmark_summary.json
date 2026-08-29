@@ -1,0 +1,299 @@
+[
+  {
+    "cycle": 1,
+    "page": "Google Iskalnik (Desktop 4K)",
+    "url": "https://www.google.com",
+    "timestamp": "14:08:54",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 1,
+    "page": "YouTube Video Predvajanje (Despacito 4K)",
+    "url": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
+    "timestamp": "14:09:18",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 1,
+    "page": "24ur Novi\u010darski Portal",
+    "url": "https://www.24ur.com",
+    "timestamp": "14:09:37",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 1,
+    "page": "StreamNexus Filmski Katalog",
+    "url": "https://hydrahd.ws",
+    "timestamp": "14:09:56",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 1,
+    "page": "RTV Slovenija 365",
+    "url": "https://www.rtvslo.si",
+    "timestamp": "14:10:15",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 1,
+    "page": "GitHub Repozitorij",
+    "url": "https://github.com/memelandfaner/Android-tv-browser",
+    "timestamp": "14:10:32",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 1,
+    "page": "Wikipedija Slovenija",
+    "url": "https://sl.wikipedia.org/wiki/Slovenija",
+    "timestamp": "14:10:51",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 1,
+    "page": "TMDB Filmska Baza",
+    "url": "https://www.themoviedb.org/movie",
+    "timestamp": "14:11:10",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 1,
+    "page": "Fast.com Merilnik Hitrosti",
+    "url": "https://fast.com",
+    "timestamp": "14:11:28",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 1,
+    "page": "Lofi Hip Hop Radio (Live Stream)",
+    "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+    "timestamp": "14:11:47",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "Google Iskalnik (Desktop 4K)",
+    "url": "https://www.google.com",
+    "timestamp": "14:12:05",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "YouTube Video Predvajanje (Despacito 4K)",
+    "url": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
+    "timestamp": "14:12:23",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "24ur Novi\u010darski Portal",
+    "url": "https://www.24ur.com",
+    "timestamp": "14:12:40",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "StreamNexus Filmski Katalog",
+    "url": "https://hydrahd.ws",
+    "timestamp": "14:12:59",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "RTV Slovenija 365",
+    "url": "https://www.rtvslo.si",
+    "timestamp": "14:13:18",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "GitHub Repozitorij",
+    "url": "https://github.com/memelandfaner/Android-tv-browser",
+    "timestamp": "14:13:37",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "Wikipedija Slovenija",
+    "url": "https://sl.wikipedia.org/wiki/Slovenija",
+    "timestamp": "14:13:58",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "TMDB Filmska Baza",
+    "url": "https://www.themoviedb.org/movie",
+    "timestamp": "14:14:18",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "Fast.com Merilnik Hitrosti",
+    "url": "https://fast.com",
+    "timestamp": "14:14:37",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 2,
+    "page": "Lofi Hip Hop Radio (Live Stream)",
+    "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+    "timestamp": "14:14:55",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "Google Iskalnik (Desktop 4K)",
+    "url": "https://www.google.com",
+    "timestamp": "14:15:13",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "YouTube Video Predvajanje (Despacito 4K)",
+    "url": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
+    "timestamp": "14:15:31",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "24ur Novi\u010darski Portal",
+    "url": "https://www.24ur.com",
+    "timestamp": "14:15:49",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "StreamNexus Filmski Katalog",
+    "url": "https://hydrahd.ws",
+    "timestamp": "14:16:07",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "RTV Slovenija 365",
+    "url": "https://www.rtvslo.si",
+    "timestamp": "14:16:25",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "GitHub Repozitorij",
+    "url": "https://github.com/memelandfaner/Android-tv-browser",
+    "timestamp": "14:16:45",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "Wikipedija Slovenija",
+    "url": "https://sl.wikipedia.org/wiki/Slovenija",
+    "timestamp": "14:17:03",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "TMDB Filmska Baza",
+    "url": "https://www.themoviedb.org/movie",
+    "timestamp": "14:17:23",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "Fast.com Merilnik Hitrosti",
+    "url": "https://fast.com",
+    "timestamp": "14:17:41",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 3,
+    "page": "Lofi Hip Hop Radio (Live Stream)",
+    "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+    "timestamp": "14:17:59",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 4,
+    "page": "Google Iskalnik (Desktop 4K)",
+    "url": "https://www.google.com",
+    "timestamp": "14:18:18",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 4,
+    "page": "YouTube Video Predvajanje (Despacito 4K)",
+    "url": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
+    "timestamp": "14:18:37",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  },
+  {
+    "cycle": 4,
+    "page": "24ur Novi\u010darski Portal",
+    "url": "https://www.24ur.com",
+    "timestamp": "14:18:55",
+    "ram_pss": "PSS: KB",
+    "status": "\u2705 ODLI\u010cNO",
+    "has_error": false
+  }
+]

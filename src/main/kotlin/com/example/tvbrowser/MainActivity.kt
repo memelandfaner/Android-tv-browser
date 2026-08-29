@@ -2107,12 +2107,15 @@ class MainActivity : android.app.Activity() {
 
         val downTime = SystemClock.uptimeMillis()
         val down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, cx, cy, 0)
-        val up = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, cx, cy, 0)
-
         active.dispatchTouchEvent(down)
-        active.dispatchTouchEvent(up)
         down.recycle()
-        up.recycle()
+
+        active.postDelayed({
+            val upTime = SystemClock.uptimeMillis()
+            val up = MotionEvent.obtain(downTime, upTime, MotionEvent.ACTION_UP, cx, cy, 0)
+            active.dispatchTouchEvent(up)
+            up.recycle()
+        }, 40)
     }
 
     @Suppress("DEPRECATION")
