@@ -728,13 +728,23 @@ object UserScriptManager {
                     ytm-promoted-sparkles-web-renderer, ytm-promoted-video-renderer,
                     ytm-ad-slot-renderer, ytm-companion-ad-renderer,
                     ytm-in-feed-ad-layout-renderer, ytm-statement-banner-renderer,
-                    #masthead-ad, .ytd-search-pyv-renderer {
+                    #masthead-ad, .ytd-search-pyv-renderer,
+                    /* 🔊 Trajno skrij vse YouTube Vklopi Zvok / Unmute / Mute lebdeče gumbe */
+                    .ytp-unmute, .ytp-unmute-inner, .ytp-unmute-animated, .ytp-unmute-box,
+                    .player-control-mute-icon, .ytm-unmute-button, ytm-mute-button,
+                    ytm-inline-player-mute-button, button.inline-player-mute-button,
+                    div[class*="unmute"], button[class*="unmute"], [class*="ytp-unmute"],
+                    [aria-label*="zvok"], [aria-label*="Zvok"], [aria-label*="Unmute"], [aria-label*="unmute"],
+                    button.ytp-mute-button, .ytp-volume-panel {
                         display: none !important;
                         visibility: hidden !important;
                         height: 0 !important;
+                        width: 0 !important;
                         max-height: 0 !important;
                         pointer-events: none !important;
                         opacity: 0 !important;
+                        position: absolute !important;
+                        left: -9999px !important;
                     }
 
                     /* 🎯 Clean TV Focus Styling (Eye-friendly Soft Sky Blue) */
@@ -866,7 +876,16 @@ object UserScriptManager {
                         ytd-promoted-sparkles-web-renderer, ytm-promoted-sparkles-web-renderer,
                         ytd-banner-promo-renderer, ytd-statement-banner-renderer,
                         #masthead-ad, #offer-module, #clarify-box, #about-this-result,
-                        ytm-promoted-video-renderer, ytd-brand-video-singleton-renderer {
+                        ytm-promoted-video-renderer, ytd-brand-video-singleton-renderer,
+                        /* 🚫 Popolna odstranitev YouTube Mute/Unmute gumbov in lebdečih indikatorjev */
+                        .ytp-unmute, .ytp-unmute-inner, .ytp-unmute-animated, .ytp-unmute-box,
+                        .player-control-mute-icon, .ytm-unmute-button, ytm-mute-button,
+                        ytm-inline-player-mute-button, button.inline-player-mute-button,
+                        button[aria-label*="Vklopite zvok"], button[aria-label*="Vklopi zvok"],
+                        button[aria-label*="Izklopi zvok"], button[aria-label*="zvok"],
+                        button[aria-label*="Unmute"], button[aria-label*="unmute"],
+                        button[aria-label*="Mute"], button[aria-label*="mute"],
+                        button.ytp-mute-button, .ytp-volume-panel {
                             display: none !important;
                             visibility: hidden !important;
                             height: 0px !important;
@@ -1119,6 +1138,18 @@ object UserScriptManager {
                     try { btn.click(); } catch(e) {}
                 });
 
+                // 🔊 Trajno uniči in odstrani Mute/Unmute lebdeče gumbe
+                var unmuteButtons = document.querySelectorAll(
+                    '.ytp-unmute, .ytp-unmute-inner, .ytp-unmute-animated, .ytp-unmute-box, ' +
+                    '.player-control-mute-icon, .ytm-unmute-button, ytm-mute-button, ' +
+                    'ytm-inline-player-mute-button, button.inline-player-mute-button, ' +
+                    'button[aria-label*="Vklopite zvok"], button[aria-label*="Vklopi zvok"], ' +
+                    'button[aria-label*="Unmute"], button[aria-label*="unmute"]'
+                );
+                unmuteButtons.forEach(function(btn) {
+                    try { btn.click(); btn.remove(); } catch(e) {}
+                });
+
                 // Remove sponsored rich items, clarification boxes and promo banners
                 var badSelectors = [
                     '.badge-style-type-ad',
@@ -1213,10 +1244,32 @@ object UserScriptManager {
             function ensureUnmute() {
                 document.querySelectorAll('video, audio').forEach(function(v) {
                     if (v.muted) v.muted = false;
+                    if (v.defaultMuted) v.defaultMuted = false;
                     if (v.volume < 1.0) v.volume = 1.0;
                 });
+                var mBtns = document.querySelectorAll(
+                    '.ytp-unmute, .ytp-unmute-inner, .ytp-unmute-animated, .ytp-unmute-box, ' +
+                    '.player-control-mute-icon, ytm-inline-player-mute-button, button.inline-player-mute-button, ' +
+                    'div[class*="unmute"], button[class*="unmute"], [class*="ytp-unmute"], ' +
+                    '[aria-label*="zvok"], [aria-label*="Zvok"], [aria-label*="Unmute"], [aria-label*="unmute"]'
+                );
+                mBtns.forEach(function(b) {
+                    try { b.click(); b.remove(); } catch(e) {}
+                });
+
+                var allDivs = document.querySelectorAll('div, button, span');
+                for (var i = 0; i < allDivs.length; i++) {
+                    var el = allDivs[i];
+                    if (el.children.length <= 2) {
+                        var txt = (el.textContent || '').trim().toUpperCase();
+                        if (txt === 'VKLOPITE ZVOK' || txt === 'TAP TO UNMUTE' || txt === 'UNMUTE') {
+                            try { el.click(); el.remove(); } catch(e) {}
+                        }
+                    }
+                }
             }
             ensureUnmute();
+            setInterval(ensureUnmute, 300);
             document.addEventListener('play', ensureUnmute, { once: true, capture: true });
             document.addEventListener('playing', ensureUnmute, { once: true, capture: true });
 
