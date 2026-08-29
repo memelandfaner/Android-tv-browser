@@ -413,6 +413,24 @@ object UserScriptManager {
                 var bestCandidate = null;
                 var bestDistance = Infinity;
 
+                // Če smo na vrhu strani in uporabnik pritisne GOR, takoj predaj fokus YouTube orodnemu gumbu
+                if (direction === 'up' && (curRect.top < 120 || window.scrollY <= 20)) {
+                    var hasElementAbove = false;
+                    for (var k = 0; k < focusables.length; k++) {
+                        var kr = focusables[k].getBoundingClientRect();
+                        if (kr.bottom < curRect.top - 5 && kr.top >= 0) {
+                            hasElementAbove = true;
+                            break;
+                        }
+                    }
+                    if (!hasElementAbove) {
+                        if (window.AndroidNativeBridge && typeof window.AndroidNativeBridge.focusToolbar === 'function') {
+                            window.AndroidNativeBridge.focusToolbar();
+                            return;
+                        }
+                    }
+                }
+
                 for (var i = 0; i < focusables.length; i++) {
                     var el = focusables[i];
                     if (el === current) continue;

@@ -864,8 +864,7 @@ class MainActivity : android.app.Activity() {
             onEdgeReachedTopListener = {
                 runOnUiThread {
                     if (!isTvFullscreenMode && customView == null) {
-                        editUrl.requestFocus()
-                        editUrl.selectAll()
+                        findViewById<View>(R.id.btnQuickYouTube).requestFocus()
                     }
                 }
             }
