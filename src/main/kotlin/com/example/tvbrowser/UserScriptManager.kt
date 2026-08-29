@@ -1125,15 +1125,20 @@ object UserScriptManager {
                 }
                 if (!isAdActive) {
                     isAdActive = !!document.querySelector(
-                        '.ad-showing, .ad-interrupting, .ytp-ad-player-overlay, .ytp-ad-module:not([style*="display: none"]), ytm-player-control-overlay .ad-showing'
+                        '.ad-showing, .ad-interrupting, .ytp-ad-player-overlay-instream-info, .ytp-ad-text, ytm-player-control-overlay .ad-showing'
                     );
                 }
                 
                 if (isAdActive && video) {
                     video.muted = true;
                     video.playbackRate = 16.0;
-                    if (isFinite(video.duration) && video.duration > 0) {
-                        video.currentTime = video.duration;
+                    if (moviePlayer && typeof moviePlayer.skipAd === 'function') {
+                        try { moviePlayer.skipAd(); } catch(e) {}
+                    }
+                } else if (!isAdActive && video) {
+                    if (video.playbackRate > 2.0) {
+                        video.playbackRate = 1.0;
+                        video.muted = false;
                     }
                 }
 
