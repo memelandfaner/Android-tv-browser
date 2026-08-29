@@ -539,7 +539,7 @@ object UserScriptManager {
             };
 
             window.clickActiveElement = function() {
-                var act = document.activeElement;
+                var act = document.activeElement || document.querySelector('[data-tv-focused="true"]');
                 if (!act) return;
 
                 // Če je fokusirana YouTube kartica, najdi in klikni notranjo video povezavo
@@ -548,22 +548,17 @@ object UserScriptManager {
                                act.classList.contains('media-item') ||
                                act.classList.contains('video-card') ||
                                act.classList.contains('compact-media-item') ||
-                               (act.closest && act.closest('ytd-rich-item-renderer, ytd-video-renderer, ytm-media-item'));
+                               (act.closest && act.closest('ytd-rich-item-renderer, ytd-video-renderer, ytm-media-item, ytd-rich-grid-media'));
 
                 if (isYtCard) {
-                    var card = (act.closest && act.closest('ytd-rich-item-renderer, ytd-video-renderer, ytm-media-item')) || act;
+                    var card = (act.closest && act.closest('ytd-rich-item-renderer, ytd-video-renderer, ytm-media-item, ytd-rich-grid-media')) || act;
                     var link = card.querySelector('a#thumbnail, a#video-title-link, a[href*="watch"], a.media-item-thumbnail-container, a.compact-media-item-image, a[href]');
                     if (link && link.href) {
                         try { link.focus(); } catch(_) {}
                         try { link.click(); } catch(_) {}
-                        try {
-                            link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-                        } catch(_) {}
-                        setTimeout(function() {
-                            if (window.location.href.indexOf('watch') === -1 && link.href.indexOf('watch') !== -1) {
-                                window.location.href = link.href;
-                            }
-                        }, 50);
+                        if (link.href && !link.href.startsWith('javascript:')) {
+                            window.location.href = link.href;
+                        }
                         return;
                     }
                 }
@@ -986,45 +981,99 @@ object UserScriptManager {
                         }
 
                         /* 📺 Multi-Column TV Grid with Compact Smaller Posters for m.youtube.com */
-                        ytm-browse, ytm-search, .page-container, ytm-section-list-renderer, ytm-item-section-renderer {
+                        ytm-browse, ytm-search, ytm-app, .page-container,
+                        ytm-single-column-browse-results-renderer,
+                        ytm-rich-grid-renderer,
+                        ytm-section-list-renderer,
+                        ytm-item-section-renderer {
                             display: block !important;
                             width: 100% !important;
                             max-width: 100% !important;
                             padding: 0 !important;
+                            margin: 0 !important;
                         }
 
                         ytm-rich-grid-renderer #contents,
+                        ytm-rich-grid-row-renderer,
+                        ytm-rich-grid-row-renderer #contents,
                         ytm-section-list-renderer .lazy-list,
                         ytm-browse ytm-item-section-renderer .lazy-list,
                         ytm-search ytm-item-section-renderer .lazy-list,
+                        ytm-single-column-browse-results-renderer #contents,
                         .lazy-list {
                             display: grid !important;
-                            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
-                            gap: 14px !important;
-                            padding: 14px !important;
+                            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+                            gap: 16px !important;
+                            padding: 16px !important;
+                            width: 100% !important;
+                            box-sizing: border-box !important;
                         }
 
-                        ytm-media-item, ytm-rich-item-renderer, ytm-video-with-context-renderer {
+                        ytm-media-item,
+                        ytm-rich-item-renderer,
+                        ytm-video-with-context-renderer,
+                        yt-lockup-view-model,
+                        .yt-lockup-view-model-wiz {
                             display: flex !important;
                             flex-direction: column !important;
                             width: 100% !important;
+                            max-width: 100% !important;
                             margin: 0 !important;
-                            padding: 6px !important;
+                            padding: 8px !important;
                             box-sizing: border-box !important;
                             border-radius: 12px !important;
                             background: rgba(15, 23, 42, 0.6) !important;
-                            border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                            border: 1px solid rgba(255, 255, 255, 0.08) !important;
                             cursor: pointer !important;
+                            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
                         }
 
-                        /* Compact Poster Thumbnail Sizing */
+                        ytm-media-item:focus-within,
+                        ytm-rich-item-renderer:focus-within,
+                        ytm-video-with-context-renderer:focus-within,
+                        yt-lockup-view-model:focus-within,
+                        yt-lockup-view-model:focus,
+                        .yt-lockup-view-model-wiz:focus-within,
+                        a.ytLockupViewModelContentImage:focus {
+                            outline: 3px solid #ff0000 !important;
+                            outline-offset: 4px !important;
+                            border-radius: 12px !important;
+                            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7) !important;
+                            transform: scale(1.03) !important;
+                            z-index: 10 !important;
+                        }
+
+                        /* 🖼️ 16:9 Thumbnail Image Sizing */
                         .media-item-thumbnail-container, ytm-thumbnail-cover, .cover-container, .thumbnail-container,
-                        .video-thumbnail-container, img.video-thumbnail, ytm-thumbnail-cover img {
+                        .video-thumbnail-container, img.video-thumbnail, ytm-thumbnail-cover img,
+                        a.ytLockupViewModelContentImage, .yt-lockup-view-model-wiz__content-image,
+                        .yt-lockup-view-model-wiz__content-image img,
+                        yt-image-banner-view-model img {
                             border-radius: 8px !important;
                             aspect-ratio: 16 / 9 !important;
                             width: 100% !important;
-                            max-height: 145px !important;
+                            height: auto !important;
+                            max-height: 180px !important;
                             object-fit: cover !important;
+                        }
+
+                        /* 📝 Video Title & Metadata */
+                        .yt-lockup-view-model-wiz__metadata,
+                        yt-lockup-metadata-view-model,
+                        .details, .media-item-metadata {
+                            padding: 6px 2px 2px 2px !important;
+                        }
+
+                        .yt-lockup-metadata-view-model-wiz__title,
+                        .media-item-headline {
+                            font-size: 14px !important;
+                            line-height: 1.3 !important;
+                            font-weight: 600 !important;
+                            color: #ffffff !important;
+                            display: -webkit-box !important;
+                            -webkit-line-clamp: 2 !important;
+                            -webkit-box-orient: vertical !important;
+                            overflow: hidden !important;
                         }
                     `;
                     (document.head || document.documentElement).appendChild(style);

@@ -688,7 +688,7 @@ class MainActivity : android.app.Activity() {
         // ▶ Quick 1-Click YouTube Launcher
         findViewById<View?>(R.id.btnQuickYouTube)?.setOnClickListener {
             hideAllPanels()
-            loadUrl("https://m.youtube.com")
+            loadUrl("https://www.youtube.com")
             Toast.makeText(this, "▶ Odpiram YouTube...", Toast.LENGTH_SHORT).show()
         }
 
